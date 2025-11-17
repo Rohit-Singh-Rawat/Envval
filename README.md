@@ -1,146 +1,135 @@
-# Env0
+# Turborepo starter
 
-A modern environment variable management application built with the T3 Stack.
+This Turborepo starter is maintained by the Turborepo core team.
 
-## Features
+## Using this example
 
-- Secure authentication with Better Auth
-- PostgreSQL database with Prisma ORM
-- Type-safe API with tRPC
-- Modern UI with Tailwind CSS
-- Next.js 15 for fast, server-side rendering
+Run the following command:
 
-## Getting Started
+```sh
+npx create-turbo@latest
+```
 
-### Prerequisites
+## What's inside?
 
-- Node.js 18+
-- PostgreSQL database
-- pnpm (recommended) or npm/yarn
+This Turborepo includes the following packages/apps:
 
-### Installation
+### Apps and Packages
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
-3. Set up your environment variables in `.env`:
-   ```
-   DATABASE_URL="postgresql://postgres:password@localhost:5432/Env-Manager"
-   BETTER_AUTH_SECRET="your-secret-key"
-   BETTER_AUTH_URL="http://localhost:3000"
-   ```
-4. Initialize the database:
-   ```bash
-   pnpm db:push
-   ```
-5. Start the development server:
-   ```bash
-   pnpm dev
-   ```
+- `docs`: a [Next.js](https://nextjs.org/) app
+- `web`: another [Next.js](https://nextjs.org/) app
+- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
+- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
-## Development
+Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
-- `pnpm dev` - Start the development server
-- `pnpm build` - Build for production
-- `pnpm start` - Start the production server
-- `pnpm db:studio` - Open Prisma Studio to manage your database
-- `pnpm check` - Run Biome linting
-- `pnpm typecheck` - Run TypeScript type checking
+### Utilities
 
-## Tech Stack
+This Turborepo has some additional tools already setup for you:
 
-- [Next.js](https://nextjs.org) - React framework
-- [Better Auth](https://github.com/better-auth/better-auth) - Authentication
-- [Prisma](https://prisma.io) - Database ORM
-- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
-- [tRPC](https://trpc.io) - End-to-end typesafe APIs
-- [Biome](https://biomejs.dev) - Fast linter and formatter
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
 
-## Deployment
+### Build
 
-This application can be deployed to any platform that supports Next.js applications, such as Vercel, Netlify, or using Docker.
+To build all apps and packages, run the following command:
 
-Make sure to set up your environment variables properly in your production environment.
+```
+cd my-turborepo
 
-## Project Roadmap
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo build
 
-### Current Progress
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo build
+yarn dlx turbo build
+pnpm exec turbo build
+```
 
-- [x] Basic project setup with T3 Stack
-- [x] Authentication foundation with Better Auth
-- [x] Database setup with Prisma and PostgreSQL
-- [x] Basic UI structure with Tailwind CSS
+You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
 
-### TODO: Backend Development
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo build --filter=docs
 
-#### 1. Authentication & Authorization
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo build --filter=docs
+yarn exec turbo build --filter=docs
+pnpm exec turbo build --filter=docs
+```
 
-- [ ] Extend user authentication system with role-based access
-- [ ] Define roles (Admin, Developer, Viewer)
-- [ ] Implement permission system
+### Develop
 
-#### 2. Organization & Project Management
+To develop all apps and packages, run the following command:
 
-- [ ] Create Organization model in Prisma schema
-- [ ] Implement organization CRUD operations
-- [ ] Create Project model with organization relationships
-- [ ] Implement project CRUD operations
-- [ ] Add invitation system for organizations
+```
+cd my-turborepo
 
-#### 3. Environment Variable Management
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo dev
 
-- [ ] Create EnvironmentVariable model
-- [ ] Implement encryption for sensitive data
-- [ ] Create environment types (development, staging, production)
-- [ ] Implement variable versioning and history
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo dev
+yarn exec turbo dev
+pnpm exec turbo dev
+```
 
-#### 4. API Key Management
+You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
 
-- [ ] Create APIKey model for CI/CD access
-- [ ] Implement key generation, rotation, and revocation
-- [ ] Create secure endpoints for CI/CD integration
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo dev --filter=web
 
-#### 5. Security Features
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo dev --filter=web
+yarn exec turbo dev --filter=web
+pnpm exec turbo dev --filter=web
+```
 
-- [ ] Implement data encryption at rest
-- [ ] Set up audit logging for all actions
-- [ ] Create monitoring for unusual access patterns
+### Remote Caching
 
-### TODO: Frontend Development
+> [!TIP]
+> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
 
-#### 1. User Interface
+Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
 
-- [ ] Design and implement authentication pages
-- [ ] Create dashboard with organization and project overview
-- [ ] Build organization management interface
-- [ ] Build project management interface
-- [ ] Create environment variable management UI
-- [ ] Implement API key management UI
+By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
 
-#### 2. CI/CD Integration
+```
+cd my-turborepo
 
-- [ ] Create API endpoints for CI/CD systems
-- [ ] Implement authentication mechanism for pipeline access
-- [ ] Add documentation for integration with common CI/CD platforms
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo login
 
-### Testing & Deployment
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo login
+yarn exec turbo login
+pnpm exec turbo login
+```
 
-- [ ] Write unit tests for core functionality
-- [ ] Set up integration tests
-- [ ] Implement security testing
-- [ ] Create deployment pipeline
-- [ ] Document production deployment process
+This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
 
-### Priority Order
+Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
 
-1. Complete organization and project management
-2. Implement environment variable management with encryption
-3. Build user interface for managing variables
-4. Add API key management for CI/CD integration
-5. Enhance security features and auditing
-6. Comprehensive testing
-7. Production deployment
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo link
 
-This roadmap will be updated as development progresses.
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo link
+yarn exec turbo link
+pnpm exec turbo link
+```
+
+## Useful Links
+
+Learn more about the power of Turborepo:
+
+- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
+- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
+- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
+- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
+- [Configuration Options](https://turborepo.com/docs/reference/configuration)
+- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
