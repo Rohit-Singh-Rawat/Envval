@@ -1,5 +1,5 @@
 {
-  "name": "Env0",
+  "name": "envval",
   "private": true,
   "scripts": {
     "build": "turbo run build",
