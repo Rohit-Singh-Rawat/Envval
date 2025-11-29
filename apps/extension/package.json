@@ -3,19 +3,38 @@
   "displayName": "envval",
   "description": "",
   "version": "0.0.1",
+  "icon": "./public/icons/envval.png",
   "engines": {
     "vscode": "^1.106.1"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "envval.helloWorld",
-        "title": "Hello World"
+        "command": "envvault.showQuickSyncAction",
+        "title": "Show Quick Sync Action"
+      },
+      {
+        "command": "envvault.openStatus",
+        "title": "Open Status"
+      },
+      {
+        "command": "envvault.reauthenticate",
+        "title": "Re-authenticate"
+      },
+      {
+        "command": "envvault.forceSync",
+        "title": "Force Sync"
+      },
+      {
+        "command": "envvault.showLogs",
+        "title": "Show Logs"
       }
     ]
   },

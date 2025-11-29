@@ -7,19 +7,19 @@ This file lists **everything** needed to build the extension from zero → produ
 ## 0. Project Setup & Basics
 
 - [ ] **Create extension project**
-  - [X] Scaffold a new VS Code extension (TypeScript).
-  - [X] Confirm `src/extension.ts` (or `main.ts`) exists.
-  - [X] Ensure build works (`npm run compile` or equivalent).
-  - [X] Ensure debug launch works (F5 opens Extension Development Host).
+  - [ ] Scaffold a new VS Code extension (TypeScript).
+  - [ ] Confirm `src/extension.ts` (or `main.ts`) exists.
+  - [ ] Ensure build works (`npm run compile` or equivalent).
+  - [ ] Ensure debug launch works (F5 opens Extension Development Host).
 
 - [ ] **Set extension metadata**
-  - [X] Update `package.json`:
-  - [X] `name`
-    - [X] `displayName`
-    - [X] `description`
-    - [X] `publisher`
-    - [X] `version`
-    - [X] `engines.vscode` (min VS Code version)
+  - [ ] Update `package.json`:
+    - [ ] `name`
+    - [ ] `displayName`
+    - [ ] `description`
+    - [ ] `publisher`
+    - [ ] `version`
+    - [ ] `engines.vscode` (min VS Code version)
   - [ ] Add icon entry (optional, later).
 
 - [ ] **Set activation events**
