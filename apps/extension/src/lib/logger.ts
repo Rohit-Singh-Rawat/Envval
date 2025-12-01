@@ -2,7 +2,7 @@ import { ExtensionContext, OutputChannel, window } from "vscode";
 import { VSCODE_CONFIG_SECTION } from "./constants";
 import { getLoggingVerbose } from "./config";
 
-class Logger {
+export class Logger {
   private static instance: Logger;
   private channel: OutputChannel;
   private verbose: boolean;
