@@ -1,5 +1,5 @@
 import { StatusBarAlignment, StatusBarItem, window } from "vscode";
-import Commands from "./commands";
+import { Commands } from "../commands";
   
 export enum StatusBarState {
   Unauthenticated = "🔴",
@@ -50,3 +50,5 @@ export class StatusBar {
     return StatusBar.getInstance().statusBarItem;
   }
 }
+
+

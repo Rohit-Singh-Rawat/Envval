@@ -1,8 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, Method } from 'axios';
 import { API_BASE_URL } from '../lib/constants';
 import type { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData } from './types';
-import type { AuthenticationProvider } from '../authentication/auth-provider';
-import type { Logger } from '../lib/logger';
+import type { AuthenticationProvider } from '../providers/auth-provider';
+import type { Logger } from '../utils/logger';
 
 class ApiClient {
   private readonly client: AxiosInstance;

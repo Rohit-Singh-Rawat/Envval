@@ -1,6 +1,6 @@
 import { ExtensionContext, OutputChannel, window } from "vscode";
-import { VSCODE_CONFIG_SECTION } from "./constants";
-import { getLoggingVerbose } from "./config";
+import { VSCODE_CONFIG_SECTION } from "../lib/constants";
+import { getLoggingVerbose } from "../lib/config";
 
 export class Logger {
   private static instance: Logger;
@@ -13,7 +13,10 @@ export class Logger {
     ctx.subscriptions.push(this.channel);
   }
 
-  public static getInstance(ctx: ExtensionContext, verbose?: boolean): Logger {
+  public static getInstance(
+    ctx: ExtensionContext,
+    verbose?: boolean
+  ): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger(ctx, verbose ?? getLoggingVerbose());
     }
@@ -43,6 +46,11 @@ export class Logger {
   }
 }
 
-export function createLogger(ctx: ExtensionContext, verbose?: boolean): Logger {
+export function createLogger(
+  ctx: ExtensionContext,
+  verbose?: boolean
+): Logger {
   return Logger.getInstance(ctx, verbose);
 }
+
+

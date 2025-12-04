@@ -1,14 +1,14 @@
 // sync-manager.ts
-import { deriveKey, encryptEnv, hashEnv, decryptEnv } from '../lib/crypto';
+import { deriveKey, encryptEnv, hashEnv, decryptEnv } from '../utils/crypto';
 import { getCurrentWorkspaceId, getRepoAndEnvIds } from '../utils/repo-detection';
 import { DEFAULT_POLL_INTERVAL_SECONDS } from '../lib/constants';
-import { Logger } from '../lib/logger';
+import { Logger } from '../utils/logger';
 import { ExtensionContext, Uri, workspace, WorkspaceEdit, Range } from 'vscode';
 import { EnvVaultApiClient } from '../api/client';
 import { EnvVaultMetadataStore } from '../services/metadata-store';
 import { EnvFileWatcher } from './env-file-watcher';
 import fs from 'fs';
-import { EnvVaultVsCodeSecrets } from '../lib/secrets';
+import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 
 export class SyncManager {
   private static instance: SyncManager; // Singleton instance

@@ -1,12 +1,12 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { createLogger } from './lib/logger';
+import { createLogger } from './utils/logger';
 import { getLoggingVerbose, onConfigChange } from './lib/config';
-import { Commands } from './lib/commands';
-import { StatusBar } from './lib/status-bar';
-import { EnvVaultVsCodeSecrets } from './lib/secrets';
-import { AuthenticationProvider } from './authentication/auth-provider';
+import { Commands } from './commands';
+import { StatusBar } from './ui/status-bar';
+import { EnvVaultVsCodeSecrets } from './utils/secrets';
+import { AuthenticationProvider } from './providers/auth-provider';
 import { EnvVaultApiClient } from './api/client';
 import { EnvFileWatcher } from './watchers/env-file-watcher';
 import { SyncManager } from './watchers/env-sync-manager';
@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 	logger.info('EnvVault extension is now active!');
 	Commands.getInstance().registerCommands(context);
 
-	const disposeConfigListener = onConfigChange(config => {
+	const disposeConfigListener = onConfigChange((config: any) => {
 			logger.setVerbose(config.loggingVerbose);
 		});
 
