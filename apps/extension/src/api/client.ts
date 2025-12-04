@@ -226,6 +226,10 @@ export class EnvVaultApiClient extends ApiClient {
     return this.get<Env>(`/envs/${envId}`);
   }
 
+  public async getEnvs(repoId: string): Promise<Env[]> {
+    return this.get<Env[]>(`/envs?repoId=${repoId}`);
+  }
+
   // Create new environment
   public async createEnv(data: CreateEnvData): Promise<Env> {
     return this.post<Env>('/envs', data);
@@ -235,5 +239,10 @@ export class EnvVaultApiClient extends ApiClient {
   public async updateEnv(envId: string, data: UpdateEnvData): Promise<Env> {
     return this.put<Env>(`/envs/${envId}`, data);
   }
+
+  // Delete existing environment
+  public async deleteEnv(envId: string): Promise<void> {
+    return this.delete<void>(`/envs/${envId}`);
+  } 
 
 }
