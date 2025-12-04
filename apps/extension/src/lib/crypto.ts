@@ -27,6 +27,6 @@ export const decryptEnv = (ciphertext: string, iv: string, key: string) => {
     }
 };      
 
-export const hashEnvs = (envs: string[]) => {
-    return crypto.createHash('sha256').update(envs.join('\n')).digest('hex');
+export const hashEnv = (envs: string): string => {
+    return crypto.createHash('sha256').update(envs).digest('hex');
 };

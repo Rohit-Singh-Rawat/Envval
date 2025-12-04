@@ -8,3 +8,13 @@ export const API_BASE_URL = 'http://localhost:3000';
 //   `${scheme}://<your-extension-id>/auth-callback?token=<PAT_OR_CODE>`
 // You can adjust this path/domain to match your actual web app.
 export const ENVVAULT_SIGNIN_URL = 'https://envvault.app/signin?vscode=1';
+
+export const METADATA_STORAGE_KEY = 'envvault.metadata';
+export const IGNORED_ENV_FILES = [
+  '.env.example',
+  '.env.sample',
+  '.env.template',
+  '.env.dist',
+  '.env.test',
+  '.env.testing',
+];
