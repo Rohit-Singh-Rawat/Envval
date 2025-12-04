@@ -41,4 +41,22 @@ interface UpdateEnvData {
   fileName?: string;
 }
 
-export { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData };
+interface Repo {
+  id: string;
+  repoId: string;
+  name?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface RepoExistsResponse {
+  exists: boolean;
+  repo?: Repo;
+}
+
+interface CreateRepoData {
+  repoId: string;
+  name?: string;
+}
+
+export { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData, Repo, RepoExistsResponse, CreateRepoData };

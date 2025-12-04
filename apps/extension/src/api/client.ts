@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, Method } from 'axios';
 import { API_BASE_URL } from '../lib/constants';
-import type { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData } from './types';
+import type { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData, Repo, RepoExistsResponse, CreateRepoData } from './types';
 import type { AuthenticationProvider } from '../providers/auth-provider';
 import type { Logger } from '../utils/logger';
 
@@ -243,6 +243,26 @@ export class EnvVaultApiClient extends ApiClient {
   // Delete existing environment
   public async deleteEnv(envId: string): Promise<void> {
     return this.delete<void>(`/envs/${envId}`);
-  } 
+  }
+
+  // ===== Repo Methods (Repo-first approach) =====
+
+  // Check if repo exists
+  public async checkRepoExists(repoId: string): Promise<RepoExistsResponse> {
+    return this.get<RepoExistsResponse>(`/repos/exists?repoId=${repoId}`);
+  }
+
+  // Get repo details
+  public async getRepo(repoId: string): Promise<Repo> {
+    return this.get<Repo>(`/repos/${repoId}`);
+  }
+
+  // Create/register repo
+  public async createRepo(data: CreateRepoData): Promise<Repo> {
+    return this.post<Repo>('/repos', data);
+  }
+
+  // Get all envs for a repo (already exists, but keeping it here for clarity)
+  // public async getEnvs(repoId: string): Promise<Env[]> - already defined above
 
 }

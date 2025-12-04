@@ -72,6 +72,10 @@ export class EnvFileWatcher {
   }
 
   public start(): void {
+    // Don't start if already started
+    if (this.watchers.length > 0) {
+      return;
+    }
     
     const pattern = new RelativePattern(
       workspace.workspaceFolders?.[0]?.uri.fsPath || '',
@@ -88,10 +92,14 @@ export class EnvFileWatcher {
     this.context.subscriptions.push(watcher);
   }
 
- 
+  public stop(): void {
+    // Stop watchers but keep emitters so we can restart
+    this.watchers.forEach(w => w.dispose());
+    this.watchers = [];
+  }
 
   public dispose(): void {
-    this.watchers.forEach(w => w.dispose());
+    this.stop();
     this.changeEmitter.dispose();
     this.createEmitter.dispose();
     this.deleteEmitter.dispose();
