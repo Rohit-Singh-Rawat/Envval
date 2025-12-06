@@ -1,0 +1,21 @@
+{
+	"name": "@envval/db",
+	"version": "0.0.0",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"devDependencies": {
+		"@envval/typescript-config": "*",
+		"@types/node": "^22.15.3",
+		"@types/pg": "^8.15.6",
+		"drizzle-kit": "^0.31.8",
+		"tsx": "^4.21.0",
+		"typescript": "5.9.2"
+	},
+	"dependencies": {
+		"dotenv": "^17.2.3",
+		"drizzle-orm": "^0.45.0",
+		"pg": "^8.16.3"
+	}
+}

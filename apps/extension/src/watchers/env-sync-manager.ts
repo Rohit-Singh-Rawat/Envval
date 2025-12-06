@@ -1,4 +1,3 @@
-// sync-manager.ts
 import { deriveKey, encryptEnv, hashEnv, decryptEnv } from '../utils/crypto';
 import { getCurrentWorkspaceId, getRepoAndEnvIds, getWorkspacePath } from '../utils/repo-detection';
 import { getVSCodeConfig } from '../lib/config';
@@ -13,12 +12,11 @@ import path from 'path';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 
 export class SyncManager {
-  private static instance: SyncManager; // Singleton instance
+  private static instance: SyncManager; 
   private pollInterval?: NodeJS.Timeout;
   private apiClient: EnvVaultApiClient;
   private secretsManager: EnvVaultVsCodeSecrets;
   private metadataStore: EnvVaultMetadataStore;
-  private envFileWatcher: EnvFileWatcher;
   private envInitService: EnvInitService;
   private logger: Logger;
   
@@ -26,7 +24,6 @@ export class SyncManager {
     this.apiClient = apiClient;
     this.secretsManager = secretsManager;
     this.metadataStore = metadataStore;
-    this.envFileWatcher = envFileWatcher;
     this.envInitService = envInitService;
     this.logger = logger;
   }

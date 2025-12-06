@@ -26,20 +26,113 @@ The EnvVault API server is the **backend** for:
 
 ### 2. Data Models & Schema
 
+#### Core Schema (Better Auth)
+
 - [ ] **User**
-  - `id`, `email`, `passwordHash` (if using password), `createdAt`.
+  - Table Name: `user`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each user
+    - `name` (string) - User's chosen display name
+    - `email` (string) - User's email address for communication and login
+    - `emailVerified` (boolean) - Whether the user's email is verified
+    - `image` (string, optional) - User's image url
+    - `createdAt` (Date) - Timestamp of when the user account was created
+    - `updatedAt` (Date) - Timestamp of the last update to the user's information
+
+- [ ] **Session**
+  - Table Name: `session`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each session
+    - `userId` (string, FK) - The ID of the user
+    - `token` (string) - The unique session token
+    - `type` (string) - Session type: "extension", "web", "api", etc.
+    - `expiresAt` (Date) - The time when the session expires
+    - `ipAddress` (string, optional) - The IP address of the device
+    - `userAgent` (string, optional) - The user agent information of the device
+    - `createdAt` (Date) - Timestamp of when the session was created
+    - `updatedAt` (Date) - Timestamp of when the session was updated
+
+- [ ] **Account**
+  - Table Name: `account`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each account
+    - `userId` (string, FK) - The ID of the user
+    - `accountId` (string) - The ID of the account as provided by the SSO or equal to userId for credential accounts
+    - `providerId` (string) - The ID of the provider
+    - `accessToken` (string, optional) - The access token of the account. Returned by the provider
+    - `refreshToken` (string, optional) - The refresh token of the account. Returned by the provider
+    - `accessTokenExpiresAt` (Date, optional) - The time when the access token expires
+    - `refreshTokenExpiresAt` (Date, optional) - The time when the refresh token expires
+    - `scope` (string, optional) - The scope of the account. Returned by the provider
+    - `idToken` (string, optional) - The ID token returned from the provider
+    - `password` (string, optional) - The password of the account. Mainly used for email and password authentication
+    - `createdAt` (Date) - Timestamp of when the account was created
+    - `updatedAt` (Date) - Timestamp of when the account was updated
+
+- [ ] **Verification**
+  - Table Name: `verification`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each verification
+    - `identifier` (string) - The identifier for the verification request
+    - `value` (string) - The value to be verified
+    - `expiresAt` (Date) - The time when the verification request expires
+    - `createdAt` (Date) - Timestamp of when the verification request was created
+    - `updatedAt` (Date) - Timestamp of when the verification request was updated
+
+#### Custom Tables
+
 - [ ] **Device**
-  - `id`, `userId`, `name` (e.g. "Rohit’s Laptop"), `createdAt`, `lastSeenAt`, `revoked`.
-- [ ] **Token / Session**
-  - `id`, `userId`, `deviceId`, `refreshToken` (hashed), `expiresAt`, `revoked`.
-- [ ] **PersonalAccessToken (optional)**
-  - `id`, `userId`, `label`, `token` (hashed), `createdAt`, `lastUsedAt`, `revoked`.
+  - Table Name: `device`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each device
+    - `userId` (string, FK) - The ID of the user
+    - `name` (string) - Device name (e.g. "Rohit's Laptop")
+    - `createdAt` (Date) - Timestamp of when the device was registered
+    - `lastSeenAt` (Date) - Timestamp of when the device was last seen
+    - `revoked` (boolean) - Whether the device has been revoked
+
+- [ ] **PersonalAccessToken**
+  - Table Name: `personalAccessToken`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each token
+    - `userId` (string, FK) - The ID of the user
+    - `label` (string) - Human-readable label for the token
+    - `token` (string) - Hashed token value
+    - `createdAt` (Date) - Timestamp of when the token was created
+    - `lastUsedAt` (Date, optional) - Timestamp of when the token was last used
+    - `revoked` (boolean) - Whether the token has been revoked
+
 - [ ] **Environment**
-  - `id` (envId), `userId`, `repoId`, `fileName`, `latestHash`, `createdAt`, `updatedAt`.
+  - Table Name: `environment`
+  - Fields:
+    - `id` (string, PK) - Unique identifier (envId)
+    - `userId` (string, FK) - The ID of the user
+    - `repoId` (string) - Repository identifier
+    - `fileName` (string) - Environment file name
+    - `latestHash` (string) - Hash of the latest version
+    - `createdAt` (Date) - Timestamp of when the environment was created
+    - `updatedAt` (Date) - Timestamp of when the environment was last updated
+
 - [ ] **EnvVersion**
-  - `id`, `environmentId`, `ciphertext`, `hash`, `createdAt`, `updatedByDeviceId`, `updatedByTokenId`.
+  - Table Name: `envVersion`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each version
+    - `environmentId` (string, FK) - The ID of the environment
+    - `ciphertext` (string) - Encrypted environment content
+    - `hash` (string) - Hash of this version
+    - `createdAt` (Date) - Timestamp of when the version was created
+    - `updatedByDeviceId` (string, FK, optional) - The ID of the device that created this version
+    - `updatedByTokenId` (string, FK, optional) - The ID of the token that created this version
+
 - [ ] **AuditLog**
-  - `id`, `userId`, `deviceId`, `envId`, `action`, `timestamp`.
+  - Table Name: `auditLog`
+  - Fields:
+    - `id` (string, PK) - Unique identifier for each log entry
+    - `userId` (string, FK) - The ID of the user
+    - `deviceId` (string, FK, optional) - The ID of the device
+    - `envId` (string, FK, optional) - The ID of the environment
+    - `action` (string) - Action performed
+    - `timestamp` (Date) - Timestamp of when the action occurred
 
 ---
 
