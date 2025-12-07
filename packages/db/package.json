@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"exports": {
-		".": "./src/index.ts"
+		".": "./index.ts"
 	},
 	"devDependencies": {
 		"@envval/typescript-config": "*",

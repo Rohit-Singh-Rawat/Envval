@@ -12,9 +12,13 @@
 	},
 	"dependencies": {
 		"@envval/ui": "*",
+		"@t3-oss/env-core": "^0.13.8",
+		"better-auth": "^1.4.5",
+		"hono": "^4.10.7",
 		"next": "^16.0.1",
 		"react": "^19.2.0",
-		"react-dom": "^19.2.0"
+		"react-dom": "^19.2.0",
+		"zod": "^4.1.13"
 	},
 	"devDependencies": {
 		"@envval/typescript-config": "*",
