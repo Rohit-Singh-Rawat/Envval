@@ -1,5 +1,7 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, index, pgEnum } from 'drizzle-orm/pg-core';
+
+export const sessionType = pgEnum('session_type', ['SESSION_EXTENSION', 'SESSION_WEB']);
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -25,12 +27,16 @@ export const session = pgTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 		ipAddress: text('ip_address'),
+		sessionType: sessionType('session_type').default('SESSION_WEB').notNull(),
 		userAgent: text('user_agent'),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 	},
-	(table) => [index('session_userId_idx').on(table.userId)]
+	(table) => [
+		index('session_userId_idx').on(table.userId),
+		index('session_sessionType_idx').on(table.sessionType),
+	]
 );
 
 export const account = pgTable(
