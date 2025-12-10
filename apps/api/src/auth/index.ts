@@ -1,21 +1,35 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { createAuthMiddleware, jwt } from 'better-auth/plugins';
-import { account, jwks, session, sessionType, user, verification } from '@envval/db/schema';
+import { emailOTP, jwt } from 'better-auth/plugins';
+import { db } from '@envval/db';
+import * as schema from '@envval/db/schema';
+import { sendOTPEmail } from '../lib/resend/send-email';
 import { ensureDeviceExists } from '../utils/ensure-device-exist';
 
 export const auth = betterAuth({
-	database: drizzleAdapter(
-		{ user, session, account, verification, jwks },
-		{
-			provider: 'pg', // or "mysql", "sqlite"
-		}
-	),
+	database: drizzleAdapter(db, {
+		provider: 'pg', // or "mysql", "sqlite"
+		schema: {
+			...schema,
+		},
+	}),
+	trustedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
+	socialProviders: {
+		google: {
+			prompt: 'select_account',
+			clientId: process.env.GOOGLE_CLIENT_ID!,
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+		},
+		github: {
+			clientId: process.env.GITHUB_CLIENT_ID!,
+			clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+		},
+	},
 	session: {
 		modelName: 'envval_session',
 		additionalFields: {
 			sessionType: {
-				type: sessionType.enumValues,
+				type: schema.sessionType.enumValues,
 			},
 			deviceId: {
 				type: 'string',
@@ -57,6 +71,16 @@ export const auth = betterAuth({
 					sessionType: session.session.sessionType,
 				}),
 			},
+		}),
+		emailOTP({
+			sendVerificationOTP: async ({ email, otp, type }) => {
+				if (type !== 'sign-in') return;
+				await sendOTPEmail({ email, otp });
+			},
+			expiresIn: 600,
+			allowedAttempts: 5,
+			sendVerificationOnSignUp: false,
+			overrideDefaultEmailVerification: false,
 		}),
 	],
 });

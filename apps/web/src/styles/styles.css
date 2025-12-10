@@ -166,3 +166,11 @@ h1 {
 		border-radius: calc(infinity * 1px);
 	}
 }
+
+.round {
+	@apply rounded-full;
+	@supports (corner-shape: round) {
+		corner-shape: round;
+		border-radius: calc(infinity * 1px);
+	}
+}

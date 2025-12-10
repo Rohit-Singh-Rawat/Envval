@@ -11,9 +11,9 @@ export const user = pgTable('user', {
 	emailVerified: boolean('email_verified').default(false).notNull(),
 	image: text('image'),
 	// Encrypted user key material (envelope encrypted with server master key)
-	keyMaterialEnc: text('key_material_enc').notNull(),
-	keyMaterialIv: text('key_material_iv').notNull(),
-	keyMaterialKeyId: text('key_material_key_id').default('default').notNull(),
+	// keyMaterialEnc: text('key_material_enc').notNull(),
+	// keyMaterialIv: text('key_material_iv').notNull(),
+	// keyMaterialKeyId: text('key_material_key_id').default('default').notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()

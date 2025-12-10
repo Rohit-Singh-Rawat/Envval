@@ -5,6 +5,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 
 import appCss from '@/styles/styles.css?url';
+import { Toaster } from 'sonner';
 
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -45,6 +46,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				{children}
+				<Toaster
+					richColors
+					closeButton
+					position='top-center'
+				/>
 				<TanStackDevtools
 					config={{
 						position: 'bottom-right',

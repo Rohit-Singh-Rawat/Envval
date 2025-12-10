@@ -65,7 +65,7 @@ function Button({
 		>
 			{pending ? (
 				<>
-					<Spinner className='size-4 animate-spin' />
+					<Spinner className='size-4 ' />
 					{pendingText && <span>{pendingText}</span>}
 				</>
 			) : (
