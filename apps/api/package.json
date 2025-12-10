@@ -4,10 +4,13 @@
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
 		"build": "tsc",
-		"start": "node dist/server.js"
+		"start": "node dist/server.js",
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "tsx scripts/migrate.ts"
 	},
 	"dependencies": {
-		"@envval/db": "*",
+		"@envval/db": "workspace:*",
 		"@hono/node-server": "^1.19.6",
 		"@t3-oss/env-core": "^0.13.8",
 		"better-auth": "^1.4.5",

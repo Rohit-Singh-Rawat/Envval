@@ -2,11 +2,29 @@
 	"name": "@envval/db",
 	"version": "0.0.0",
 	"private": true,
+	"type": "module",
+	"scripts": {
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:studio": "drizzle-kit studio",
+		"db:migrate": "drizzle-kit migrate"
+	},
 	"exports": {
-		".": "./index.ts"
+		".": "./index.ts",
+		"./schema": "./schema.ts"
+	},
+	"typesVersions": {
+		"*": {
+			"schema": [
+				"schema.ts"
+			],
+			"*": [
+				"index.ts"
+			]
+		}
 	},
 	"devDependencies": {
-		"@envval/typescript-config": "*",
+		"@envval/typescript-config": "workspace:*",
 		"@types/node": "^22.15.3",
 		"@types/pg": "^8.15.6",
 		"drizzle-kit": "^0.31.8",

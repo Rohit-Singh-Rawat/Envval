@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import { pgTable, text, timestamp, boolean, index, pgEnum } from 'drizzle-orm/pg-core';
 
 export const sessionType = pgEnum('session_type', ['SESSION_EXTENSION', 'SESSION_WEB']);
+export const deviceType = pgEnum('device_type', ['DEVICE_EXTENSION', 'DEVICE_WEB']);
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -9,6 +10,10 @@ export const user = pgTable('user', {
 	email: text('email').notNull().unique(),
 	emailVerified: boolean('email_verified').default(false).notNull(),
 	image: text('image'),
+	// Encrypted user key material (envelope encrypted with server master key)
+	keyMaterialEnc: text('key_material_enc').notNull(),
+	keyMaterialIv: text('key_material_iv').notNull(),
+	keyMaterialKeyId: text('key_material_key_id').default('default').notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
@@ -29,6 +34,7 @@ export const session = pgTable(
 		ipAddress: text('ip_address'),
 		sessionType: sessionType('session_type').default('SESSION_WEB').notNull(),
 		userAgent: text('user_agent'),
+		deviceId: text('device_id'),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
@@ -36,6 +42,7 @@ export const session = pgTable(
 	(table) => [
 		index('session_userId_idx').on(table.userId),
 		index('session_sessionType_idx').on(table.sessionType),
+		index('session_deviceId_idx').on(table.deviceId),
 	]
 );
 
@@ -79,15 +86,141 @@ export const verification = pgTable(
 	(table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
+export const device = pgTable(
+	'device',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		type: deviceType('device_type').default('DEVICE_EXTENSION').notNull(),
+		// Public key for this device (if using per-device wrapping)
+		publicKey: text('public_key'),
+		// User keyMaterial encrypted for this device using its public key
+		wrappedUserKey: text('wrapped_user_key'),
+		lastIpAddress: text('last_ip_address'),
+		lastUserAgent: text('last_user_agent'),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+		lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+		revoked: boolean('revoked').default(false).notNull(),
+		revokedAt: timestamp('revoked_at'),
+	},
+	(table) => [
+		index('device_userId_idx').on(table.userId),
+		index('device_revoked_idx').on(table.revoked),
+	]
+);
+
+export const repo = pgTable(
+	'repo',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		name: text('name'),
+		gitRemoteUrl: text('git_remote_url'),
+		workspacePath: text('workspace_path'),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+		updatedAt: timestamp('updated_at')
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [index('repo_userId_idx').on(table.userId), index('repo_id_idx').on(table.id)]
+);
+
+export const environment = pgTable(
+	'environment',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		repoId: text('repo_id')
+			.notNull()
+			.references(() => repo.id, { onDelete: 'cascade' }),
+		fileName: text('file_name').notNull(),
+		latestHash: text('latest_hash').notNull(),
+		latestVersionId: text('latest_version_id'),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+		updatedAt: timestamp('updated_at')
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		index('env_userId_idx').on(table.userId),
+		index('env_repoId_idx').on(table.repoId),
+		index('env_id_idx').on(table.id),
+		index('env_repoId_fileName_idx').on(table.repoId, table.fileName),
+	]
+);
+
+export const envVersion = pgTable(
+	'env_version',
+	{
+		id: text('id').primaryKey(),
+		environmentId: text('environment_id')
+			.notNull()
+			.references(() => environment.id, { onDelete: 'cascade' }),
+		content: text('content').notNull(),
+		hash: text('hash').notNull(),
+		updatedByDeviceId: text('updated_by_device_id').references(() => device.id, {
+			onDelete: 'set null',
+		}),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+	},
+	(table) => [
+		index('envVersion_environmentId_idx').on(table.environmentId),
+		index('envVersion_hash_idx').on(table.hash),
+		index('envVersion_createdAt_idx').on(table.createdAt),
+	]
+);
+
+export const auditLog = pgTable(
+	'audit_log',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		deviceId: text('device_id').references(() => device.id, { onDelete: 'set null' }),
+		environmentId: text('environment_id').references(() => environment.id, {
+			onDelete: 'set null',
+		}),
+		action: text('action').notNull(),
+		metadata: text('metadata'),
+		ipAddress: text('ip_address'),
+		userAgent: text('user_agent'),
+		timestamp: timestamp('timestamp').defaultNow().notNull(),
+	},
+	(table) => [
+		index('auditLog_userId_idx').on(table.userId),
+		index('auditLog_timestamp_idx').on(table.timestamp),
+		index('auditLog_action_idx').on(table.action),
+		index('auditLog_environmentId_idx').on(table.environmentId),
+	]
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
+	devices: many(device),
+	repos: many(repo),
+	environments: many(environment),
+	auditLogs: many(auditLog),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
 	user: one(user, {
 		fields: [session.userId],
 		references: [user.id],
+	}),
+	device: one(device, {
+		fields: [session.deviceId],
+		references: [device.id],
 	}),
 }));
 
@@ -97,3 +230,71 @@ export const accountRelations = relations(account, ({ one }) => ({
 		references: [user.id],
 	}),
 }));
+
+export const deviceRelations = relations(device, ({ one, many }) => ({
+	user: one(user, {
+		fields: [device.userId],
+		references: [user.id],
+	}),
+	sessions: many(session),
+	envVersions: many(envVersion),
+	auditLogs: many(auditLog),
+}));
+
+export const repoRelations = relations(repo, ({ one, many }) => ({
+	user: one(user, {
+		fields: [repo.userId],
+		references: [user.id],
+	}),
+	environments: many(environment),
+}));
+
+export const environmentRelations = relations(environment, ({ one, many }) => ({
+	user: one(user, {
+		fields: [environment.userId],
+		references: [user.id],
+	}),
+	repo: one(repo, {
+		fields: [environment.repoId],
+		references: [repo.id],
+	}),
+	versions: many(envVersion),
+	latestVersion: one(envVersion, {
+		fields: [environment.latestVersionId],
+		references: [envVersion.id],
+	}),
+	auditLogs: many(auditLog),
+}));
+
+export const envVersionRelations = relations(envVersion, ({ one }) => ({
+	environment: one(environment, {
+		fields: [envVersion.environmentId],
+		references: [environment.id],
+	}),
+	updatedByDevice: one(device, {
+		fields: [envVersion.updatedByDeviceId],
+		references: [device.id],
+	}),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+	user: one(user, {
+		fields: [auditLog.userId],
+		references: [user.id],
+	}),
+	device: one(device, {
+		fields: [auditLog.deviceId],
+		references: [device.id],
+	}),
+	environment: one(environment, {
+		fields: [auditLog.environmentId],
+		references: [environment.id],
+	}),
+}));
+export const jwks = pgTable('jwks', {
+	id: text('id').primaryKey(),
+	publicKey: text('public_key').notNull(),
+	privateKey: text('private_key').notNull(),
+	createdAt: timestamp('created_at').notNull(),
+	expiresAt: timestamp('expires_at'),
+});
