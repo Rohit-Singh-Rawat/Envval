@@ -1,0 +1,25 @@
+{
+	"name": "@envval/email",
+	"module": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./templates": "./src/templates/index.ts",
+		"./types": "./src/types.ts",
+		"./schema": "./src/schema.ts",
+		"./send": "./src/send.ts"
+	},
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"typescript": "^5.8.3"
+	},
+	"dependencies": {
+		"resend": "^6.6.0",
+		"zod": "^4.1.13"
+	}
+}

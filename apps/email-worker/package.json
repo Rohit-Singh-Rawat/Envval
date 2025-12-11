@@ -1,0 +1,22 @@
+{
+	"name": "@envval/email-worker",
+	"module": "index.ts",
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@envval/queue": "workspace:*",
+		"@envval/email": "workspace:*"
+	},
+	"scripts": {
+		"dev": "bun run --watch index.ts",
+		"start": "bun run index.ts",
+		"build": "bun build index.ts --outdir dist",
+		"check-types": "tsc --noEmit"
+	},
+	"private": true
+}

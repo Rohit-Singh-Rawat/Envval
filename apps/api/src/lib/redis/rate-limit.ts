@@ -13,25 +13,23 @@ export const authRateLimiter = new Ratelimit({
 	analytics: true,
 });
 
-export const emailTokenRateLimiter = new Ratelimit({
+export const emailRateLimiter = new Ratelimit({
 	redis: Redis.fromEnv(),
 	limiter: Ratelimit.slidingWindow(5, '30 m'),
 	analytics: true,
 });
 
 type RateLimitProps = {
-	actionType: 'auth' | 'default' | 'emailToken';
+	actionType: 'auth' | 'default' | 'email';
 	identifier: string;
 };
 
-function getDynamicRateLimiter(
-	actionType: 'auth' | 'default' | 'emailToken'
-): Ratelimit {
+function getDynamicRateLimiter(actionType: 'auth' | 'default' | 'email'): Ratelimit {
 	switch (actionType) {
 		case 'auth':
 			return authRateLimiter;
-		case 'emailToken':
-			return emailTokenRateLimiter;
+		case 'email':
+			return emailRateLimiter;
 		default:
 			return rateLimiter;
 	}

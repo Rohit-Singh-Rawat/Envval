@@ -3,9 +3,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, jwt } from 'better-auth/plugins';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
-import { sendOTPEmail } from '../lib/resend/send-email';
 import { ensureDeviceExists } from '../utils/ensure-device-exist';
-
+import { sendOTPEmail } from '../utils/send-email';
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: 'pg', // or "mysql", "sqlite"
@@ -26,7 +25,7 @@ export const auth = betterAuth({
 		},
 	},
 	session: {
-		modelName: 'envval_session',
+		modelName: 'session',
 		additionalFields: {
 			sessionType: {
 				type: schema.sessionType.enumValues,

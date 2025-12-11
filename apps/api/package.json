@@ -11,6 +11,8 @@
 	},
 	"dependencies": {
 		"@envval/db": "workspace:*",
+		"@envval/email": "workspace:*",
+		"@envval/queue": "workspace:*",
 		"@hono/node-server": "^1.19.6",
 		"@t3-oss/env-core": "^0.13.8",
 		"@upstash/ratelimit": "^1.2.0",
