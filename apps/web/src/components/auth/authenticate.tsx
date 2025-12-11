@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ArrowLeft01Icon } from 'hugeicons-react';
+import { useMutation } from '@tanstack/react-query';
 
 import { useTimer } from '@/hooks/use-timer';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -117,12 +118,22 @@ function OtpStep({
 	);
 }
 
+type OtpState = {
+	value: string;
+	error: string | null;
+	targetEmail: string;
+};
+
+const initialOtpState: OtpState = {
+	value: '',
+	error: null,
+	targetEmail: '',
+};
+
 function Authenticate({ mode = 'login' }: AuthenticateProps) {
 	const isLogin = mode === 'login';
 	const [step, setStep] = useState<'email' | 'otp'>('email');
-	const [targetEmail, setTargetEmail] = useState('');
-	const [otpValue, setOtpValue] = useState('');
-	const [otpError, setOtpError] = useState<string | null>(null);
+	const [otpState, setOtpState] = useState<OtpState>(initialOtpState);
 	const {
 		secondsLeft: resendSeconds,
 		isRunning: isResendCoolingDown,
@@ -130,83 +141,70 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 		reset: resetResendCooldown,
 	} = useTimer(30);
 
-	const [isRequesting, setIsRequesting] = useState(false);
-	const [isVerifying, setIsVerifying] = useState(false);
-
-	const requestCode = async (email: string) => {
-		setIsRequesting(true);
-		try {
+	const requestCodeMutation = useMutation({
+		mutationFn: async (email: string) => {
 			const { error } = await (authClient as any).emailOtp?.sendVerificationOtp({
 				email,
 				type: 'sign-in',
 			});
-
-			if (error) {
-				throw error;
-			}
-
-			setTargetEmail(email);
+			if (error) throw error;
+			return email;
+		},
+		onSuccess: (email) => {
+			setOtpState({ value: '', error: null, targetEmail: email });
 			setStep('otp');
-			setOtpError(null);
-			setOtpValue('');
 			startResendCooldown();
-		} catch (error) {
+		},
+		onError: (error) => {
 			const message = error instanceof Error ? error.message : 'Failed to send code';
 			toast.error(message);
-		} finally {
-			setIsRequesting(false);
-		}
-	};
+		},
+	});
 
-	const verifyCode = async (code: string) => {
-		if (!targetEmail) return;
-
-		setIsVerifying(true);
-		try {
+	const verifyCodeMutation = useMutation({
+		mutationFn: async (code: string) => {
 			const { error } = await (authClient as any).signIn?.emailOtp({
-				email: targetEmail,
+				email: otpState.targetEmail,
 				otp: code,
 			});
-
-			if (error) {
-				throw error;
-			}
-		} catch (error) {
+			if (error) throw error;
+		},
+		onError: (error) => {
 			const message = error instanceof Error ? error.message : 'Incorrect code, try again';
-			setOtpError(message);
+			setOtpState((prev) => ({ ...prev, error: message }));
 			toast.warning(message);
-		} finally {
-			setIsVerifying(false);
-		}
-	};
+		},
+	});
 
-	const handleOtpChange = (value: string) => {
-		setOtpValue(value);
-		if (otpError) setOtpError(null);
-		if (value.length === OTP_LENGTH && !isVerifying) {
-			void verifyCode(value);
-		}
-	};
-
-	const handleResend = async () => {
-		if (!targetEmail || isResendCoolingDown) return;
-		setOtpValue('');
-		setOtpError(null);
-		setIsRequesting(true);
-		try {
+	const resendCodeMutation = useMutation({
+		mutationFn: async () => {
 			const { error } = await (authClient as any).emailOtp?.sendVerificationOtp({
-				email: targetEmail,
+				email: otpState.targetEmail,
 				type: 'sign-in',
 			});
 			if (error) throw error;
+		},
+		onSuccess: () => {
+			setOtpState((prev) => ({ ...prev, value: '', error: null }));
 			startResendCooldown();
 			toast.success('Verification code resent');
-		} catch (error) {
+		},
+		onError: (error) => {
 			const message = error instanceof Error ? error.message : 'Failed to resend code';
 			toast.error(message);
-		} finally {
-			setIsRequesting(false);
+		},
+	});
+
+	const handleOtpChange = (value: string) => {
+		setOtpState((prev) => ({ ...prev, value, error: prev.error ? null : prev.error }));
+		if (value.length === OTP_LENGTH && !verifyCodeMutation.isPending) {
+			verifyCodeMutation.mutate(value);
 		}
+	};
+
+	const handleResend = () => {
+		if (!otpState.targetEmail || isResendCoolingDown) return;
+		resendCodeMutation.mutate();
 	};
 
 	return (
@@ -221,8 +219,8 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 						</p>{' '}
 						<AuthForm
 							mode={mode}
-							isSubmitting={isRequesting}
-							onSubmit={({ email }) => requestCode(email)}
+							isSubmitting={requestCodeMutation.isPending}
+							onSubmit={({ email }) => requestCodeMutation.mutate(email)}
 						/>
 					</div>
 					<div className='text-sm text-muted-foreground text-center'>
@@ -251,19 +249,18 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 				</>
 			) : (
 				<OtpStep
-					email={targetEmail}
-					otpValue={otpValue}
-					otpError={otpError}
+					email={otpState.targetEmail}
+					otpValue={otpState.value}
+					otpError={otpState.error}
 					onOtpChange={handleOtpChange}
 					onBack={() => {
 						setStep('email');
-						setOtpValue('');
-						setOtpError(null);
+						setOtpState(initialOtpState);
 						resetResendCooldown();
 					}}
-					onResend={() => handleResend()}
-					isResending={isRequesting}
-					isVerifying={isVerifying}
+					onResend={handleResend}
+					isResending={resendCodeMutation.isPending}
+					isVerifying={verifyCodeMutation.isPending}
 					isCooldown={isResendCoolingDown}
 					cooldownSeconds={resendSeconds}
 				/>

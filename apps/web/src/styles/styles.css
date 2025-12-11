@@ -174,3 +174,13 @@ h1 {
 		border-radius: calc(infinity * 1px);
 	}
 }
+
+[data-sonner-toast][data-styled='true'] {
+	padding: 12px !important;
+	justify-content: center;
+}
+
+[data-sonner-toast][data-mounted='true'][data-expanded='true'] {
+	padding: 12px !important;
+	justify-content: center;
+}

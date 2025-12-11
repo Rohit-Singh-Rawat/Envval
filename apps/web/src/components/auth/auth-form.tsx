@@ -116,7 +116,7 @@ function AuthForm({ onSubmit, mode = 'login', isSubmitting }: AuthFormProps) {
 					type='submit'
 					className='w-full'
 					pending={isSubmitting}
-					pendingText='Continuing…'
+					pendingText={mode === 'login' ? 'logging in…' : 'creating account…'}
 				>
 					{mode === 'login' ? 'Continue with email' : 'Create account with email'}
 				</Button>
