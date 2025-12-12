@@ -8,6 +8,8 @@
 
 @import './zodiak.css';
 
+@custom-variant dark (&:is(.dark *));
+
 body {
 	@apply m-0;
 	font-family:
@@ -44,7 +46,7 @@ code {
 	--secondary-foreground: oklch(0.21 0.006 285.885);
 	--muted: oklch(0.94 0.0119 106.62);
 	--muted-foreground: oklch(0.552 0.016 285.938);
-	--accent: oklch(0.967 0.001 286.375);
+	--accent: oklch(0.94 0.0119 106.62);
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.577 0.245 27.325);
@@ -61,7 +63,7 @@ code {
 	--sidebar-foreground: oklch(0.141 0.005 285.823);
 	--sidebar-primary: oklch(0.21 0.006 285.885);
 	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.967 0.001 286.375);
+	--sidebar-accent: oklch(0.94 0.0119 106.62);
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
 	--sidebar-border: oklch(0.92 0.004 286.32);
 	--sidebar-ring: oklch(0.871 0.006 286.286);
@@ -183,4 +185,23 @@ h1 {
 [data-sonner-toast][data-mounted='true'][data-expanded='true'] {
 	padding: 12px !important;
 	justify-content: center;
+}
+
+.dark {
+	--sidebar:
+		hsl(240 5.9% 10%);
+	--sidebar-foreground:
+		hsl(240 4.8% 95.9%);
+	--sidebar-primary:
+		hsl(224.3 76.3% 48%);
+	--sidebar-primary-foreground:
+		hsl(0 0% 100%);
+	--sidebar-accent:
+		hsl(240 3.7% 15.9%);
+	--sidebar-accent-foreground:
+		hsl(240 4.8% 95.9%);
+	--sidebar-border:
+		hsl(240 3.7% 15.9%);
+	--sidebar-ring:
+		hsl(217.2 91.2% 59.8%);
 }

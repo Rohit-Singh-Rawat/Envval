@@ -64,7 +64,7 @@ function RouteComponent() {
 	};
 
 	const handleContinueToDashboard = () => {
-		navigate({ to: '/' });
+		navigate({ to: '/dashboard' });
 	};
 
 	return (
