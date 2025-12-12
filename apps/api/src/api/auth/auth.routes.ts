@@ -1,10 +1,5 @@
-import { Hono } from 'hono';
-import type { AppEnv } from '@/shared/types/context';
+import { honoFactory } from '@/shared/utils/factory';
 import { sessionApi } from './session.api';
 import { oauthApi } from './oauth.api';
 
-export const authRoutes = new Hono<AppEnv>();
-
-authRoutes.route('/session', sessionApi);
-authRoutes.route('/', oauthApi);
-
+export const authRoutes = honoFactory.createApp().route('/session', sessionApi).route('/', oauthApi);

@@ -1,5 +1,5 @@
 {
-	"name": "api",
+	"name": "@envval/api",
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
@@ -8,6 +8,9 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/migrate.ts"
+	},
+	"exports": {
+		".": "./src/app.ts"
 	},
 	"dependencies": {
 		"@envval/db": "workspace:*",

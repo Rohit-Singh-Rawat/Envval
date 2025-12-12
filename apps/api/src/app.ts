@@ -8,25 +8,21 @@ import { sessionMiddleware } from '@/shared/middleware/session.middleware';
 
 // API routes
 import { authRoutes } from '@/api/auth/auth.routes';
+import { v1Routes } from '@/api/v1';
 
-const app = new Hono<AppEnv>();
-
-// Global middleware
-app.use('*', logger());
-app.use('*', cors(corsConfig));
-app.use('*', sessionMiddleware);
-app.onError(errorHandler);
-
-// Health check
-app.get('/', (c) => {
-	return c.json({ message: 'Hello World' });
-});
-
-// Mount API routes
-app.route('/api/auth', authRoutes);
-
-// API v1 routes (for future features)
-const v1 = new Hono<AppEnv>();
-app.route('/api/v1', v1);
+const app = new Hono<AppEnv>()
+	// Global middleware
+	.use('*', logger())
+	.use('*', cors(corsConfig))
+	.use('*', sessionMiddleware)
+	.onError(errorHandler)
+	// Health check
+	.get('/', (c) => {
+		return c.json({ message: 'Hello World' });
+	})
+	// Mount API routes
+	.route('/api/auth', authRoutes)
+	.route('/api/v1', v1Routes);
 
 export default app;
+export type AppType = typeof app;

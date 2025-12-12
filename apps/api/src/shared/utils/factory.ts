@@ -4,6 +4,7 @@ import type { AppEnv } from '@/shared/types/context';
 import { zValidator } from '@hono/zod-validator';
 import type { ValidationTargets } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { createFactory } from 'hono/factory';
 
 type ValidationTarget = keyof ValidationTargets;
 
@@ -44,3 +45,5 @@ export function createHandler<T extends Schema = {}>(config: HandlerConfig<T>): 
 
 	return [...validators, ...(middleware as Handler<AppEnv>[]), handler as Handler<AppEnv>];
 }
+
+export const honoFactory = createFactory<AppEnv>();

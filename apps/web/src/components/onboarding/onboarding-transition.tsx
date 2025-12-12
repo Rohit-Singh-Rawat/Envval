@@ -35,7 +35,7 @@ export function OnboardingContainer({ children }: OnboardingContainerProps) {
 			initial={{ opacity: 1, filter: 'blur(0px)' }}
 			exit={{ opacity: 0, filter: 'blur(20px)' }}
 			transition={{ duration: 0.6 }}
-			className='min-h-screen bg-background flex items-center justify-center px-4 border-x border-border max-w-4xl mx-auto'
+			className='min-h-screen bg-background flex items-center justify-center px-4 border-x border-border max-w-5xl mx-auto'
 		>
 			{children}
 		</motion.main>

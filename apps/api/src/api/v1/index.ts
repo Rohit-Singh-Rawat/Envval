@@ -1,7 +1,16 @@
+// v1/index.ts
 import { Hono } from 'hono';
 import type { AppEnv } from '@/shared/types/context';
-import { postOnboardingHandler } from '@/modules/onboarding/post-onboarding-handler';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 
-export const v1Routes = new Hono<AppEnv>();
+const onboardingSchema = z.object({ name: z.string() });
 
-v1Routes.post('/onboarding', ...postOnboardingHandler);
+export const v1Routes = new Hono<AppEnv>().post(
+	'/onboarding',
+	zValidator('json', onboardingSchema),
+	(c) => {
+		const data = c.req.valid('json');
+		return c.json({ message: 'Hello, world!' });
+	}
+);

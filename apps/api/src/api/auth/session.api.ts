@@ -1,9 +1,6 @@
-import { Hono } from 'hono';
-import type { AppEnv } from '@/shared/types/context';
+import { honoFactory } from '@/shared/utils/factory';
 
-export const sessionApi = new Hono<AppEnv>();
-
-sessionApi.get('/', (c) => {
+export const sessionApi = honoFactory.createApp().get('/', (c) => {
 	const session = c.get('session');
 	const user = c.get('user');
 
@@ -16,4 +13,3 @@ sessionApi.get('/', (c) => {
 		user,
 	});
 });
-

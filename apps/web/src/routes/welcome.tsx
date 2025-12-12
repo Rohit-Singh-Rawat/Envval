@@ -78,7 +78,7 @@ function RouteComponent() {
 					<StepProgress
 						steps={steps}
 						currentStep={step}
-						className='pb-20'
+						className='pb-40'
 					/>
 					<div className='min-h-[500px]'>
 						<div className='flex flex-col items-center gap-3 pb-10 '>
