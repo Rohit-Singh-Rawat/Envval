@@ -36,10 +36,11 @@ function getDynamicRateLimiter(actionType: 'auth' | 'default' | 'email'): Rateli
 }
 
 export async function rateLimit({ actionType, identifier }: RateLimitProps): Promise<void> {
-	const rateLimiter = getDynamicRateLimiter(actionType);
-	const { success } = await rateLimiter.limit(identifier);
+	const limiter = getDynamicRateLimiter(actionType);
+	const { success } = await limiter.limit(identifier);
 
 	if (!success) {
 		throw new Error('Too many requests. Please try again later.');
 	}
 }
+

@@ -74,11 +74,11 @@ function RouteComponent() {
 		>
 			<div className='w-full max-w-md relative flex flex-col items-center justify-center'>
 				<div className='w-screen border-t border-border' />
-				<div className='w-full max-w-md p-10'>
+				<div className='w-full max-w-md p-5'>
 					<StepProgress
 						steps={steps}
 						currentStep={step}
-						className='pb-10'
+						className='pb-20'
 					/>
 					<div className='min-h-[500px]'>
 						<div className='flex flex-col items-center gap-3 pb-10 '>

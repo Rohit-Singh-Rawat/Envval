@@ -8,6 +8,20 @@
       "when": 1765287688207,
       "tag": "0000_blue_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765542035567,
+      "tag": "0001_high_alex_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765542190972,
+      "tag": "0002_late_gamma_corps",
+      "breakpoints": true
     }
   ]
 }

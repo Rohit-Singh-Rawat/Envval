@@ -1,0 +1,1 @@
+-- No-op migration (onboarded column already added in 0001)

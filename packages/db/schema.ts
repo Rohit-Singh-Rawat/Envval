@@ -10,9 +10,7 @@ export const user = pgTable('user', {
 	email: text('email').notNull().unique(),
 	emailVerified: boolean('email_verified').default(false).notNull(),
 	image: text('image'),
-	onboardingStep: pgEnum('onboarding_step', ['0', '1', '2'])('onboarding_step')
-		.default('1')
-		.notNull(), // '0' = completed, '1' = step 1, '2' = step 2
+	onboarded: boolean('onboarded').default(false).notNull(),
 	// Encrypted user key material (envelope encrypted with server master key)
 	// keyMaterialEnc: text('key_material_enc').notNull(),
 	// keyMaterialIv: text('key_material_iv').notNull(),

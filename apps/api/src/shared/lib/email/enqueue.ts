@@ -26,3 +26,4 @@ export const enqueueEmail = async (payload: SendEmailPayload) => {
 		data: job.data,
 	};
 };
+

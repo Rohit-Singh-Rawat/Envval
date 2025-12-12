@@ -3,11 +3,15 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, jwt } from 'better-auth/plugins';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
-import { ensureDeviceExists } from '../utils/ensure-device-exist';
-import { sendOTPEmail } from '../utils/send-email';
+import { AuthEmailService } from './auth-email.service';
+import { DeviceService } from './device.service';
+
+const emailService = new AuthEmailService();
+const deviceService = new DeviceService();
+
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
-		provider: 'pg', // or "mysql", "sqlite"
+		provider: 'pg',
 		schema: {
 			...schema,
 		},
@@ -35,13 +39,12 @@ export const auth = betterAuth({
 			},
 		},
 	},
-
 	databaseHooks: {
 		session: {
 			create: {
-				before: async (data, ctx) => {
+				before: async (data) => {
 					const deviceId = data.userId + '-' + 'web';
-					const device = await ensureDeviceExists(deviceId, data.userId, 'DEVICE_WEB', {
+					const device = await deviceService.ensureExists(deviceId, data.userId, 'DEVICE_WEB', {
 						name: 'Web Device',
 						lastIpAddress: data.ipAddress,
 						lastUserAgent: data.userAgent,
@@ -74,7 +77,7 @@ export const auth = betterAuth({
 		emailOTP({
 			sendVerificationOTP: async ({ email, otp, type }) => {
 				if (type !== 'sign-in') return;
-				await sendOTPEmail({ email, otp });
+				await emailService.sendOTP(email, otp);
 			},
 			expiresIn: 600,
 			allowedAttempts: 5,
