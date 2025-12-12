@@ -10,6 +10,9 @@ export const user = pgTable('user', {
 	email: text('email').notNull().unique(),
 	emailVerified: boolean('email_verified').default(false).notNull(),
 	image: text('image'),
+	onboardingStep: pgEnum('onboarding_step', ['0', '1', '2'])('onboarding_step')
+		.default('1')
+		.notNull(), // '0' = completed, '1' = step 1, '2' = step 2
 	// Encrypted user key material (envelope encrypted with server master key)
 	// keyMaterialEnc: text('key_material_enc').notNull(),
 	// keyMaterialIv: text('key_material_iv').notNull(),
@@ -204,6 +207,32 @@ export const auditLog = pgTable(
 	]
 );
 
+// Attribution for "How did you hear about us?"
+export const userAttribution = pgTable(
+	'user_attribution',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		// User-provided fields from onboarding
+		source: text('source'), // e.g., google, twitter, friend, producthunt, linkedin, youtube, reddit, hackernews, blog, podcast, other
+		medium: text('medium'), // e.g., organic, social, referral, ad, direct, other
+		details: text('details'), // Optional freeform details
+		// Auto-captured fields (for analytics/debugging)
+		referrerUrl: text('referrer_url'),
+		landingPageUrl: text('landing_page_url'),
+		ipAddress: text('ip_address'),
+		userAgent: text('user_agent'),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+	},
+	(table) => [
+		index('userAttribution_userId_idx').on(table.userId),
+		index('userAttribution_createdAt_idx').on(table.createdAt),
+		index('userAttribution_source_idx').on(table.source),
+	]
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
@@ -211,6 +240,7 @@ export const userRelations = relations(user, ({ many }) => ({
 	repos: many(repo),
 	environments: many(environment),
 	auditLogs: many(auditLog),
+	attributions: many(userAttribution),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -289,6 +319,13 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
 	environment: one(environment, {
 		fields: [auditLog.environmentId],
 		references: [environment.id],
+	}),
+}));
+
+export const userAttributionRelations = relations(userAttribution, ({ one }) => ({
+	user: one(user, {
+		fields: [userAttribution.userId],
+		references: [user.id],
 	}),
 }));
 export const jwks = pgTable('jwks', {
