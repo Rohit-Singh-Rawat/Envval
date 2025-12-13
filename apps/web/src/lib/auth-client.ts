@@ -7,3 +7,5 @@ export const authClient = createAuthClient({
 	baseURL: env.VITE_API_BASE_URL,
 	plugins: [jwtClient()],
 });
+
+export const useSession = authClient.useSession;

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import client from '@/lib/api';
 import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
+import { useSession } from '@/lib/auth-client';
 
 type UseOnboardingOptions = {
 	initialStep?: number;
@@ -21,6 +22,7 @@ export function useOnboarding({
 	const [step, setStep] = useState(initialStep);
 	const [isComplete, setIsComplete] = useState(initialComplete);
 	const navigate = useNavigate();
+	const { data: session } = useSession();
 
 	const form = useForm<OnboardingFormValues>({
 		resolver: zodResolver(onboardingSchema),
@@ -33,6 +35,22 @@ export function useOnboarding({
 			details: '',
 		},
 	});
+
+	// Pre-fill form with user's name if logged in but doesn't have a name set
+	useEffect(() => {
+		if (session?.user?.name && !form.getValues('firstName')) {
+			const nameParts = session.user.name.split(' ');
+			const firstName = nameParts[0] || '';
+			const lastName = nameParts.slice(1).join(' ') || '';
+
+			if (firstName) {
+				form.setValue('firstName', firstName);
+			}
+			if (lastName) {
+				form.setValue('lastName', lastName);
+			}
+		}
+	}, [session, form]);
 
 	const onboardingMutation = useMutation({
 		mutationFn: async (data: OnboardingFormValues) => {

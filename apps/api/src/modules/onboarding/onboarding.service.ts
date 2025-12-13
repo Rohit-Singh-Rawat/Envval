@@ -50,7 +50,7 @@ export class OnboardingService {
 		if (!userData?.email) {
 			throw new Error('User email not found');
 		}
-
+		console.log('sendWelcomeEmail', userData.email, name);
 		await emailService.sendWelcomeEmail(userData.email, name);
 		return { success: true };
 	}

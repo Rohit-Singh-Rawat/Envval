@@ -57,7 +57,6 @@ export const postOnboardingHandler = createHandler({
 
 		// Send welcome email
 		await onboardingService.sendWelcomeEmail(user.id, fullName);
-
 		return ctx.json({
 			message: 'Onboarding completed successfully',
 			user: {
