@@ -1,8 +1,5 @@
-import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { UserIcon, CompassIcon } from 'hugeicons-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { EnvvalLogo } from '@/components/logo/envval';
@@ -12,7 +9,7 @@ import { OnboardingTransition } from '@/components/onboarding/onboarding-transit
 import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';
 import { StepProgress, type StepConfig } from '@/components/onboarding/step-progress';
-import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
+import { useOnboarding } from '@/hooks/onboarding/use-onboarding';
 
 const searchSchema = z.object({
 	step: z.enum(['1', '2', 'complete']).optional(),
@@ -30,38 +27,13 @@ const steps: StepConfig[] = [
 
 function RouteComponent() {
 	const { step: stepParam } = Route.useSearch();
-	const initialStep = stepParam === '1' ? 1 : stepParam === '2' ? 2 : 1;
-	const initialComplete = stepParam === 'complete';
-
-	const [step, setStep] = useState(initialStep);
-	const [isComplete, setIsComplete] = useState(initialComplete);
 	const navigate = useNavigate();
 
-	const form = useForm<OnboardingFormValues>({
-		resolver: zodResolver(onboardingSchema),
-		defaultValues: {
-			firstName: '',
-			lastName: '',
-			source: '',
-			medium: '',
-			details: '',
-		},
+	const { step, isComplete, form, goNext, goBack, onSubmit, isSubmitting } = useOnboarding({
+		initialStep: stepParam === '1' ? 1 : stepParam === '2' ? 2 : 1,
+		initialComplete: stepParam === 'complete',
+		totalSteps: steps.length,
 	});
-
-	const goNext = async () => {
-		if (step === 1) {
-			const valid = await form.trigger(['firstName', 'lastName']);
-			if (!valid) return;
-		}
-		setStep((s) => Math.min(s + 1, steps.length));
-	};
-
-	const goBack = () => setStep((s) => Math.max(s - 1, 1));
-
-	const onSubmit = (data: OnboardingFormValues) => {
-		console.log(data);
-		setIsComplete(true);
-	};
 
 	const handleContinueToDashboard = () => {
 		navigate({ to: '/dashboard' });
@@ -105,7 +77,7 @@ function RouteComponent() {
 										type='button'
 										variant='muted'
 										onClick={goBack}
-										disabled={step === 1}
+										disabled={step === 1 || isSubmitting}
 									>
 										Back
 									</Button>
@@ -113,11 +85,18 @@ function RouteComponent() {
 										<Button
 											type='button'
 											onClick={goNext}
+											disabled={isSubmitting}
 										>
 											Next
 										</Button>
 									) : (
-										<Button type='submit'>Finish</Button>
+										<Button
+											type='submit'
+											pending={isSubmitting}
+											disabled={isSubmitting}
+										>
+											Finish
+										</Button>
 									)}
 								</div>
 							</form>

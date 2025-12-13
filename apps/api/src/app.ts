@@ -7,8 +7,7 @@ import { errorHandler } from '@/shared/middleware/error.middleware';
 import { sessionMiddleware } from '@/shared/middleware/session.middleware';
 
 // API routes
-import { authRoutes } from '@/api/auth/auth.routes';
-import { v1Routes } from '@/api/v1';
+import { apiRoutes } from '@/api';
 
 const app = new Hono<AppEnv>()
 	// Global middleware
@@ -21,8 +20,7 @@ const app = new Hono<AppEnv>()
 		return c.json({ message: 'Hello World' });
 	})
 	// Mount API routes
-	.route('/api/auth', authRoutes)
-	.route('/api/v1', v1Routes);
+	.route('/api', apiRoutes);
 
 export default app;
 export type AppType = typeof app;

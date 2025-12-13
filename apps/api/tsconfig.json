@@ -1,11 +1,13 @@
 {
 	"compilerOptions": {
 		"target": "ESNext",
+		"declaration": true,
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"strict": true,
 		"skipLibCheck": true,
 		"types": ["node"],
+		"emitDeclarationOnly": true,
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
 		"outDir": "./dist",
@@ -15,5 +17,6 @@
 			"@/env": ["./env"]
 		}
 	},
-	"exclude": ["node_modules"]
+	"include": ["src"],
+	"exclude": ["node_modules", "dist"]
 }

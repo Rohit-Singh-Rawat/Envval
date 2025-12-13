@@ -6,7 +6,7 @@ export type {
 	SendEmailPayload,
 	TemplateName,
 	OtpEmailData,
+	WelcomeEmailData,
 	SendEmailResult,
 	RenderedEmail,
 } from './types';
-

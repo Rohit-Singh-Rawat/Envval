@@ -20,7 +20,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			}}
 			style={
 				{
-					'--width': '200px',
+					'--width': '240px',
 
 					'--normal-bg': '#000000',
 					'--success-bg': '#000000',

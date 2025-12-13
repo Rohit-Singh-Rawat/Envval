@@ -3,14 +3,31 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
-		"build": "tsc",
+		"build": "rm -rf dist && tsc && tsc-alias",
 		"start": "node dist/server.js",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/migrate.ts"
 	},
 	"exports": {
-		".": "./src/app.ts"
+		".": {
+			"types": "./dist/app.d.ts",
+			"default": "./src/app.ts"
+		},
+		"./hc": {
+			"types": "./dist/hc.d.ts",
+			"default": "./src/hc.ts"
+		},
+		"./routes": {
+			"default": "./src/api/v1/index.ts"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"*": [
+				"./dist/*.d.ts"
+			]
+		}
 	},
 	"dependencies": {
 		"@envval/db": "workspace:*",
@@ -28,6 +45,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.17",
+		"tsc-alias": "^1.8.16",
 		"tsx": "^4.7.1",
 		"typescript": "^5.8.3"
 	}

@@ -18,4 +18,20 @@ export class AuthEmailService {
 
 		return { success: true };
 	}
+
+	async sendWelcomeEmail(email: string, name: string) {
+		await rateLimit({ actionType: 'email', identifier: email });
+
+		await enqueueEmail({
+			to: email,
+			from: env.EMAIL_FROM,
+			template: 'welcome' as const,
+			data: {
+				name,
+				productName: 'EnvVal',
+			},
+		});
+
+		return { success: true };
+	}
 }
