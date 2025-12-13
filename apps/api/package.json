@@ -18,6 +18,10 @@
 			"types": "./dist/hc.d.ts",
 			"default": "./src/hc.ts"
 		},
+		"./auth": {
+			"types": "./dist/modules/auth/auth.service.d.ts",
+			"default": "./src/modules/auth/auth.service.ts"
+		},
 		"./routes": {
 			"default": "./src/api/v1/index.ts"
 		}

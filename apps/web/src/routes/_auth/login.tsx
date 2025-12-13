@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import Authenticate from '@/components/auth/authenticate';
 // import { Asterisk } from '@/components/logo/asterisk';
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute('/_auth/login')({
 	component: RouteComponent,
 });
 
@@ -12,5 +12,5 @@ function RouteComponent() {
 			<Authenticate mode='login' />
 			{/* <Asterisk className='size-40  absolute bottom-0 right-0' /> */}
 		</main>
-	);
+	)
 }

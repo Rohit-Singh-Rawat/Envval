@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Header } from '@/components/dashboard/shared/header';
 import { AppSidebar } from '@/components/dashboard/shared/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -8,6 +8,7 @@ import { Heading } from '@/components/dashboard/shared/heading';
 import { Suspense } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { EnvvalLoader } from '@/components/logo/envval';
+import { authMiddleware } from '@/middleware/auth';
 
 const getProjects = async () => {
 	await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -41,6 +42,9 @@ const getProjects = async () => {
 
 export const Route = createFileRoute('/dashboard')({
 	component: RouteComponent,
+	server: {
+		middleware: [authMiddleware],
+	},
 });
 
 function RouteComponent() {

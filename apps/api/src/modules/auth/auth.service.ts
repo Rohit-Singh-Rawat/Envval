@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, jwt } from 'better-auth/plugins';
+import { customSession, emailOTP, jwt } from 'better-auth/plugins';
+import { eq } from 'drizzle-orm';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
 import { AuthEmailService } from './auth-email.service';
@@ -83,6 +84,20 @@ export const auth = betterAuth({
 			allowedAttempts: 5,
 			sendVerificationOnSignUp: false,
 			overrideDefaultEmailVerification: false,
+		}),
+		customSession(async ({ user, session }) => {
+			const [result] = await db
+				.select({ onboarded: schema.user.onboarded })
+				.from(schema.user)
+				.where(eq(schema.user.id, user.id))
+				.limit(1);
+			return {
+				user: {
+					...user,
+					onboarded: result?.onboarded ?? false,
+				},
+				session,
+			};
 		}),
 	],
 });

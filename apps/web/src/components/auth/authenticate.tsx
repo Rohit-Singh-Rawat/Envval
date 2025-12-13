@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ArrowLeft01Icon } from 'hugeicons-react';
 import { useMutation } from '@tanstack/react-query';
@@ -132,6 +132,7 @@ const initialOtpState: OtpState = {
 
 function Authenticate({ mode = 'login' }: AuthenticateProps) {
 	const isLogin = mode === 'login';
+	const navigate = useNavigate();
 	const [step, setStep] = useState<'email' | 'otp'>('email');
 	const [otpState, setOtpState] = useState<OtpState>(initialOtpState);
 	const {
@@ -168,6 +169,13 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 				otp: code,
 			});
 			if (error) throw error;
+		},
+		onSuccess: () => {
+			if (mode === 'signup') {
+				navigate({ to: '/welcome' });
+			} else {
+				navigate({ to: '/dashboard' });
+			}
 		},
 		onError: (error) => {
 			const message = error instanceof Error ? error.message : 'Incorrect code, try again';

@@ -48,7 +48,7 @@ export function AppSidebar() {
 
 	return (
 		<Sidebar
-			className='bg-background  w-64 shrink-0 h-full flex flex-col justify-center '
+			className='bg-background  w-56 shrink-0 h-full flex flex-col justify-center '
 			collapsible='none'
 			variant='sidebar'
 		>
@@ -57,7 +57,7 @@ export function AppSidebar() {
 					<Button
 						variant='ghost'
 						size='sm'
-						className='h-8 w-full relative gap-2 justify-start px-2 has-[>svg]:px-2'
+						className='h-8 w-full relative gap-2 justify-start px-2 has-[>svg]:px-2 squircle'
 						onClick={() => {
 							// Handle search
 						}}
@@ -82,7 +82,7 @@ export function AppSidebar() {
 										<SidebarMenuButton asChild>
 											<a
 												href={item.href}
-												className={`flex items-center gap-2 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+												className={`flex items-center gap-2 squircle ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
 											>
 												<item.icon className='size-4 text-inherit' />
 												<span>{item.title}</span>

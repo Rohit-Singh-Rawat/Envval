@@ -10,6 +10,7 @@ import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';
 import { StepProgress, type StepConfig } from '@/components/onboarding/step-progress';
 import { useOnboarding } from '@/hooks/onboarding/use-onboarding';
+import { redirectIfOnboardedMiddleware } from '@/middleware/auth';
 
 const searchSchema = z.object({
 	step: z.enum(['1', '2', 'complete']).optional(),
@@ -18,6 +19,9 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/welcome')({
 	component: RouteComponent,
 	validateSearch: searchSchema,
+	server: {
+		middleware: [redirectIfOnboardedMiddleware],
+	},
 });
 
 const steps: StepConfig[] = [
