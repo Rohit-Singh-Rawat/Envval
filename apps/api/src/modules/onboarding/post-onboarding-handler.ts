@@ -1,5 +1,6 @@
-import { createHandler } from '@/shared/utils/factory';
+import { honoFactory } from '@/shared/utils/factory';
 import { z } from 'zod';
+import { customZValidator } from '@/shared/utils/zod-validator';
 import { authMiddleware } from '@/shared/middleware/auth.middleware';
 import { UserService } from '@/modules/auth/user.service';
 import { OnboardingService } from '@/modules/onboarding/onboarding.service';
@@ -8,25 +9,25 @@ import { HTTPException } from 'hono/http-exception';
 const userService = new UserService();
 const onboardingService = new OnboardingService();
 
-export const postOnboardingHandler = createHandler({
-	schema: {
-		json: z.object({
-			name: z.string().min(1),
-			lastName: z.string().optional(),
-			source: z.string().optional().nullable(),
-			medium: z.string().optional().nullable(),
-			details: z.string().optional().nullable(),
-		}),
-	},
-	middleware: [authMiddleware],
-	handler: async (ctx) => {
+const onboardingSchema = z.object({
+	name: z.string().min(1),
+	lastName: z.string().optional(),
+	source: z.string().optional().nullable(),
+	medium: z.string().optional().nullable(),
+	details: z.string().optional().nullable(),
+});
+
+export const postOnboardingHandler = honoFactory.createHandlers(
+	customZValidator('json', onboardingSchema),
+	authMiddleware,
+	async (ctx) => {
 		const user = ctx.get('user');
 		if (!user) {
 			throw new HTTPException(401, { message: 'Unauthorized' });
 		}
 
 		// Data is already validated by zValidator middleware
-		const body = (ctx.req as any).valid?.('json') || (await ctx.req.json());
+		const body = ctx.req.valid('json');
 		const { name, lastName, source, medium, details } = body;
 
 		// Combine name and lastName if lastName is provided
@@ -65,5 +66,5 @@ export const postOnboardingHandler = createHandler({
 				onboarded: true,
 			},
 		});
-	},
-});
+	}
+);

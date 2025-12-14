@@ -6,39 +6,9 @@ import { Layers01Icon, Key01Icon } from 'hugeicons-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heading } from '@/components/dashboard/shared/heading';
 import { Suspense } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { EnvvalLoader } from '@/components/logo/envval';
 import { authMiddleware } from '@/middleware/auth';
-
-const getProjects = async () => {
-	await new Promise((resolve) => setTimeout(resolve, 3000));
-	return [
-		{
-			name: 'Project Alpha',
-			description: 'Main production application',
-			envs: 3,
-			secrets: 12,
-		},
-		{
-			name: 'Project Beta',
-			description: 'Testing environment for new features',
-			envs: 2,
-			secrets: 8,
-		},
-		{
-			name: 'Project Gamma',
-			description: 'Internal tools and utilities',
-			envs: 1,
-			secrets: 5,
-		},
-		{
-			name: 'Project Delta',
-			description: 'Client-facing API services',
-			envs: 4,
-			secrets: 15,
-		},
-	];
-};
+import { useGetRepos } from '@/hooks/repos/use-get-repos';
 
 export const Route = createFileRoute('/dashboard')({
 	component: RouteComponent,
@@ -80,35 +50,43 @@ function RouteComponent() {
 const ProjectItem = ({
 	project,
 }: {
-	project: { name: string; description: string; envs: number; secrets: number };
+	project: {
+		name: string | null;
+		gitRemoteUrl: string | null;
+		workspacePath: string | null;
+		environments: number;
+		lastSyncedAt: string | null;
+		createdAt: string;
+		updatedAt: string;
+	};
 }) => {
 	return (
 		<li className='flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors'>
 			<div className='flex flex-col gap-1'>
 				<span className='font-medium'>{project.name}</span>
-				<span className='text-sm text-muted-foreground'>{project.description}</span>
+				<span className='text-sm text-muted-foreground'>{project.gitRemoteUrl}</span>
 			</div>
 			<div className='flex items-center gap-4 text-sm text-muted-foreground'>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span className='flex items-center gap-1'>
 							<Layers01Icon className='size-4' />
-							{project.envs}
+							{project.environments}
 						</span>
 					</TooltipTrigger>
 					<TooltipContent>
-						<p>{project.envs} environments</p>
+						<p>{project.environments} environments</p>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span className='flex items-center gap-1'>
 							<Key01Icon className='size-4' />
-							{project.secrets}
+							{project.lastSyncedAt}
 						</span>
 					</TooltipTrigger>
 					<TooltipContent>
-						<p>{project.secrets} secrets</p>
+						<p>{project.lastSyncedAt} last synced</p>
 					</TooltipContent>
 				</Tooltip>
 			</div>
@@ -117,17 +95,14 @@ const ProjectItem = ({
 };
 
 const ProjectList = () => {
-	const { data: projects } = useSuspenseQuery({
-		queryKey: ['projects'],
-		queryFn: getProjects,
-	});
+	const { data: repos } = useGetRepos();
 	return (
 		<>
 			<ul className='flex flex-col gap-1'>
-				{projects?.map((project) => (
+				{repos.map((repo) => (
 					<ProjectItem
-						key={project.name}
-						project={project}
+						key={repo.name}
+						project={repo}
 					/>
 				))}
 			</ul>

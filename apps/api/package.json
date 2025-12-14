@@ -4,7 +4,7 @@
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
 		"build": "rm -rf dist && tsc && tsc-alias",
-		"start": "node dist/server.js",
+		"start": "rm -rf dist && tsc && tsc-alias && node dist/server.js",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/migrate.ts"

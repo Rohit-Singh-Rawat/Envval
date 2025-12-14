@@ -68,7 +68,7 @@ export function useOnboarding({
 				const error = await response
 					.json()
 					.catch(() => ({ message: 'Failed to complete onboarding' }));
-				throw new Error(error.message || 'Failed to complete onboarding');
+				throw new Error((error as { message: string }).message || 'Failed to complete onboarding');
 			}
 			return response.json();
 		},
