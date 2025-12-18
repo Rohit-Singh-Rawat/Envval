@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/icons/spinner';
@@ -55,22 +56,50 @@ function Button({
 	...props
 }: ButtonProps) {
 	const Comp = asChild ? Slot : 'button';
+	const [hasAnimated, setHasAnimated] = React.useState(false);
+
+	React.useEffect(() => {
+		if (pending !== undefined) {
+			setHasAnimated(true);
+		}
+	}, [pending]);
 
 	return (
 		<Comp
 			data-slot='button'
-			className={cn(buttonVariants({ variant, size, className }))}
+			className={cn(buttonVariants({ variant, size, className }), 'overflow-hidden')}
 			disabled={disabled || pending}
 			{...props}
 		>
-			{pending ? (
-				<>
-					<Spinner className='size-4 ' />
-					{pendingText && <span>{pendingText}</span>}
-				</>
-			) : (
-				children
-			)}
+			<AnimatePresence
+				mode='popLayout'
+				initial={false}
+			>
+				{pending ? (
+					<motion.span
+						key='pending'
+						initial={hasAnimated ? { y: 20, opacity: 0 } : false}
+						animate={{ y: 0, opacity: 1 }}
+						exit={{ y: -20, opacity: 0 }}
+						transition={{ duration: 0.2, ease: 'easeInOut' }}
+						className='inline-flex items-center gap-2'
+					>
+						<Spinner className='size-4' />
+						{pendingText && <span>{pendingText}</span>}
+					</motion.span>
+				) : (
+					<motion.span
+						key='children'
+						initial={hasAnimated ? { y: 20, opacity: 0 } : false}
+						animate={{ y: 0, opacity: 1 }}
+						exit={{ y: -20, opacity: 0 }}
+						transition={{ duration: 0.2, ease: 'easeInOut' }}
+						className='inline-flex items-center gap-2'
+					>
+						{children}
+					</motion.span>
+				)}
+			</AnimatePresence>
 		</Comp>
 	);
 }

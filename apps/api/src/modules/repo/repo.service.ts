@@ -1,4 +1,4 @@
-import { count, eq, max } from 'drizzle-orm';
+import { count, eq, max, sum } from 'drizzle-orm';
 import { db } from '@envval/db';
 import { environment, repo } from '@envval/db/schema';
 
@@ -10,6 +10,7 @@ export class RepoService {
 				name: repo.name,
 				gitRemoteUrl: repo.gitRemoteUrl,
 				workspacePath: repo.workspacePath,
+				totalEnvCount: sum(environment.envCount),
 				environments: count(environment.id),
 				lastSyncedAt: max(environment.updatedAt),
 				createdAt: repo.createdAt,

@@ -5,10 +5,14 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { Layers01Icon, Key01Icon } from 'hugeicons-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heading } from '@/components/dashboard/shared/heading';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { EnvvalLoader } from '@/components/logo/envval';
 import { authMiddleware } from '@/middleware/auth';
 import { useGetRepos } from '@/hooks/repos/use-get-repos';
+import {
+	GetStartedWizard,
+	shouldShowGetStartedWizard,
+} from '@/components/onboarding/get-started-wizard';
 
 export const Route = createFileRoute('/dashboard')({
 	component: RouteComponent,
@@ -25,11 +29,35 @@ function RouteComponent() {
 				<div className='flex flex-1 overflow-hidden w-full pt-10'>
 					<AppSidebar />
 					<main className='flex flex-1 flex-col gap-4 px-5 overflow-auto'>
-						<Heading
-							title='Projects'
-							description='Manage your projects and their associated data.'
-						/>
-						<section>
+						<DashboardContent />
+					</main>
+				</div>
+			</div>
+		</SidebarProvider>
+	);
+}
+
+function DashboardContent() {
+	const { data: repos } = useGetRepos();
+	const [hideWizard, setHideWizard] = useState(false);
+
+	const showWizard = !hideWizard && shouldShowGetStartedWizard(repos);
+
+	return (
+		<>
+			<Heading
+				title='Projects'
+				description='Manage your projects and their associated data.'
+			/>
+
+			{showWizard && (
+				<GetStartedWizard
+					repos={repos}
+					onHide={() => setHideWizard(true)}
+				/>
+			)}
+
+			<section>
 							<Suspense
 								fallback={
 									<div className='flex items-center justify-center w-full h-[50vh]'>
@@ -40,10 +68,7 @@ function RouteComponent() {
 								<ProjectList />
 							</Suspense>
 						</section>
-					</main>
-				</div>
-			</div>
-		</SidebarProvider>
+		</>
 	);
 }
 
@@ -96,6 +121,7 @@ const ProjectItem = ({
 
 const ProjectList = () => {
 	const { data: repos } = useGetRepos();
+	
 	return (
 		<>
 			<ul className='flex flex-col gap-1'>

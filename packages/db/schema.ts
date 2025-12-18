@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, boolean, index, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, index, pgEnum, integer } from 'drizzle-orm/pg-core';
 
 export const sessionType = pgEnum('session_type', ['SESSION_EXTENSION', 'SESSION_WEB']);
 export const deviceType = pgEnum('device_type', ['DEVICE_EXTENSION', 'DEVICE_WEB']);
@@ -143,8 +143,16 @@ export const environment = pgTable(
 			.notNull()
 			.references(() => repo.id, { onDelete: 'cascade' }),
 		fileName: text('file_name').notNull(),
+		// Latest encrypted env content (ciphertext.authTag:iv)
+		content: text('content').notNull(),
+		// Count of environment variables in this file
+		envCount: integer('env_count').default(0).notNull(),
+		// Hash of latest plaintext (SHA-256) for conflict detection
 		latestHash: text('latest_hash').notNull(),
-		latestVersionId: text('latest_version_id'),
+		// Device that last updated this env (for display / audit)
+		lastUpdatedByDeviceId: text('last_updated_by_device_id').references(() => device.id, {
+			onDelete: 'set null',
+		}),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.defaultNow()
@@ -156,27 +164,6 @@ export const environment = pgTable(
 		index('env_repoId_idx').on(table.repoId),
 		index('env_id_idx').on(table.id),
 		index('env_repoId_fileName_idx').on(table.repoId, table.fileName),
-	]
-);
-
-export const envVersion = pgTable(
-	'env_version',
-	{
-		id: text('id').primaryKey(),
-		environmentId: text('environment_id')
-			.notNull()
-			.references(() => environment.id, { onDelete: 'cascade' }),
-		content: text('content').notNull(),
-		hash: text('hash').notNull(),
-		updatedByDeviceId: text('updated_by_device_id').references(() => device.id, {
-			onDelete: 'set null',
-		}),
-		createdAt: timestamp('created_at').defaultNow().notNull(),
-	},
-	(table) => [
-		index('envVersion_environmentId_idx').on(table.environmentId),
-		index('envVersion_hash_idx').on(table.hash),
-		index('envVersion_createdAt_idx').on(table.createdAt),
 	]
 );
 
@@ -265,7 +252,6 @@ export const deviceRelations = relations(device, ({ one, many }) => ({
 		references: [user.id],
 	}),
 	sessions: many(session),
-	envVersions: many(envVersion),
 	auditLogs: many(auditLog),
 }));
 
@@ -286,23 +272,7 @@ export const environmentRelations = relations(environment, ({ one, many }) => ({
 		fields: [environment.repoId],
 		references: [repo.id],
 	}),
-	versions: many(envVersion),
-	latestVersion: one(envVersion, {
-		fields: [environment.latestVersionId],
-		references: [envVersion.id],
-	}),
 	auditLogs: many(auditLog),
-}));
-
-export const envVersionRelations = relations(envVersion, ({ one }) => ({
-	environment: one(environment, {
-		fields: [envVersion.environmentId],
-		references: [environment.id],
-	}),
-	updatedByDevice: one(device, {
-		fields: [envVersion.updatedByDeviceId],
-		references: [device.id],
-	}),
 }));
 
 export const auditLogRelations = relations(auditLog, ({ one }) => ({

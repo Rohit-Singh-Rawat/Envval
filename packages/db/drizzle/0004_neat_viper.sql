@@ -1,0 +1,1 @@
+ALTER TABLE "environment" ADD COLUMN "env_count" integer DEFAULT 0 NOT NULL;
