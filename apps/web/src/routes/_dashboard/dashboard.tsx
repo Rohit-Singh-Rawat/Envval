@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { Header } from '@/components/dashboard/shared/header';
 import { AppSidebar } from '@/components/dashboard/shared/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -7,34 +7,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Heading } from '@/components/dashboard/shared/heading';
 import { Suspense, useState } from 'react';
 import { EnvvalLoader } from '@/components/logo/envval';
-import { authMiddleware } from '@/middleware/auth';
 import { useGetRepos } from '@/hooks/repos/use-get-repos';
 import {
 	GetStartedWizard,
 	shouldShowGetStartedWizard,
 } from '@/components/onboarding/get-started-wizard';
 
-export const Route = createFileRoute('/dashboard')({
+export const Route = createFileRoute('/_dashboard/dashboard')({
 	component: RouteComponent,
-	server: {
-		middleware: [authMiddleware],
-	},
 });
 
 function RouteComponent() {
-	return (
-		<SidebarProvider className='w-full'>
-			<div className='flex flex-col min-h-screen  mx-auto w-full max-w-4xl '>
-				<Header />
-				<div className='flex flex-1 overflow-hidden w-full pt-10'>
-					<AppSidebar />
-					<main className='flex flex-1 flex-col gap-4 px-5 overflow-auto'>
-						<DashboardContent />
-					</main>
-				</div>
-			</div>
-		</SidebarProvider>
-	);
+	return <DashboardContent />;
 }
 
 function DashboardContent() {
@@ -58,16 +42,16 @@ function DashboardContent() {
 			)}
 
 			<section>
-							<Suspense
-								fallback={
-									<div className='flex items-center justify-center w-full h-[50vh]'>
-										<EnvvalLoader className='w-full h-10 rounded-md' />
-									</div>
-								}
-							>
-								<ProjectList />
-							</Suspense>
-						</section>
+				<Suspense
+					fallback={
+						<div className='flex items-center justify-center w-full h-[50vh]'>
+							<EnvvalLoader className='w-full h-10 rounded-md' />
+						</div>
+					}
+				>
+					<ProjectList />
+				</Suspense>
+			</section>
 		</>
 	);
 }
@@ -121,7 +105,7 @@ const ProjectItem = ({
 
 const ProjectList = () => {
 	const { data: repos } = useGetRepos();
-	
+
 	return (
 		<>
 			<ul className='flex flex-col gap-1'>
