@@ -1,7 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Header } from '@/components/dashboard/shared/header';
-import { AppSidebar } from '@/components/dashboard/shared/app-sidebar';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Layers01Icon, Key01Icon } from 'hugeicons-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heading } from '@/components/dashboard/shared/heading';

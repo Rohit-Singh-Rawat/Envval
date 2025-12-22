@@ -13,7 +13,7 @@
 body {
 	@apply m-0;
 	font-family:
-		'Satoshi-Regular',
+		'Satoshi-Variable',
 		-apple-system,
 		BlinkMacSystemFont,
 		'Segoe UI',
@@ -45,7 +45,7 @@ code {
 	--secondary: oklch(1 0 0);
 	--secondary-foreground: oklch(0.21 0.006 285.885);
 	--muted: oklch(0.94 0.0119 106.62);
-	--muted-foreground: oklch(0.552 0.016 285.938);
+	--muted-foreground: oklch(0.6561 0.01 62.53);
 	--accent: oklch(0.94 0.0119 106.62);
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.577 0.245 27.325);
@@ -188,20 +188,12 @@ h1 {
 }
 
 .dark {
-	--sidebar:
-		hsl(240 5.9% 10%);
-	--sidebar-foreground:
-		hsl(240 4.8% 95.9%);
-	--sidebar-primary:
-		hsl(224.3 76.3% 48%);
-	--sidebar-primary-foreground:
-		hsl(0 0% 100%);
-	--sidebar-accent:
-		hsl(240 3.7% 15.9%);
-	--sidebar-accent-foreground:
-		hsl(240 4.8% 95.9%);
-	--sidebar-border:
-		hsl(240 3.7% 15.9%);
-	--sidebar-ring:
-		hsl(217.2 91.2% 59.8%);
+	--sidebar: hsl(240 5.9% 10%);
+	--sidebar-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-primary: hsl(224.3 76.3% 48%);
+	--sidebar-primary-foreground: hsl(0 0% 100%);
+	--sidebar-accent: hsl(240 3.7% 15.9%);
+	--sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-border: hsl(240 3.7% 15.9%);
+	--sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

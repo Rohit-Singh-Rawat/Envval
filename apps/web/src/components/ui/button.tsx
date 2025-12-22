@@ -42,6 +42,7 @@ type ButtonProps = React.ComponentProps<'button'> &
 		asChild?: boolean;
 		pending?: boolean;
 		pendingText?: string;
+		hoverAnimate?: boolean;
 	};
 
 function Button({
@@ -51,6 +52,7 @@ function Button({
 	asChild = false,
 	pending = false,
 	pendingText,
+	hoverAnimate = false,
 	children,
 	disabled,
 	...props
@@ -67,39 +69,48 @@ function Button({
 	return (
 		<Comp
 			data-slot='button'
-			className={cn(buttonVariants({ variant, size, className }), 'overflow-hidden')}
+			className={cn(buttonVariants({ variant, size, className }), 'overflow-hidden', hoverAnimate && 'group')}
 			disabled={disabled || pending}
 			{...props}
 		>
-			<AnimatePresence
-				mode='popLayout'
-				initial={false}
-			>
-				{pending ? (
-					<motion.span
-						key='pending'
-						initial={hasAnimated ? { y: 20, opacity: 0 } : false}
-						animate={{ y: 0, opacity: 1 }}
-						exit={{ y: -20, opacity: 0 }}
-						transition={{ duration: 0.2, ease: 'easeInOut' }}
-						className='inline-flex items-center gap-2'
-					>
-						<Spinner className='size-4' />
-						{pendingText && <span>{pendingText}</span>}
-					</motion.span>
-				) : (
-					<motion.span
-						key='children'
-						initial={hasAnimated ? { y: 20, opacity: 0 } : false}
-						animate={{ y: 0, opacity: 1 }}
-						exit={{ y: -20, opacity: 0 }}
-						transition={{ duration: 0.2, ease: 'easeInOut' }}
-						className='inline-flex items-center gap-2'
-					>
-						{children}
-					</motion.span>
-				)}
-			</AnimatePresence>
+			{hoverAnimate && !pending ? (
+				<span
+					className='inline-flex items-center gap-2 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] [text-shadow:0_-2lh_currentColor] group-hover:translate-y-[2lh]'
+					
+				>
+					{children}
+				</span>
+			) : (
+				<AnimatePresence
+					mode='popLayout'
+					initial={false}
+				>
+					{pending ? (
+						<motion.span
+							key='pending'
+							initial={hasAnimated ? { y: 20, opacity: 0 } : false}
+							animate={{ y: 0, opacity: 1 }}
+							exit={{ y: -20, opacity: 0 }}
+							transition={{ duration: 0.2, ease: 'easeInOut' }}
+							className='inline-flex items-center gap-2'
+						>
+							<Spinner className='size-4' />
+							{pendingText && <span>{pendingText}</span>}
+						</motion.span>
+					) : (
+						<motion.span
+							key='children'
+							initial={hasAnimated ? { y: 20, opacity: 0 } : false}
+							animate={{ y: 0, opacity: 1 }}
+							exit={{ y: -20, opacity: 0 }}
+							transition={{ duration: 0.2, ease: 'easeInOut' }}
+							className='inline-flex items-center gap-2'
+						>
+							{children}
+						</motion.span>
+					)}
+				</AnimatePresence>
+			)}
 		</Comp>
 	);
 }
