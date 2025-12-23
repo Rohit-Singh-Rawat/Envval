@@ -14,7 +14,8 @@ const Header = () => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	return (
-		<header className='flex items-center justify-between px-6 py-4 container max-w-7xl mx-auto'>
+		<header className='sticky top-0 z-50 bg-background backdrop-blur-md '>
+			<div className='flex items-center justify-between px-6 py-4 container max-w-7xl mx-auto'>
 			<div className='flex items-center'>
 				<EnvvalLogo
 					variant='full'
@@ -85,6 +86,7 @@ const Header = () => {
 					</nav>
 				</div>
 			)}
+			</div>
 		</header>
 	);
 };
