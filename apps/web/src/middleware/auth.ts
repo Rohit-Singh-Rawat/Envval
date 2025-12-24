@@ -7,10 +7,12 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 		fetchOptions: { headers: request.headers },
 	});
 
+	const url = new URL(request.url);
+	const currentPath = url.pathname + url.search;
+
 	if (!session) {
-		return redirect({ to: '/login' });
+		return redirect({ to: '/login', search: { redirectUrl: currentPath } });
 	}
-	console.log(session.user);
 	if (!session.user.onboarded) {
 		return redirect({ to: '/welcome' });
 	}
@@ -36,9 +38,26 @@ export const redirectIfOnboardedMiddleware = createMiddleware().server(
 		const { data: session } = await authClient.getSession({
 			fetchOptions: { headers: request.headers },
 		});
+		if (!session) {
+			const url = new URL(request.url);
+			const currentPath = url.pathname + url.search;
+			throw redirect({ to: '/login', search: { redirectUrl: currentPath } });
+		}
 		if (session?.user.onboarded) {
 			throw redirect({ to: '/dashboard' });
 		}
+
 		return await next();
 	}
 );
+
+export const homePageMiddleware = createMiddleware().server(async ({ next, request }) => {
+	const { data: session } = await authClient.getSession({
+		fetchOptions: { headers: request.headers },
+	});
+	if(session) {
+		return redirect({ to: '/dashboard' });
+	}
+
+	return await next();
+});

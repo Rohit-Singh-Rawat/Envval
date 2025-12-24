@@ -14,6 +14,7 @@ import { redirectIfOnboardedMiddleware } from '@/middleware/auth';
 
 const searchSchema = z.object({
 	step: z.enum(['1', '2', 'complete']).optional(),
+	redirectUrl: z.string().optional(),
 });
 
 export const Route = createFileRoute('/welcome')({
@@ -30,7 +31,7 @@ const steps: StepConfig[] = [
 ];
 
 function RouteComponent() {
-	const { step: stepParam } = Route.useSearch();
+	const { step: stepParam, redirectUrl } = Route.useSearch();
 	const navigate = useNavigate();
 
 	const { step, isComplete, form, goNext, goBack, onSubmit, isSubmitting } = useOnboarding({
@@ -40,7 +41,7 @@ function RouteComponent() {
 	});
 
 	const handleContinueToDashboard = () => {
-		navigate({ to: '/dashboard' });
+		navigate({ to: redirectUrl || '/dashboard' });
 	};
 
 	return (

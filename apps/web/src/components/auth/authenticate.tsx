@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ArrowLeft01Icon } from 'hugeicons-react';
 import { useMutation } from '@tanstack/react-query';
@@ -133,6 +133,7 @@ const initialOtpState: OtpState = {
 function Authenticate({ mode = 'login' }: AuthenticateProps) {
 	const isLogin = mode === 'login';
 	const navigate = useNavigate();
+	const search = useSearch({ strict: false }) as { redirectUrl?: string };
 	const [step, setStep] = useState<'email' | 'otp'>('email');
 	const [otpState, setOtpState] = useState<OtpState>(initialOtpState);
 	const {
@@ -172,7 +173,9 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 		},
 		onSuccess: () => {
 			if (mode === 'signup') {
-				navigate({ to: '/welcome' });
+				navigate({ to: '/welcome', ...(search.redirectUrl && { search: { redirectUrl: search.redirectUrl } }) });
+			} else if (search.redirectUrl) {
+				navigate({ to: search.redirectUrl });
 			} else {
 				navigate({ to: '/dashboard' });
 			}

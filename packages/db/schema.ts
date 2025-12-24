@@ -303,3 +303,30 @@ export const jwks = pgTable('jwks', {
 	createdAt: timestamp('created_at').notNull(),
 	expiresAt: timestamp('expires_at'),
 });
+
+export const deviceCode = pgTable(
+  'device_code',
+  {
+    id: text('id').primaryKey(),
+    deviceCode: text('device_code').notNull().unique(),
+    userCode: text('user_code').notNull().unique(),
+    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    clientId: text('client_id'),
+    scope: text('scope'),
+    status: text('status').notNull().default('pending'), // pending, approved, denied
+    expiresAt: timestamp('expires_at').notNull(),
+    lastPolledAt: timestamp('last_polled_at'),
+    pollingInterval: integer('polling_interval'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('deviceCode_deviceCode_idx').on(table.deviceCode),
+    index('deviceCode_userCode_idx').on(table.userCode),
+    index('deviceCode_userId_idx').on(table.userId),
+    index('deviceCode_status_idx').on(table.status),
+  ]
+);

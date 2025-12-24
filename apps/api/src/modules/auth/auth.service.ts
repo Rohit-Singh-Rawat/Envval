@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { customSession, emailOTP, jwt } from 'better-auth/plugins';
+import { customSession, deviceAuthorization, emailOTP, jwt } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
@@ -65,14 +65,21 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
-		jwt({
-			jwt: {
-				definePayload: (session) => ({
-					sessionId: session.session.token,
-					userId: session.user.id,
-					deviceId: session.session.deviceId,
-					sessionType: session.session.sessionType,
-				}),
+		deviceAuthorization({
+			verificationUri: '/device',
+			expiresIn: '10m', // 10 minutes to complete
+			interval: '5s',
+			userCodeLength: 8,
+
+			// Validate client (only allow known clients)
+			validateClient: async (clientId) => {
+				const allowedClients = ['envval-extension', 'envval-cli'];
+				return allowedClients.includes(clientId);
+			},
+
+			// Hook when device is approved - create device record + return keyMaterial
+			onDeviceAuthRequest: async (clientId, scope) => {
+				console.log(`Device auth requested: ${clientId}, scope: ${scope}`);
 			},
 		}),
 		emailOTP({

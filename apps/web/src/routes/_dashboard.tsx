@@ -18,8 +18,8 @@ function RouteComponent() {
 				<div className='flex flex-1 overflow-hidden w-full pt-10'>
 					<AppSidebar />
 					<main className='flex flex-1 flex-col gap-4 px-5 overflow-auto'>
-            <Outlet />
-          </main>
+						<Outlet />
+					</main>
 				</div>
 			</div>
 		</SidebarProvider>

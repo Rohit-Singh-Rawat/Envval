@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardDeviceRouteImport } from './routes/_dashboard/device'
 import { Route as DashboardDashboardRouteImport } from './routes/_dashboard/dashboard'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -21,6 +23,11 @@ import { Route as DashboardReposRepoIdRouteImport } from './routes/_dashboard/re
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -35,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardDeviceRoute = DashboardDeviceRouteImport.update({
+  id: '/device',
+  path: '/device',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardDashboardRoute = DashboardDashboardRouteImport.update({
   id: '/dashboard',
@@ -59,18 +71,22 @@ const DashboardReposRepoIdRoute = DashboardReposRepoIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
+  '/device': typeof DashboardDeviceRoute
   '/repos/$repoId': typeof DashboardReposRepoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
+  '/device': typeof DashboardDeviceRoute
   '/repos/$repoId': typeof DashboardReposRepoIdRoute
 }
 export interface FileRoutesById {
@@ -78,32 +94,46 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
+  '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/_dashboard/dashboard': typeof DashboardDashboardRoute
+  '/_dashboard/device': typeof DashboardDeviceRoute
   '/_dashboard/repos/$repoId': typeof DashboardReposRepoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/home'
     | '/welcome'
     | '/login'
     | '/signup'
     | '/dashboard'
+    | '/device'
     | '/repos/$repoId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/welcome' | '/login' | '/signup' | '/dashboard' | '/repos/$repoId'
+  to:
+    | '/'
+    | '/home'
+    | '/welcome'
+    | '/login'
+    | '/signup'
+    | '/dashboard'
+    | '/device'
+    | '/repos/$repoId'
   id:
     | '__root__'
     | '/'
     | '/_auth'
     | '/_dashboard'
+    | '/home'
     | '/welcome'
     | '/_auth/login'
     | '/_auth/signup'
     | '/_dashboard/dashboard'
+    | '/_dashboard/device'
     | '/_dashboard/repos/$repoId'
   fileRoutesById: FileRoutesById
 }
@@ -111,6 +141,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  HomeRoute: typeof HomeRoute
   WelcomeRoute: typeof WelcomeRoute
 }
 
@@ -121,6 +152,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard': {
@@ -143,6 +181,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_dashboard/device': {
+      id: '/_dashboard/device'
+      path: '/device'
+      fullPath: '/device'
+      preLoaderRoute: typeof DashboardDeviceRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/_dashboard/dashboard': {
       id: '/_dashboard/dashboard'
@@ -189,11 +234,13 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface DashboardRouteChildren {
   DashboardDashboardRoute: typeof DashboardDashboardRoute
+  DashboardDeviceRoute: typeof DashboardDeviceRoute
   DashboardReposRepoIdRoute: typeof DashboardReposRepoIdRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDashboardRoute: DashboardDashboardRoute,
+  DashboardDeviceRoute: DashboardDeviceRoute,
   DashboardReposRepoIdRoute: DashboardReposRepoIdRoute,
 }
 
@@ -205,6 +252,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  HomeRoute: HomeRoute,
   WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport

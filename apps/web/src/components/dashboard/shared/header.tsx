@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { authClient, useSession } from '@/lib/auth-client';
 import { useMemo } from 'react';
 import { generateRandomGradient } from '@/lib/utils';
+import { useNavigate } from '@tanstack/react-router';
 
 function UserDropdownSkeleton() {
 	return (
@@ -26,7 +27,7 @@ function UserDropdownSkeleton() {
 
 function UserDropdown() {
 	const { data: session, isPending } = useSession();
-
+	const navigate = useNavigate();		
 	const gradient = useRandomGradient();
 
 	if (isPending) {
@@ -98,7 +99,7 @@ function UserDropdown() {
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={() => {
-						// Handle homepage navigation
+						navigate({ to: '/' });
 					}}
 				>
 					<Home01Icon className='size-4' />
