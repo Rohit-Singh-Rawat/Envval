@@ -12,9 +12,11 @@ export const user = pgTable('user', {
 	image: text('image'),
 	onboarded: boolean('onboarded').default(false).notNull(),
 	// Encrypted user key material (envelope encrypted with server master key)
-	// keyMaterialEnc: text('key_material_enc').notNull(),
-	// keyMaterialIv: text('key_material_iv').notNull(),
-	// keyMaterialKeyId: text('key_material_key_id').default('default').notNull(),
+	// This is the master keyMaterial that all devices of this user share
+	// Encrypted with AES-256-GCM using KEY_MATERIAL_MASTER_KEY
+	keyMaterialEnc: text('key_material_enc'),
+	keyMaterialIv: text('key_material_iv'),
+	keyMaterialKeyId: text('key_material_key_id').default('default').notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
@@ -305,28 +307,28 @@ export const jwks = pgTable('jwks', {
 });
 
 export const deviceCode = pgTable(
-  'device_code',
-  {
-    id: text('id').primaryKey(),
-    deviceCode: text('device_code').notNull().unique(),
-    userCode: text('user_code').notNull().unique(),
-    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
-    clientId: text('client_id'),
-    scope: text('scope'),
-    status: text('status').notNull().default('pending'), // pending, approved, denied
-    expiresAt: timestamp('expires_at').notNull(),
-    lastPolledAt: timestamp('last_polled_at'),
-    pollingInterval: integer('polling_interval'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('deviceCode_deviceCode_idx').on(table.deviceCode),
-    index('deviceCode_userCode_idx').on(table.userCode),
-    index('deviceCode_userId_idx').on(table.userId),
-    index('deviceCode_status_idx').on(table.status),
-  ]
+	'device_code',
+	{
+		id: text('id').primaryKey(),
+		deviceCode: text('device_code').notNull().unique(),
+		userCode: text('user_code').notNull().unique(),
+		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		clientId: text('client_id'),
+		scope: text('scope'),
+		status: text('status').notNull().default('pending'), // pending, approved, denied
+		expiresAt: timestamp('expires_at').notNull(),
+		lastPolledAt: timestamp('last_polled_at'),
+		pollingInterval: integer('polling_interval'),
+		createdAt: timestamp('created_at').defaultNow().notNull(),
+		updatedAt: timestamp('updated_at')
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index('deviceCode_deviceCode_idx').on(table.deviceCode),
+		index('deviceCode_userCode_idx').on(table.userCode),
+		index('deviceCode_userId_idx').on(table.userId),
+		index('deviceCode_status_idx').on(table.status),
+	]
 );
