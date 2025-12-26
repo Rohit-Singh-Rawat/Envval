@@ -1,5 +1,10 @@
 import { honoFactory } from '@/shared/utils/factory';
 import { sessionApi } from './session.api';
 import { oauthApi } from './oauth.api';
+import { extensionApi } from './extension.api';
 
-export const authRoutes = honoFactory.createApp().route('/session', sessionApi).route('/', oauthApi);
+export const authRoutes = honoFactory
+	.createApp()
+	.route('/session', sessionApi)
+	.route('/extension', extensionApi)
+	.route('/', oauthApi);

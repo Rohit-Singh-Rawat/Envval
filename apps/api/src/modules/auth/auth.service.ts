@@ -1,14 +1,25 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { customSession, deviceAuthorization, emailOTP, jwt } from 'better-auth/plugins';
+import { customSession, deviceAuthorization, emailOTP } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
 import { AuthEmailService } from './auth-email.service';
 import { DeviceService } from './device.service';
+import { env } from '@/config/env';
 
 const emailService = new AuthEmailService();
 const deviceService = new DeviceService();
+
+/**
+ * Check if user agent is from extension or CLI
+ */
+function isExtensionOrCli(userAgent: string | null | undefined): boolean {
+	if (!userAgent) return false;
+	const ua = userAgent.toLowerCase();
+	return ua.includes('envval-extension') || ua.includes('envval-cli');
+}
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -44,30 +55,59 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				before: async (data) => {
-					const deviceId = data.userId + '-' + 'web';
-					const device = await deviceService.ensureExists(deviceId, data.userId, 'DEVICE_WEB', {
-						name: 'Web Device',
-						lastIpAddress: data.ipAddress,
-						lastUserAgent: data.userAgent,
-					});
-					if (!device) {
-						throw new Error('Device not found');
+					// Check if request is from extension or CLI
+					const isExtension = isExtensionOrCli(data.userAgent);
+
+					if (isExtension) {
+						// Extension/CLI: generate random device ID
+						const deviceId = `ext-${nanoid(12)}`;
+						const device = await deviceService.ensureExists(
+							deviceId,
+							data.userId,
+							'DEVICE_EXTENSION',
+							{
+								name: `Extension - ${new Date().toLocaleDateString()}`,
+								lastIpAddress: data.ipAddress,
+								lastUserAgent: data.userAgent,
+							}
+						);
+						if (!device) {
+							throw new Error('Failed to create device');
+						}
+						return {
+							data: {
+								...data,
+								deviceId,
+								sessionType: 'SESSION_EXTENSION',
+							},
+						};
+					} else {
+						// Web: use userId-web as device ID
+						const deviceId = `${data.userId}-web`;
+						const device = await deviceService.ensureExists(deviceId, data.userId, 'DEVICE_WEB', {
+							name: 'Web Device',
+							lastIpAddress: data.ipAddress,
+							lastUserAgent: data.userAgent,
+						});
+						if (!device) {
+							throw new Error('Failed to create device');
+						}
+						return {
+							data: {
+								...data,
+								deviceId,
+								sessionType: 'SESSION_WEB',
+							},
+						};
 					}
-					return {
-						data: {
-							...data,
-							deviceId: data.userId + '-' + 'web',
-							sessionType: 'SESSION_WEB',
-						},
-					};
 				},
 			},
 		},
 	},
 	plugins: [
 		deviceAuthorization({
-			verificationUri: '/device',
-			expiresIn: '10m', // 10 minutes to complete
+			verificationUri: env.APP_URL + '/device',
+			expiresIn: '10m',
 			interval: '5s',
 			userCodeLength: 8,
 
@@ -77,7 +117,7 @@ export const auth = betterAuth({
 				return allowedClients.includes(clientId);
 			},
 
-			// Hook when device is approved - create device record + return keyMaterial
+			// Hook when device is approved
 			onDeviceAuthRequest: async (clientId, scope) => {
 				console.log(`Device auth requested: ${clientId}, scope: ${scope}`);
 			},
