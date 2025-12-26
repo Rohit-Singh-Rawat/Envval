@@ -2,10 +2,12 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
-import { z } from 'zod';
+import { object, string } from 'zod';
+import { toast } from 'sonner';
+import { CheckCircle, XCircle } from 'lucide-react';
 
-const DeviceSearchSchema = z.object({
-	user_code: z.string().optional(),
+const DeviceSearchSchema = object({
+	user_code: string().optional(),
 });
 
 export const Route = createFileRoute('/_dashboard/device')({
@@ -15,7 +17,7 @@ export const Route = createFileRoute('/_dashboard/device')({
 
 function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 	const [processing, setProcessing] = useState(false);
-	const [result, setResult] = useState<'approved' | 'denied' | null>(null);
+	const [result, setResult] = useState<'approved' | 'denied' | null>(null);	
 
 	const handleApprove = async () => {
 		setProcessing(true);
@@ -23,7 +25,7 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 			await authClient.device.approve({ userCode });
 			setResult('approved');
 		} catch (err) {
-			alert('Failed to approve device');
+			toast.error('Failed to approve device');
 		}
 		setProcessing(false);
 	};
@@ -34,7 +36,7 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 			await authClient.device.deny({ userCode });
 			setResult('denied');
 		} catch (err) {
-			alert('Failed to deny device');
+			toast.error('Failed to deny device');
 		}
 		setProcessing(false);
 	};
@@ -45,7 +47,9 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 				<div className='max-w-md w-full p-6 text-center'>
 					{result === 'approved' ? (
 						<>
-							<div className='text-6xl mb-4'>✅</div>
+							<div className='mb-4 flex justify-center'>
+								<CheckCircle className='h-16 w-16 text-green-500' />
+							</div>
 							<h2 className='text-lg font-semibold'>Device Approved!</h2>
 							<p className='text-sm text-muted-foreground'>
 								You can now close this window and return to VS Code.
@@ -53,7 +57,9 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 						</>
 					) : (
 						<>
-							<div className='text-6xl mb-4'>❌</div>
+							<div className='mb-4 flex justify-center'>
+								<XCircle className='h-16 w-16 text-red-500' />
+							</div>
 							<h2 className='text-lg font-semibold'>Device Denied</h2>
 							<p className='text-sm text-muted-foreground'>The device authorization was denied.</p>
 						</>
