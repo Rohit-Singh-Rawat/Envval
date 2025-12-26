@@ -1,62 +1,60 @@
-
-interface LoginWithTokenResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface RefreshTokensResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
 interface EnvExistsResponse {
-  exists: boolean;
+	exists: boolean;
 }
 
 interface EnvMetadata {
-  id: string;
-  repoId: string;
-  fileName: string;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	repoId: string;
+	fileName: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 interface Env {
-  id: string;
-  repoId: string;
-  fileName: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	repoId: string;
+	fileName: string;
+	content: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 interface CreateEnvData {
-  repoId: string;
-  fileName: string;
-  content: string;
+	repoId: string;
+	fileName: string;
+	content: string;
 }
 
 interface UpdateEnvData {
-  content?: string;
-  fileName?: string;
+	content?: string;
+	fileName?: string;
 }
 
 interface Repo {
-  id: string;
-  repoId: string;
-  name?: string;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	repoId: string;
+	name?: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 interface RepoExistsResponse {
-  exists: boolean;
-  repo?: Repo;
+	exists: boolean;
+	repo?: Repo;
 }
 
 interface CreateRepoData {
-  repoId: string;
-  name?: string;
+	repoId: string;
+	name?: string;
 }
 
-export { LoginWithTokenResponse, RefreshTokensResponse, EnvExistsResponse, EnvMetadata, Env, CreateEnvData, UpdateEnvData, Repo, RepoExistsResponse, CreateRepoData };
+export {
+	EnvExistsResponse,
+	EnvMetadata,
+	Env,
+	CreateEnvData,
+	UpdateEnvData,
+	Repo,
+	RepoExistsResponse,
+	CreateRepoData,
+};

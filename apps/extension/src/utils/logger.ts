@@ -29,8 +29,18 @@ export class Logger {
     }
   }
 
+  public debug(message: string): void {
+    if (this.verbose) {
+      this.channel.appendLine(`[DEBUG] ${message}`);
+    }
+  }
+
   public info(message: string): void {
     this.channel.appendLine(`[INFO] ${message}`);
+  }
+
+  public warn(message: string): void {
+    this.channel.appendLine(`[WARN] ${message}`);
   }
 
   public error(message: string): void {
@@ -52,5 +62,3 @@ export function createLogger(
 ): Logger {
   return Logger.getInstance(ctx, verbose);
 }
-
-
