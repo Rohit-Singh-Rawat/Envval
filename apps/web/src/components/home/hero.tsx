@@ -1,29 +1,29 @@
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { Link } from '@tanstack/react-router';
+import { cn } from '@/lib/utils';
 
 const HeroCTA = () => (
 	<div className='flex flex-col items-center text-center max-w-3xl'>
-		<h2 className='text-4xl md:text-5xl lg:text-6xl tracking-tight leading-[1.1] mb-6 font-zodiak font-medium'>
+		<h2 className='text-4xl md:text-5xl lg:text-6xl tracking-tight  leading-[1.1] mb-6 font-zodiak font-medium'>
 			Manage your environment<span className='text-primary'> secrets</span> securely
 		</h2>
-		<p className='text-muted-foreground text-lg md:text-xl mb-10 leading-relaxed font-normal text-shadow-2xs text-shadow-muted-foreground/10'>
+		<p className='text-muted-foreground text-lg md:text-xl mb-10 leading-snug font-normal text-shadow-2xs text-shadow-muted-foreground/10'>
 			We help teams sync, share, and manage environment variables across projects, without exposing
 			sensitive data in your codebase.
 		</p>
 		<div className='flex items-center gap-4'>
-			<Button
-				size='lg'
-				className='px-5'
-				hoverAnimate={true}
+			<Link
+				to='/signup'
+				className={cn(buttonVariants({ size: 'lg' }), 'px-5')}
 			>
 				Try for free
-			</Button>
-			<Button
-				variant='ghost'
-				size='lg'
-				className='text-muted-foreground'
+			</Link>
+			<Link
+				to='/login'
+				className={cn(buttonVariants({ variant: 'ghost', size: 'lg' }), 'text-muted-foreground')}
 			>
 				Get started
-			</Button>
+			</Link>
 		</div>
 	</div>
 );

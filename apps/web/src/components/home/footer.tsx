@@ -1,6 +1,7 @@
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { EnvvalLogo } from '../logo/envval';
 import { Link } from '@tanstack/react-router';
+import { cn } from '@/lib/utils';
 
 const footerLinks = {
 	Product: [
@@ -77,16 +78,15 @@ const FooterCTA = () => (
 				<h2 className='text-3xl md:text-4xl lg:text-5xl tracking-tight leading-[1.1] mb-5 font-zodiak font-medium'>
 					Start securing your secrets <span className='text-primary'>today</span>
 				</h2>
-				<p className='text-muted-foreground text-base md:text-lg mb-8 leading-relaxed max-w-lg text-shadow-2xs text-shadow-muted-foreground/10'>
+				<p className='text-muted-foreground text-base md:text-lg mb-8 leading-snug max-w-lg text-shadow-2xs text-shadow-muted-foreground/10'>
 					Securely manage all your environment variables, API keys, and configs in one place.
 				</p>
-				<Button
-					size='lg'
-					className='px-8'
-					hoverAnimate={true}
+				<Link
+					to='/signup'
+					className={cn(buttonVariants({ size: 'lg' }), 'px-8')}
 				>
 					Get Started Free
-				</Button>
+				</Link>
 			</div>
 		</div>
 	</section>
