@@ -1,8 +1,11 @@
 {
 	"extends": "@envval/typescript-config/react-library.json",
 	"compilerOptions": {
-		"outDir": "dist"
+		"baseUrl": ".",
+		"paths": {
+			"@envval/ui/*": ["./src/*"]
+		}
 	},
-	"include": ["src"],
+	"include": ["."],
 	"exclude": ["node_modules", "dist"]
 }

@@ -1,0 +1,24 @@
+{
+	"$schema": "https://ui.shadcn.com/schema.json",
+	"style": "base-maia",
+	"rsc": false,
+	"tsx": true,
+	"tailwind": {
+		"config": "",
+		"css": "src/styles.css",
+		"baseColor": "neutral",
+		"cssVariables": true,
+		"prefix": ""
+	},
+	"iconLibrary": "hugeicons",
+	"aliases": {
+		"components": "@envval/ui/components",
+		"utils": "@envval/ui/lib/utils",
+		"hooks": "@envval/ui/hooks",
+		"lib": "@envval/ui/lib",
+		"ui": "@envval/ui/components"
+	},
+	"menuColor": "inverted",
+	"menuAccent": "subtle",
+	"registries": {}
+}
