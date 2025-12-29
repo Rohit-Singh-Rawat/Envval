@@ -1,38 +1,12 @@
-@import '@envval/ui/globals.css';
-
-@plugin "@toolwind/corner-shape";
-
+@import 'tailwindcss';
+@source "../../../apps/**/*.{ts,tsx}";
+@source "../../../components/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
 @import 'tw-animate-css';
-
-@import './satoshi.css';
-
-@import './zodiak.css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
-body {
-	@apply m-0;
-	font-family:
-		'Satoshi-Variable',
-		-apple-system,
-		BlinkMacSystemFont,
-		'Segoe UI',
-		'Roboto',
-		'Oxygen',
-		'Ubuntu',
-		'Cantarell',
-		'Fira Sans',
-		'Droid Sans',
-		'Helvetica Neue',
-		sans-serif;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-code {
-	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-}
-/* 
 :root {
 	--background: oklch(0.9965 0.013 115.03);
 	--foreground: oklch(0.141 0.005 285.823);
@@ -96,6 +70,17 @@ code {
 	--shadow-button-clicked: var(--shadow-sm), 0px 0px 0px 1px oklch(0.6231 0.188 259.81 / 0.6);
 }
 
+.dark {
+	--sidebar: hsl(240 5.9% 10%);
+	--sidebar-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-primary: hsl(224.3 76.3% 48%);
+	--sidebar-primary-foreground: hsl(0 0% 100%);
+	--sidebar-accent: hsl(240 3.7% 15.9%);
+	--sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-border: hsl(240 3.7% 15.9%);
+	--sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
 @theme inline {
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
@@ -133,7 +118,7 @@ code {
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
-	--font-zodiak: 'Zodiak-Regular', serif;
+	--font-sans: 'Noto Sans Variable', sans-serif;
 	--shadow-button-default: var(--shadow-button-default);
 	--shadow-button-hover: var(--shadow-button-hover);
 	--shadow-base-light: var(--shadow-base-light);
@@ -152,48 +137,9 @@ code {
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply bg-background text-foreground;
+		@apply font-sans bg-background text-foreground;
 	}
-} */
-
-h1 {
-	@apply text-2xl font-medium;
-	font-family: var(--font-zodiak);
-}
-
-.squircle {
-	@apply rounded-md;
-	@supports (corner-shape: squircle) {
-		corner-shape: squircle;
-		border-radius: calc(infinity * 1px);
+	html {
+		@apply font-sans;
 	}
-}
-
-.round {
-	@apply rounded-full;
-	@supports (corner-shape: round) {
-		corner-shape: round;
-		border-radius: calc(infinity * 1px);
-	}
-}
-
-[data-sonner-toast][data-styled='true'] {
-	padding: 12px !important;
-	justify-content: center;
-}
-
-[data-sonner-toast][data-mounted='true'][data-expanded='true'] {
-	padding: 12px !important;
-	justify-content: center;
-}
-
-.dark {
-	--sidebar: hsl(240 5.9% 10%);
-	--sidebar-foreground: hsl(240 4.8% 95.9%);
-	--sidebar-primary: hsl(224.3 76.3% 48%);
-	--sidebar-primary-foreground: hsl(0 0% 100%);
-	--sidebar-accent: hsl(240 3.7% 15.9%);
-	--sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-	--sidebar-border: hsl(240 3.7% 15.9%);
-	--sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
