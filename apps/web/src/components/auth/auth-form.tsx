@@ -1,24 +1,17 @@
 import type { ComponentType } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Button } from '@envval/ui/components/button';
+import { Input } from '@envval/ui/components/input';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@envval/ui/components/field';
 import { GithubIcon } from '@/components/icons/github';
 import { GoogleIcon } from '@/components/icons/google';
 import { authClient } from '@/lib/auth-client';
 
 const loginSchema = z.object({
-	email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+	email: z.email('Enter a valid email'),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -84,60 +77,61 @@ function AuthForm({ onSubmit, mode = 'login', isSubmitting }: AuthFormProps) {
 	});
 
 	return (
-		<Form {...form}>
-			<form
-				className='space-y-4 w-full'
-				onSubmit={form.handleSubmit(async (values) => {
-					await onSubmit?.(values);
-				})}
-				noValidate
-			>
-				<FormField
-					control={form.control}
+		<form
+			id='auth-form'
+			className='space-y-4 w-full'
+			onSubmit={form.handleSubmit(async (values) => {
+				await onSubmit?.(values);
+			})}
+			noValidate
+		>
+			<FieldGroup>
+				<Controller
 					name='email'
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Email</FormLabel>
-							<FormControl>
-								<Input
-									variant='muted'
-									placeholder='you@example.com'
-									type='email'
-									autoComplete='email'
-									{...field}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
+					control={form.control}
+					render={({ field, fieldState }) => (
+						<Field data-invalid={fieldState.invalid}>
+							<FieldLabel htmlFor='auth-form-email'>Email</FieldLabel>
+							<Input
+								{...field}
+								id='auth-form-email'
+								variant='muted'
+								placeholder='you@example.com'
+								type='email'
+								autoComplete='email'
+								aria-invalid={fieldState.invalid}
+							/>
+							{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+						</Field>
 					)}
 				/>
+			</FieldGroup>
 
-				<Button
-					type='submit'
-					className='w-full'
-					pending={isSubmitting}
-					pendingText={mode === 'login' ? 'logging in…' : 'creating account…'}
-				>
-					{mode === 'login' ? 'Continue with email' : 'Create account with email'}
-				</Button>
+			<Button
+				type='submit'
+				className='w-full'
+				pending={isSubmitting}
+				pendingText={mode === 'login' ? 'logging in…' : 'creating account…'}
+			>
+				{mode === 'login' ? 'Continue with email' : 'Create account with email'}
+			</Button>
 
-				<div className='relative text-center text-sm text-muted-foreground'>
-					<span className='px-2 bg-background relative z-10'>or</span>
-					<div className='absolute inset-x-0 top-1/2 h-px bg-border' />
-				</div>
+			<div className='relative text-center text-sm text-muted-foreground'>
+				<span className='px-2 bg-background relative z-10'>or</span>
+				<div className='absolute inset-x-0 top-1/2 h-px bg-border' />
+			</div>
 
-				<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-					<OAuthButton
-						provider='google'
-						mode={mode}
-					/>
-					<OAuthButton
-						provider='github'
-						mode={mode}
-					/>
-				</div>
-			</form>
-		</Form>
+			<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+				<OAuthButton
+					provider='google'
+					mode={mode}
+				/>
+				<OAuthButton
+					provider='github'
+					mode={mode}
+				/>
+			</div>
+		</form>
 	);
 }
 

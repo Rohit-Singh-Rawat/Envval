@@ -5,7 +5,7 @@ import { ArrowLeft01Icon } from 'hugeicons-react';
 import { useMutation } from '@tanstack/react-query';
 
 import { useTimer } from '@/hooks/use-timer';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@envval/ui/components/input-otp';
 import EnvvalLogo from '../logo/envval';
 import AuthForm from './auth-form';
 import { Button } from '../ui/button';
@@ -173,7 +173,10 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 		},
 		onSuccess: () => {
 			if (mode === 'signup') {
-				navigate({ to: '/welcome', ...(search.redirectUrl && { search: { redirectUrl: search.redirectUrl } }) });
+				navigate({
+					to: '/welcome',
+					...(search.redirectUrl && { search: { redirectUrl: search.redirectUrl } }),
+				});
 			} else if (search.redirectUrl) {
 				navigate({ to: search.redirectUrl });
 			} else {
