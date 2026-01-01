@@ -118,6 +118,7 @@
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
 	--font-sans: 'Noto Sans Variable', sans-serif;
+	--font-zodiak: 'Zodiak-Regular', serif;
 	--shadow-button-default: var(--shadow-button-default);
 	--shadow-button-hover: var(--shadow-button-hover);
 	--shadow-base-light: var(--shadow-base-light);
@@ -141,4 +142,44 @@
 	html {
 		@apply font-sans;
 	}
+}
+h1 {
+	@apply text-2xl font-medium;
+	font-family: var(--font-zodiak);
+}
+
+.squircle {
+	@apply rounded-md;
+	@supports (corner-shape: squircle) {
+		corner-shape: squircle;
+		border-radius: calc(infinity * 1px);
+	}
+}
+
+.round {
+	@apply rounded-full;
+	@supports (corner-shape: round) {
+		corner-shape: round;
+		border-radius: calc(infinity * 1px);
+	}
+}
+
+[data-sonner-toast][data-styled='true'] {
+	padding: 12px !important;
+	justify-content: center;
+}
+
+[data-sonner-toast][data-mounted='true'][data-expanded='true'] {
+	padding: 12px !important;
+	justify-content: center;
+}
+.dark {
+	--sidebar: hsl(240 5.9% 10%);
+	--sidebar-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-primary: hsl(224.3 76.3% 48%);
+	--sidebar-primary-foreground: hsl(0 0% 100%);
+	--sidebar-accent: hsl(240 3.7% 15.9%);
+	--sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-border: hsl(240 3.7% 15.9%);
+	--sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

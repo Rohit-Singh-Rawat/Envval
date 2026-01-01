@@ -3,9 +3,10 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
-			"@envval/ui/*": ["./src/*"]
+			"@envval/ui/*": ["./src/*"],
 		}
 	},
+
 	"include": ["."],
 	"exclude": ["node_modules", "dist"]
 }
