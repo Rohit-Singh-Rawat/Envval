@@ -1,7 +1,7 @@
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@envval/ui/components/button';
 import { EnvvalLogo } from '../logo/envval';
 import { Link } from '@tanstack/react-router';
-import { cn } from '@/lib/utils';
+import { cn } from '@envval/ui/lib/utils';
 
 const footerLinks = {
 	Product: [

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { EnvvalLogo } from '../logo/envval';
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@envval/ui/components/button';
 import { Link } from '@tanstack/react-router';
-import { Menu, X } from 'lucide-react';
+import { Menu01Icon, Cancel01Icon } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -58,7 +58,7 @@ const Header = () => {
 					onClick={() => setIsMenuOpen(!isMenuOpen)}
 					aria-label='Toggle menu'
 				>
-					{isMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
+					{isMenuOpen ? <Cancel01Icon className='h-6 w-6' /> : <Menu01Icon className='h-6 w-6' />}
 				</button>
 
 				{isMenuOpen && (

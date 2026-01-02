@@ -1,6 +1,6 @@
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@envval/ui/components/button';
 import { Link } from '@tanstack/react-router';
-import { cn } from '@/lib/utils';
+import { cn } from '@envval/ui/lib/utils';
 
 const HeroCTA = () => (
 	<div className='flex flex-col items-center text-center max-w-3xl'>
