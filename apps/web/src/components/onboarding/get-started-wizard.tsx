@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType, SVGProps } from 'react';
 import { Layers01Icon, LockKeyIcon, LaptopIcon } from 'hugeicons-react';
 import { StepProgress, type StepConfig } from './step-progress';
-import { Button } from '@/components/ui/button';
+import { Button } from '@envval/ui/components/button';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@tanstack/react-router';
 

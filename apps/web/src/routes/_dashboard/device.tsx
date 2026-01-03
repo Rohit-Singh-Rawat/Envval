@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
-import { Button } from '@/components/ui/button';
+import { Button } from '@envval/ui/components/button';
 import { object, string } from 'zod';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle } from 'lucide-react';
@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_dashboard/device')({
 
 function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 	const [processing, setProcessing] = useState(false);
-	const [result, setResult] = useState<'approved' | 'denied' | null>(null);	
+	const [result, setResult] = useState<'approved' | 'denied' | null>(null);
 
 	const handleApprove = async () => {
 		setProcessing(true);

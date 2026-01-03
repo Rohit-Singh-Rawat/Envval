@@ -1,19 +1,16 @@
-import { useFormContext } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
+import { Controller, useFormContext } from 'react-hook-form';
+import { Input } from '@envval/ui/components/input';
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '@/components/ui/select';
+} from '@envval/ui/components/select';
 import {
-	FormField,
-	FormItem,
-	FormLabel,
-	FormControl,
-	FormMessage,
-} from '@/components/ui/form';
+	Field,
+	FieldLabel,
+} from '@envval/ui/components/field';
 import type { OnboardingFormValues } from './types';
 
 const SOURCE_OPTIONS = [
@@ -44,21 +41,19 @@ export function AttributionStep() {
 
 	return (
 		<div className='space-y-4'>
-			<FormField
-				control={form.control}
+			<Controller
 				name='source'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Where did you hear about us?</FormLabel>
+				control={form.control}
+				render={({ field, fieldState }) => (
+					<Field data-invalid={fieldState.invalid}>
+						<FieldLabel htmlFor='attribution-source'>Where did you hear about us?</FieldLabel>
 						<Select
 							onValueChange={field.onChange}
 							value={field.value}
 						>
-							<FormControl>
-								<SelectTrigger variant='muted'>
-									<SelectValue placeholder='Select a source' />
-								</SelectTrigger>
-							</FormControl>
+							<SelectTrigger variant='muted'>
+								<SelectValue>Select how you found us </SelectValue>
+							</SelectTrigger>
 							<SelectContent>
 								{SOURCE_OPTIONS.map((opt) => (
 									<SelectItem
@@ -70,26 +65,23 @@ export function AttributionStep() {
 								))}
 							</SelectContent>
 						</Select>
-						<FormMessage />
-					</FormItem>
+					</Field>
 				)}
 			/>
 
-			<FormField
-				control={form.control}
+			<Controller
 				name='medium'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>How did you find us?</FormLabel>
+				control={form.control}
+				render={({ field, fieldState }) => (
+					<Field data-invalid={fieldState.invalid}>
+						<FieldLabel htmlFor='attribution-medium'>How did you find us?</FieldLabel>
 						<Select
 							onValueChange={field.onChange}
 							value={field.value}
 						>
-							<FormControl>
-								<SelectTrigger variant='muted'>
-									<SelectValue placeholder='Select how you found us' />
-								</SelectTrigger>
-							</FormControl>
+							<SelectTrigger variant='muted'>
+								<SelectValue />
+							</SelectTrigger>
 							<SelectContent>
 								{MEDIUM_OPTIONS.map((opt) => (
 									<SelectItem
@@ -101,29 +93,27 @@ export function AttributionStep() {
 								))}
 							</SelectContent>
 						</Select>
-						<FormMessage />
-					</FormItem>
+					</Field>
 				)}
 			/>
 
-			<FormField
-				control={form.control}
+			<Controller
 				name='details'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>
+				control={form.control}
+				render={({ field, fieldState }) => (
+					<Field data-invalid={fieldState.invalid}>
+						<FieldLabel htmlFor='attribution-details'>
 							Anything else you'd like to share?{' '}
 							<span className='text-muted-foreground font-normal'>(optional)</span>
-						</FormLabel>
-						<FormControl>
-							<Input
-								variant='muted'
-								placeholder='e.g., specific blog post, tweet, etc.'
-								{...field}
-							/>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
+						</FieldLabel>
+						<Input
+							{...field}
+							id='attribution-details'
+							variant='muted'
+							placeholder='e.g., specific blog post, tweet, etc.'
+							aria-invalid={fieldState.invalid}
+						/>
+					</Field>
 				)}
 			/>
 		</div>

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Layers01Icon, Key01Icon } from 'hugeicons-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@envval/ui/components/tooltip';
 import { Heading } from '@/components/dashboard/shared/heading';
 import { Suspense, useState } from 'react';
 import { EnvvalLoader } from '@/components/logo/envval';

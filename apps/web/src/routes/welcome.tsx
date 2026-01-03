@@ -3,8 +3,8 @@ import { UserIcon, CompassIcon } from 'hugeicons-react';
 import { z } from 'zod';
 
 import { EnvvalLogo } from '@/components/logo/envval';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { Button } from '@envval/ui/components/button';
+import { Form } from '@envval/ui/components/form';
 import { OnboardingTransition } from '@/components/onboarding/onboarding-transition';
 import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';

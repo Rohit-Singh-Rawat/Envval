@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@envval/uit';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@envval/ui';
 import type { OnboardingFormValues } from './types';
 
 export function ProfileStep() {

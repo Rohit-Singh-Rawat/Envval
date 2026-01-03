@@ -5,7 +5,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 
 import appCss from '@/styles/styles.css?url';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@envval/ui/components/sonner';
 
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -14,6 +14,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+	notFoundComponent: () => <div>Not Found</div>,
 	head: () => ({
 		meta: [
 			{
@@ -34,7 +35,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 	}),
-	
 
 	shellComponent: RootDocument,
 });
@@ -47,9 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				{children}
-				<Toaster
-					position='bottom-center'
-				/>
+				<Toaster position='bottom-center' />
 				<TanStackDevtools
 					config={{
 						position: 'bottom-right',

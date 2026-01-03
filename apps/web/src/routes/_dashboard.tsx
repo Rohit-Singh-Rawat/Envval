@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { authMiddleware } from '@/middleware/auth';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@envval/ui/components/sidebar';
 import { Header } from '@/components/dashboard/shared/header';
 import { AppSidebar } from '@/components/dashboard/shared/app-sidebar';
 
