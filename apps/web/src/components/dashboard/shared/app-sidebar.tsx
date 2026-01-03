@@ -15,8 +15,8 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
+} from '@envval/ui/components/sidebar';
+import { Button } from '@envval/ui/components/button';
 import { useLocation } from '@tanstack/react-router';
 
 const menuItems = [
@@ -79,7 +79,7 @@ export function AppSidebar() {
 								const isActive = currentPath === item.href;
 								return (
 									<SidebarMenuItem key={item.title}>
-										<SidebarMenuButton asChild>
+										<SidebarMenuButton >
 											<a
 												href={item.href}
 												className={`flex items-center gap-2 squircle ${isActive ? 'text-primary' : 'text-muted-foreground'}`}

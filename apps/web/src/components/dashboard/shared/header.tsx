@@ -7,9 +7,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@envval/ui/components/dropdown-menu';
+import { Button } from '@envval/ui/components/button';
+import { Skeleton } from '@envval/ui/components/skeleton';
 import { authClient, useSession } from '@/lib/auth-client';
 import { useMemo } from 'react';
 import { generateRandomGradient } from '@/lib/utils';
@@ -27,7 +27,7 @@ function UserDropdownSkeleton() {
 
 function UserDropdown() {
 	const { data: session, isPending } = useSession();
-	const navigate = useNavigate();		
+	const navigate = useNavigate();
 	const gradient = useRandomGradient();
 
 	if (isPending) {
@@ -42,7 +42,7 @@ function UserDropdown() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger>
 				<Button
 					variant='ghost'
 					className='flex items-center  round  hover:bg-muted/50 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/50 px-2 has-[>svg]:px-2'
