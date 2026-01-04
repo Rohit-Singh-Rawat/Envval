@@ -112,5 +112,3 @@ See [System Architecture](./01-ARCHITECTURE.md) for detailed diagrams including:
 - Authentication sequence diagrams
 - Encryption/decryption flow
 - Sync mechanism flow
-
-
