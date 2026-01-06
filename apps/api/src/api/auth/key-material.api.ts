@@ -14,7 +14,6 @@ export const keyMaterialApi = honoFactory
 	.post('/', zValidator('json', keyMaterialSchema), async (c) => {
 		const session = c.get('session');
 		const user = c.get('user');
-    console.log(user, session);
 
 		if (!user || !session) {
 			return c.json({ error: 'Unauthorized' }, 401);

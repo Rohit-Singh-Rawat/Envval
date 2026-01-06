@@ -14,11 +14,11 @@ export interface DeviceCodeResponse {
 	interval: number;
 }
 
-// Token response from API (only access_token, no refresh token concept)
+// Token response from API
 export interface DeviceTokenResponse {
 	access_token: string;
 	device_id: string;
-	key_material: string;
+	wrapped_key_material: string; // RSA-OAEP encrypted with device's public key
 }
 // Polling status for UI updates
 export type PollingStatus =
@@ -87,6 +87,8 @@ export class AuthenticationProvider {
 
 	/**
 	 * Initiates the device authorization flow.
+	 * 1. Generates RSA keypair and stores private key
+	 * 2. Requests device code from server
 	 * Returns the device code response so the UI can display the user code.
 	 */
 	public async initiateLogin(): Promise<DeviceCodeResponse> {
@@ -94,7 +96,12 @@ export class AuthenticationProvider {
 		this.pollingStatusEmitter.fire({ state: 'requesting_code' });
 
 		try {
-			// Request device code from better-auth's device authorization endpoint
+			// Step 1: Generate keypair and store private key locally
+			this.logger.info('Generating device keypair...');
+			const publicKeyPem = await this.secretsManager.generateAndStoreKeyPair();
+			this.logger.info('Device keypair generated and private key stored');
+
+			// Step 2: Request device code from better-auth's device authorization endpoint
 			const { data } = await axios.post<DeviceCodeResponse>(
 				`${API_BASE_URL}/api/auth/device/code`,
 				{
@@ -205,13 +212,20 @@ export class AuthenticationProvider {
 				}
 
 				try {
-					// Use custom extension endpoint that returns device_id and key_material
+					// Get the stored public key to send with token request
+					const publicKeyPem = await this.secretsManager.getStoredPublicKey();
+					if (!publicKeyPem) {
+						throw new Error('Public key not found - keypair generation failed');
+					}
+
+					// Use custom extension endpoint that returns device_id and wrapped_key_material
 					const { data } = await axios.post<DeviceTokenResponse>(
 						`${API_BASE_URL}/api/auth/extension/device/token`,
 						{
 							grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
 							device_code: deviceCode,
 							client_id: 'envval-extension',
+							public_key: publicKeyPem,
 						},
 						{
 							headers: {
@@ -222,15 +236,20 @@ export class AuthenticationProvider {
 						}
 					);
 
-					// Success! Store token and keys
+					// Success! Store token, device ID, and wrapped key material
 					this.logger.info('Device authorization successful!');
-					this.logger.info(`Access token: ${data.access_token} '${JSON.stringify(data)}`);
 					this.logger.info(`Device ID: ${data.device_id}`);
-					this.logger.info(`Key material: ${data.key_material}`);
 
 					await this.secretsManager.setAccessToken(data.access_token);
 					await this.secretsManager.setDeviceId(data.device_id);
-					await this.secretsManager.setKeyMaterial(data.key_material);
+					await this.secretsManager.setWrappedKeyMaterial(data.wrapped_key_material);
+
+					// Verify we can decrypt the key material
+					const keyMaterial = await this.secretsManager.getKeyMaterial();
+					if (!keyMaterial) {
+						throw new Error('Failed to decrypt key material with stored private key');
+					}
+					this.logger.info('Key material successfully decrypted and verified');
 
 					this.pollingStatusEmitter.fire({ state: 'success' });
 					this.authenticationStateEmitter.fire(true);

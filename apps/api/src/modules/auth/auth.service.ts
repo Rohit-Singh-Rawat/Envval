@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { customSession, deviceAuthorization, emailOTP } from 'better-auth/plugins';
+import { bearer, customSession, deviceAuthorization, emailOTP } from 'better-auth/plugins';
 import { nanoid } from 'nanoid';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
@@ -87,6 +87,7 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				before: async (data) => {
+					console.log('session create before', data);
 					const isExtension = isExtensionOrCli(data.userAgent);
 
 					if (isExtension) {
@@ -191,6 +192,7 @@ export const auth = betterAuth({
 				session: sanitizeSession(session),
 			};
 		}),
+		bearer(),
 	],
 });
 
