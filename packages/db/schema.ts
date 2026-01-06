@@ -41,6 +41,11 @@ export const session = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
+		// Device public key for key material wrapping (stored during login)
+		publicKey: text('public_key'),
+		// One-time delivery flag for key material
+		keyMaterialDelivered: boolean('key_material_delivered').default(false).notNull(),
+		keyMaterialDeliveredAt: timestamp('key_material_delivered_at'),
 	},
 	(table) => [
 		index('session_userId_idx').on(table.userId),
@@ -98,10 +103,6 @@ export const device = pgTable(
 			.references(() => user.id, { onDelete: 'cascade' }),
 		name: text('name').notNull(),
 		type: deviceType('device_type').default('DEVICE_EXTENSION').notNull(),
-		// Public key for this device (if using per-device wrapping)
-		publicKey: text('public_key'),
-		// User keyMaterial encrypted for this device using its public key
-		wrappedUserKey: text('wrapped_user_key'),
 		lastIpAddress: text('last_ip_address'),
 		lastUserAgent: text('last_user_agent'),
 		createdAt: timestamp('created_at').defaultNow().notNull(),

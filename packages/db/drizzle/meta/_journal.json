@@ -43,6 +43,20 @@
       "when": 1766685842215,
       "tag": "0005_gray_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767619687994,
+      "tag": "0006_bizarre_joseph",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767706954667,
+      "tag": "0007_many_colonel_america",
+      "breakpoints": true
     }
   ]
 }
