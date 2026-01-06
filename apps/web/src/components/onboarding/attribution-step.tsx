@@ -52,9 +52,9 @@ export function AttributionStep() {
 							value={field.value}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue>Select how you found us </SelectValue>
+								<SelectValue>Select where you heard about us</SelectValue>
 							</SelectTrigger>
-							<SelectContent>
+							<SelectContent >
 								{SOURCE_OPTIONS.map((opt) => (
 									<SelectItem
 										key={opt.value}
@@ -80,7 +80,7 @@ export function AttributionStep() {
 							value={field.value}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue />
+								<SelectValue>Select how you found us </SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								{MEDIUM_OPTIONS.map((opt) => (

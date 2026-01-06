@@ -1,47 +1,60 @@
-import { useFormContext } from 'react-hook-form';
-import { Input } from '@envval/uit';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@envval/ui';
+import { Controller, useFormContext } from 'react-hook-form';
+import { Input } from '@envval/ui/components/input';
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from '@envval/ui/components/field';
 import type { OnboardingFormValues } from './types';
 
 export function ProfileStep() {
 	const form = useFormContext<OnboardingFormValues>();
 
 	return (
-		<div className='space-y-4'>
-			<FormField
-				control={form.control}
+		<FieldGroup>
+			<Controller
 				name='firstName'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>First name</FormLabel>
-						<FormControl>
-							<Input
-								variant='muted'
-								placeholder='Ada'
-								{...field}
-							/>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-				)}
-			/>
-			<FormField
 				control={form.control}
-				name='lastName'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Last name</FormLabel>
-						<FormControl>
-							<Input
-								variant='muted'
-								placeholder='Lovelace'
-								{...field}
-							/>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
+				render={({ field, fieldState }) => (
+					<Field data-invalid={fieldState.invalid}>
+						<FieldLabel htmlFor='profile-first-name'>
+							First name
+						</FieldLabel>
+						<Input
+							{...field}
+							id='profile-first-name'
+							variant='muted'
+							placeholder='Ada'
+							aria-invalid={fieldState.invalid}
+						/>
+						{fieldState.invalid && (
+							<FieldError errors={[fieldState.error]} />
+						)}
+					</Field>
 				)}
 			/>
-		</div>
+			<Controller
+				name='lastName'
+				control={form.control}
+				render={({ field, fieldState }) => (
+					<Field data-invalid={fieldState.invalid}>
+						<FieldLabel htmlFor='profile-last-name'>
+							Last name
+						</FieldLabel>
+						<Input
+							{...field}
+							id='profile-last-name'
+							variant='muted'
+							placeholder='Lovelace'
+							aria-invalid={fieldState.invalid}
+						/>
+						{fieldState.invalid && (
+							<FieldError errors={[fieldState.error]} />
+						)}
+					</Field>
+				)}
+			/>
+		</FieldGroup>
 	);
 }
