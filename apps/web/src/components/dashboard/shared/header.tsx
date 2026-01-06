@@ -3,6 +3,7 @@ import { EnvvalLogo } from '@/components/logo/envval';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -14,6 +15,8 @@ import { authClient, useSession } from '@/lib/auth-client';
 import { useMemo } from 'react';
 import { generateRandomGradient } from '@/lib/utils';
 import { useNavigate } from '@tanstack/react-router';
+import { useLogout } from '@/hooks/auth/use-logout';
+import { Spinner } from '@/components/icons/spinner';
 
 function UserDropdownSkeleton() {
 	return (
@@ -29,7 +32,7 @@ function UserDropdown() {
 	const { data: session, isPending } = useSession();
 	const navigate = useNavigate();
 	const gradient = useRandomGradient();
-
+	const { logout, isLoading } = useLogout();
 	if (isPending) {
 		return <UserDropdownSkeleton />;
 	}
@@ -68,55 +71,62 @@ function UserDropdown() {
 				className='w-64  rounded-2xl shadow-sm p-3'
 			>
 				{/* User info */}
-				<DropdownMenuLabel className='flex items-center gap-2'>
-					{user.avatarUrl ? (
-						<img
-							src={user.avatarUrl}
-							alt={user.name}
-							className='size-6 rounded-full object-cover'
-						/>
-					) : (
-						<div
-							className='size-6 rounded-full flex items-center justify-center'
-							style={{ background: gradient }}
-						/>
-					)}
-					<div className='flex flex-col'>
-						<p className='text-sm font-medium'>{user.name}</p>
-						<p className='text-xs text-muted-foreground font-normal'>{user.email}</p>
-					</div>
-				</DropdownMenuLabel>
+				<DropdownMenuGroup>
+					<DropdownMenuLabel className='flex items-center gap-2'>
+						{user.avatarUrl ? (
+							<img
+								src={user.avatarUrl}
+								alt={user.name}
+								className='size-6 rounded-full object-cover'
+							/>
+						) : (
+							<div
+								className='size-6 rounded-full flex items-center justify-center'
+								style={{ background: gradient }}
+							/>
+						)}
+						<div className='flex flex-col'>
+							<p className='text-sm font-medium'>{user.name}</p>
+							<p className='text-xs text-muted-foreground font-normal'>{user.email}</p>
+						</div>
+					</DropdownMenuLabel>
+				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 
 				{/* Menu items */}
-				<DropdownMenuItem
-					onClick={() => {
-						// Handle account settings
-					}}
-				>
-					<Settings02Icon className='size-4' />
-					<span>Account Settings</span>
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					onClick={() => {
-						navigate({ to: '/' });
-					}}
-				>
-					<Home01Icon className='size-4' />
-					<span>Homepage</span>
-				</DropdownMenuItem>
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						onClick={() => {
+							// Handle account settings
+						}}
+					>
+						<Settings02Icon className='size-4' />
+						<span>Account Settings</span>
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onClick={() => {
+							navigate({ to: '/' });
+						}}
+					>
+						<Home01Icon className='size-4' />
+						<span>Homepage</span>
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
 
 				{/* Logout */}
 				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					variant='destructive'
-					onClick={async () => {
-						await authClient.signOut();
-					}}
-				>
-					<Logout01Icon className='size-4' />
-					<span>Logout</span>
-				</DropdownMenuItem>
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						variant='destructive'
+						onClick={async () => {
+							await logout();
+						}}
+					>
+						<Logout01Icon className='size-4' />
+						<span>Logout</span>
+						{isLoading && <Spinner className='size-4' />}
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

@@ -1,16 +1,17 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { UserIcon, CompassIcon } from 'hugeicons-react';
 import { z } from 'zod';
+import { FormProvider } from 'react-hook-form';
 
 import { EnvvalLogo } from '@/components/logo/envval';
 import { Button } from '@envval/ui/components/button';
-import { Form } from '@envval/ui/components/form';
 import { OnboardingTransition } from '@/components/onboarding/onboarding-transition';
 import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';
 import { StepProgress, type StepConfig } from '@/components/onboarding/step-progress';
 import { useOnboarding } from '@/hooks/onboarding/use-onboarding';
 import { redirectIfOnboardedMiddleware } from '@/middleware/auth';
+import { useKeyMaterialSync } from '@/hooks/auth/use-key-material-sync';
 
 const searchSchema = z.object({
 	step: z.enum(['1', '2', 'complete']).optional(),
@@ -33,6 +34,9 @@ const steps: StepConfig[] = [
 function RouteComponent() {
 	const { step: stepParam, redirectUrl } = Route.useSearch();
 	const navigate = useNavigate();
+
+	// Auto-fetch key material if not already present (e.g., after OAuth signup)
+	useKeyMaterialSync();
 
 	const { step, isComplete, form, goNext, goBack, onSubmit, isSubmitting } = useOnboarding({
 		initialStep: stepParam === '1' ? 1 : stepParam === '2' ? 2 : 1,
@@ -67,7 +71,7 @@ function RouteComponent() {
 								</p>
 							</div>
 						</div>
-						<Form {...form}>
+						<FormProvider {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
 								className='space-y-6'
@@ -105,7 +109,7 @@ function RouteComponent() {
 									)}
 								</div>
 							</form>
-						</Form>
+						</FormProvider>
 					</div>
 				</div>
 				<div className='w-screen border-b border-border' />

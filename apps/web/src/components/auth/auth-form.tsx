@@ -40,9 +40,8 @@ const providerConfig: Record<
 function OAuthButton({ provider, mode }: OAuthButtonProps) {
 	const { mutate: signIn, isPending } = useMutation({
 		mutationFn: async () => {
-			await authClient.signIn.social({
-				provider,
-			});
+			// OAuth will redirect, key material fetch happens on callback page
+			await authClient.signIn.social({ provider });
 		},
 	});
 

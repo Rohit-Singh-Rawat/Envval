@@ -10,6 +10,8 @@ import EnvvalLogo from '../logo/envval';
 import AuthForm from './auth-form';
 import { Button } from '../ui/button';
 import { authClient } from '@/lib/auth-client';
+import { useDeviceKeyMaterialRegistration } from '@/hooks/auth/use-device-key-material-registration';
+import { toastKeyMaterialSync } from '@/lib/toast';
 
 type AuthenticateProps = {
 	mode?: 'login' | 'signup';
@@ -143,9 +145,11 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 		reset: resetResendCooldown,
 	} = useTimer(30);
 
+	const { registerDeviceAndFetchKeyMaterial } = useDeviceKeyMaterialRegistration();
+
 	const requestCodeMutation = useMutation({
 		mutationFn: async (email: string) => {
-			const { error } = await (authClient as any).emailOtp?.sendVerificationOtp({
+			const { error } = await authClient.emailOtp.sendVerificationOtp({
 				email,
 				type: 'sign-in',
 			});
@@ -165,13 +169,15 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 
 	const verifyCodeMutation = useMutation({
 		mutationFn: async (code: string) => {
-			const { error } = await (authClient as any).signIn?.emailOtp({
+			const { error } = await authClient.signIn.emailOtp({
 				email: otpState.targetEmail,
 				otp: code,
 			});
 			if (error) throw error;
 		},
-		onSuccess: () => {
+		onSuccess: async () => {
+			toastKeyMaterialSync(registerDeviceAndFetchKeyMaterial()).catch(() => {});
+
 			if (mode === 'signup') {
 				navigate({
 					to: '/welcome',
@@ -192,7 +198,7 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 
 	const resendCodeMutation = useMutation({
 		mutationFn: async () => {
-			const { error } = await (authClient as any).emailOtp?.sendVerificationOtp({
+			const { error } = await authClient.emailOtp.sendVerificationOtp({
 				email: otpState.targetEmail,
 				type: 'sign-in',
 			});
