@@ -102,4 +102,3 @@ export function decryptKeyMaterialWithMaster(ciphertextB64: string, ivB64: strin
 	const plaintext = Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
 	return plaintext;
 }
-
