@@ -1,3 +1,4 @@
+import { createIsomorphicFn } from '@tanstack/react-start';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -34,3 +35,7 @@ export const generateRandomGradient = () => {
 	const angle = Math.floor(Math.random() * 360);
 	return `linear-gradient(${angle}deg, ${getRandomColor()}, ${getRandomColor()})`;
 };
+
+export const logMessage = createIsomorphicFn()
+	.server((...msgs: unknown[]) => console.log(`[SERVER]:`, ...msgs))
+	.client((...msgs: unknown[]) => console.log(`[CLIENT]:`, ...msgs));

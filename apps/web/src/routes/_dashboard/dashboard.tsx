@@ -9,6 +9,7 @@ import {
 	GetStartedWizard,
 	shouldShowGetStartedWizard,
 } from '@/components/onboarding/get-started-wizard';
+import { logMessage } from '@/lib/utils';
 
 export const Route = createFileRoute('/_dashboard/dashboard')({
 	component: RouteComponent,
@@ -19,10 +20,9 @@ function RouteComponent() {
 }
 
 function DashboardContent() {
-	const { data: repos } = useGetRepos();
 	const [hideWizard, setHideWizard] = useState(false);
 
-	const showWizard = !hideWizard && shouldShowGetStartedWizard(repos);
+	const showWizard = !hideWizard;
 
 	return (
 		<>
@@ -33,7 +33,7 @@ function DashboardContent() {
 
 			{showWizard && (
 				<GetStartedWizard
-					repos={repos}
+					repos={[]}
 					onHide={() => setHideWizard(true)}
 				/>
 			)}
@@ -74,7 +74,7 @@ const ProjectItem = ({
 			</div>
 			<div className='flex items-center gap-4 text-sm text-muted-foreground'>
 				<Tooltip>
-					<TooltipTrigger asChild>
+					<TooltipTrigger>
 						<span className='flex items-center gap-1'>
 							<Layers01Icon className='size-4' />
 							{project.environments}
@@ -85,7 +85,7 @@ const ProjectItem = ({
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
-					<TooltipTrigger asChild>
+					<TooltipTrigger>
 						<span className='flex items-center gap-1'>
 							<Key01Icon className='size-4' />
 							{project.lastSyncedAt}
@@ -101,7 +101,10 @@ const ProjectItem = ({
 };
 
 const ProjectList = () => {
+	logMessage('ProjectList');
 	const { data: repos } = useGetRepos();
+
+	logMessage('repos', repos);
 
 	return (
 		<>

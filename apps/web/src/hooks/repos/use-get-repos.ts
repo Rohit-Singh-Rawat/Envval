@@ -5,6 +5,7 @@ export const useGetRepos = () => {
 	return useSuspenseQuery({
 		queryKey: ['repos'],
 		queryFn: async () => {
+			
 			const response = await client.api.v1.repos.$get({
 				query: {
 					page: '1',
