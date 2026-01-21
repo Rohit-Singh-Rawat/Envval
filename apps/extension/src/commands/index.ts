@@ -2,6 +2,11 @@ import { commands, ExtensionContext } from 'vscode';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 import { handleQuickSyncAction } from './quick-sync';
 
+/**
+ * Singleton class that manages all VS Code commands for the EnvVault extension.
+ * Command identifiers follow the pattern 'envval.<action>' and are used throughout
+ * the extension for status bar interactions, quick picks, and keyboard shortcuts.
+ */
 export class Commands {
 	public static readonly SHOW_QUICK_SYNC_ACTION = 'envval.showQuickSyncAction';
 	public static readonly OPEN_STATUS = 'envval.openStatus';
@@ -22,6 +27,10 @@ export class Commands {
 		return Commands.instance;
 	}
 
+	/**
+	 * Registers command handlers with VS Code. Only registers once per session
+	 * to avoid duplicate command registration errors.
+	 */
 	public registerCommands(context: ExtensionContext) {
 		if (this.registered) {
 			return;

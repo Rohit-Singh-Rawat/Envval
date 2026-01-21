@@ -3,7 +3,7 @@
 	"displayName": "envval",
 	"description": "",
 	"version": "1.0.2",
-	"icon": "./public/icons/envval.png",
+	"icon": "./assets/icons/envval.png",
 	"engines": {
 		"vscode": "^1.106.1"
 	},

@@ -18,16 +18,24 @@ import { EnvInitService } from './services/env-init';
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 	const logger = createLogger(context, getLoggingVerbose());
+	const statusBar = StatusBar.getInstance();
 	const secrets = EnvVaultVsCodeSecrets.getInstance(context);
 	const authProvider = AuthenticationProvider.getInstance(secrets, logger);
 	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvVaultMetadataStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context);
 	const envInitService = EnvInitService.getInstance(metadataStore, apiClient, secrets, logger);
-	const syncManager = SyncManager.getInstance(apiClient, secrets, metadataStore, envFileWatcher, envInitService, logger);
-	
+	const syncManager = SyncManager.getInstance(
+		apiClient,
+		secrets,
+		metadataStore,
+		envFileWatcher,
+		envInitService,
+		logger
+	);
+
 	logger.info('EnvVault extension is now active!');
-	
+
 	Commands.getInstance().registerCommands(context);
 
 	const disposeConfigListener = onConfigChange((config: any) => {
@@ -37,40 +45,41 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Function to start all services (only when authenticated)
 	const startServices = async () => {
 		logger.info('Starting EnvVault services...');
-		
+
 		// Start file watcher
 		envFileWatcher.start();
-		
+
 		// Perform initial check for existing env files
 		await envInitService.performInitialCheck();
-		
+
 		// Start polling for remote changes
 		syncManager.startPolling();
-		
+
 		logger.info('EnvVault services started');
 	};
 
 	// Function to stop all services (when logged out)
 	const stopServices = () => {
 		logger.info('Stopping EnvVault services...');
-		
+
 		// Stop polling
 		syncManager.stopPolling();
-		
+
 		// Stop file watcher (but keep emitters for restart)
 		envFileWatcher.stop();
-		
+
 		logger.info('EnvVault services stopped');
 	};
 
 	// Check authentication status
 	const isAuthenticated = await authProvider.isAuthenticated();
-	
+
 	if (!isAuthenticated) {
 		// Show login window if not authenticated
+		statusBar.setAuthenticationState(false);
 		const loginWindow = LoginWindow.getInstance(context, authProvider, logger);
 		await loginWindow.show();
-		
+
 		// Listen for auth state changes
 		authProvider.onAuthenticationStateChanged(async (authenticated) => {
 			if (authenticated) {
@@ -84,8 +93,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 	} else {
 		// Already authenticated - start services immediately
+		statusBar.setAuthenticationState(true);
 		await startServices();
-		
+
 		// Listen for auth state changes (e.g., logout)
 		authProvider.onAuthenticationStateChanged(async (authenticated) => {
 			if (!authenticated) {
@@ -95,8 +105,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	context.subscriptions.push(
-		disposeConfigListener, 
-		StatusBar.getStatusBarItem(), 
+		disposeConfigListener,
+		StatusBar.getStatusBarItem(),
 		EnvFileWatcher.getInstance(context)
 	);
 }
