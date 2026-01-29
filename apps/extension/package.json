@@ -2,7 +2,8 @@
 	"name": "@envval/extension",
 	"displayName": "envval",
 	"description": "",
-	"version": "1.0.2",
+	"version": "1.0.3",
+	"publisher": "envval",
 	"icon": "./assets/icons/envval.png",
 	"engines": {
 		"vscode": "^1.106.1"
@@ -39,8 +40,59 @@
 			{
 				"command": "envval.logout",
 				"title": "EnvVal: Logout"
+			},
+			{
+				"command": "envval.viewRepoIdentity",
+				"title": "EnvVal: View Repository Identity"
+			},
+			{
+				"command": "envval.setManualRepoIdentity",
+				"title": "EnvVal: Set Manual Repository Identity"
+			},
+			{
+				"command": "envval.setSubProjectPath",
+				"title": "EnvVal: Set Sub-Project Path"
+			},
+			{
+				"command": "envval.resetRepoIdentity",
+				"title": "EnvVal: Reset Repository Identity"
+			},
+			{
+				"command": "envval.migrateRepoIdentity",
+				"title": "EnvVal: Migrate Repository Identity"
+			},
+			{
+				"command": "envval.diagnoseRepoDetection",
+				"title": "EnvVal: Diagnose Repository Detection"
 			}
 		]
+	},
+	"configuration": {
+		"type": "object",
+		"title": "EnvVal",
+		"properties": {
+			"envval.autoDetectMonorepo": {
+				"type": "boolean",
+				"default": true,
+				"description": "Automatically detect monorepo structure and prompt for sub-project selection"
+			},
+			"envval.preferredRemote": {
+				"type": "string",
+				"default": "origin",
+				"enum": ["origin", "upstream", "any"],
+				"enumDescriptions": [
+					"Use 'origin' remote for repo identification",
+					"Use 'upstream' remote for repo identification",
+					"Use any available remote for repo identification"
+				],
+				"description": "Preferred Git remote to use for repo identification"
+			},
+			"envval.promptForMigration": {
+				"type": "boolean",
+				"default": true,
+				"description": "Prompt when repo identity migration is detected"
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run package",

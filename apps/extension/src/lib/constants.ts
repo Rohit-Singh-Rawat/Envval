@@ -1,5 +1,5 @@
 export const DEFAULT_POLL_INTERVAL_SECONDS = 60;
-export const DEFAULT_LOGGING_VERBOSE = false;
+export const DEFAULT_LOGGING_VERBOSE = true;
 export const VSCODE_CONFIG_SECTION = 'envval';
 export const API_BASE_URL = 'http://localhost:8080';
 

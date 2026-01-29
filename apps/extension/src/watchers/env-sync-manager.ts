@@ -2,6 +2,7 @@ import { deriveKey, encryptEnv, hashEnv, decryptEnv } from '../utils/crypto';
 import { getCurrentWorkspaceId, getRepoAndEnvIds, getWorkspacePath } from '../utils/repo-detection';
 import { getVSCodeConfig } from '../lib/config';
 import { Logger } from '../utils/logger';
+import * as vscode from 'vscode';
 import { ExtensionContext, Uri, workspace, WorkspaceEdit, Range, window } from 'vscode';
 import { EnvVaultApiClient } from '../api/client';
 import { EnvVaultMetadataStore } from '../services/metadata-store';
@@ -14,22 +15,24 @@ import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 export class SyncManager {
   private static instance: SyncManager; 
   private pollInterval?: NodeJS.Timeout;
+  private context: vscode.ExtensionContext;
   private apiClient: EnvVaultApiClient;
   private secretsManager: EnvVaultVsCodeSecrets;
   private metadataStore: EnvVaultMetadataStore;
   private envInitService: EnvInitService;
   private logger: Logger;
   
-  private constructor(apiClient: EnvVaultApiClient, secretsManager: EnvVaultVsCodeSecrets, metadataStore: EnvVaultMetadataStore, envFileWatcher: EnvFileWatcher, envInitService: EnvInitService, logger: Logger) {
+  private constructor(context: vscode.ExtensionContext, apiClient: EnvVaultApiClient, secretsManager: EnvVaultVsCodeSecrets, metadataStore: EnvVaultMetadataStore, envFileWatcher: EnvFileWatcher, envInitService: EnvInitService, logger: Logger) {
+    this.context = context;
     this.apiClient = apiClient;
     this.secretsManager = secretsManager;
     this.metadataStore = metadataStore;
     this.envInitService = envInitService;
     this.logger = logger;
   }
-  public static getInstance(apiClient: EnvVaultApiClient, secretsManager: EnvVaultVsCodeSecrets, metadataStore: EnvVaultMetadataStore, envFileWatcher: EnvFileWatcher, envInitService: EnvInitService, logger: Logger): SyncManager {
+  public static getInstance(context: vscode.ExtensionContext, apiClient: EnvVaultApiClient, secretsManager: EnvVaultVsCodeSecrets, metadataStore: EnvVaultMetadataStore, envFileWatcher: EnvFileWatcher, envInitService: EnvInitService, logger: Logger): SyncManager {
     if (!SyncManager.instance) {
-      SyncManager.instance = new SyncManager(apiClient, secretsManager, metadataStore, envFileWatcher, envInitService, logger);
+      SyncManager.instance = new SyncManager(context, apiClient, secretsManager, metadataStore, envFileWatcher, envInitService, logger);
       envFileWatcher.onDidCreate(event => SyncManager.instance.handleNewEnvFile(event.uri));
       envFileWatcher.onDidChange(event => SyncManager.instance.handleEnvFileSave(event.uri));
       envFileWatcher.onDidDelete(event => SyncManager.instance.handleDeletedEnvFile(event.uri));
@@ -175,7 +178,7 @@ export class SyncManager {
 
   public async handleEnvFileSave(uri: Uri): Promise<void> {
     try {
-      const result = await getRepoAndEnvIds(uri.fsPath);
+      const result = await getRepoAndEnvIds(uri.fsPath, undefined, this.context);
       if (!result) {
         this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
         return;
@@ -234,7 +237,7 @@ export class SyncManager {
     await this.envInitService.maybeInitializeOrRestore(uri);
   }
   public async handleDeletedEnvFile(uri: Uri): Promise<void> {
-    const { repoId, envId } = await getRepoAndEnvIds(uri.fsPath) ?? { repoId: '', envId: '' };
+    const { repoId, envId } = await getRepoAndEnvIds(uri.fsPath, undefined, this.context) ?? { repoId: '', envId: '' };
     if (!repoId || !envId) {
       return;
     }

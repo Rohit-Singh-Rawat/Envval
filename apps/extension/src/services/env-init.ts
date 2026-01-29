@@ -1,9 +1,12 @@
 import path from "path";
 import fs from "fs";
+import * as vscode from "vscode";
 import { Uri } from "vscode";
 import { getRepoAndEnvIds, getAllEnvFiles, getWorkspacePath, getCurrentWorkspaceId } from "../utils/repo-detection";
 import type { Env } from "../api/types";
 import { EnvVaultMetadataStore } from "./metadata-store";
+import { RepoMigrationService } from "./repo-migration";
+import { RepoIdentityStore } from "./repo-identity-store";
 import { EnvVaultApiClient } from "../api/client";
 import { EnvVaultVsCodeSecrets } from "../utils/secrets";
 import { hashEnv, encryptEnv, decryptEnv, deriveKey } from "../utils/crypto";
@@ -20,17 +23,20 @@ import {
 
 export class EnvInitService {
   private static instance: EnvInitService;
+  private context: vscode.ExtensionContext;
   private metadataStore: EnvVaultMetadataStore;
   private apiClient: EnvVaultApiClient;
   private secretsManager: EnvVaultVsCodeSecrets;
   private logger: Logger;
 
   private constructor(
+    context: vscode.ExtensionContext,
     metadataStore: EnvVaultMetadataStore,
     apiClient: EnvVaultApiClient,
     secretsManager: EnvVaultVsCodeSecrets,
     logger: Logger
   ) {
+    this.context = context;
     this.metadataStore = metadataStore;
     this.apiClient = apiClient;
     this.secretsManager = secretsManager;
@@ -38,28 +44,30 @@ export class EnvInitService {
   }
 
   public static getInstance(
+    context: vscode.ExtensionContext,
     metadataStore: EnvVaultMetadataStore,
     apiClient: EnvVaultApiClient,
     secretsManager: EnvVaultVsCodeSecrets,
     logger: Logger
   ): EnvInitService {
     if (!EnvInitService.instance) {
-      EnvInitService.instance = new EnvInitService(metadataStore, apiClient, secretsManager, logger);
+      EnvInitService.instance = new EnvInitService(context, metadataStore, apiClient, secretsManager, logger);
     }
     return EnvInitService.instance;
   }
 
   async performInitialCheck(): Promise<void> {
     this.logger.info("Performing initial check for repo and env files");
-    
-    const workspacePath = await getWorkspacePath();
-    if (!workspacePath) {
-      this.logger.error("No workspace folder found");
+    // Get repoId for current workspace - now with context for full priority chain support
+    const workspace = await getCurrentWorkspaceId(undefined, this.context, this.logger);
+    if (!workspace) {
+      this.logger.error("Failed to get workspace");
       return;
     }
-
-    // Get repoId for current workspace
-    const repoId = await getCurrentWorkspaceId();
+    const { repoId, workspacePath } = workspace;
+    
+    this.logger.debug(`Workspace path: ${workspacePath}, repoId: ${repoId}, gitRemote: ${workspace.gitRemote}`);
+    
     if (!repoId) {
       this.logger.error("Failed to get repo ID for workspace");
       return;
@@ -89,6 +97,19 @@ export class EnvInitService {
 
     // Now handle all env files for this repo
     await this.syncRepoEnvs(repoId, workspacePath);
+
+    // Check for migration opportunities (e.g., Git remote added to content-signature-based project)
+    if (workspace.requiresMigration && workspace.suggestedMigration) {
+      this.logger.info(`Migration opportunity detected: ${workspace.suggestedMigration.reason}`);
+      const identityStore = new RepoIdentityStore(this.context);
+      const migrationService = new RepoMigrationService(
+        this.context,
+        this.metadataStore,
+        identityStore,
+        this.logger
+      );
+      await migrationService.handleAutomaticMigrationPrompt(workspacePath);
+    }
   }
 
   async syncRepoEnvs(repoId: string, workspacePath: string): Promise<void> {
@@ -126,7 +147,7 @@ export class EnvInitService {
       const remoteEnv = remoteEnvMap.get(fileName);
       const uri = localPath ? Uri.file(localPath) : Uri.file(path.join(workspacePath, fileName));
       
-      const { envId } = await getRepoAndEnvIds(fileName) ?? { repoId, envId: '' };
+      const { envId } = await getRepoAndEnvIds(fileName, undefined, this.context) ?? { repoId, envId: '' };
       if (!envId) {
         continue;
       }
@@ -160,8 +181,8 @@ export class EnvInitService {
 
   async maybeInitializeOrRestore(uri: Uri): Promise<void> {
     // This method is called from SyncManager for new file events
-    // Use the repo-first approach here too
-    const result = await getRepoAndEnvIds(uri.fsPath);
+    // Use the repo-first approach here too - with context for full priority chain support
+    const result = await getRepoAndEnvIds(uri.fsPath, undefined, this.context);
     if (!result) {
       this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
       return;

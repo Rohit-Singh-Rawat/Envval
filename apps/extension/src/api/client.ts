@@ -198,4 +198,35 @@ export class EnvVaultApiClient extends ApiClient {
 
 	// Get all envs for a repo (already exists, but keeping it here for clarity)
 	// public async getEnvs(repoId: string): Promise<Env[]> - already defined above
+
+	/**
+	 * Migrate repository identity on the server.
+	 * This is used when a repository's identity changes (e.g., local repo gets a Git remote).
+	 * Gracefully handles cases where the server doesn't support this endpoint.
+	 */
+	public async migrateRepo(oldRepoId: string, newRepoId: string): Promise<{ success: boolean; message?: string }> {
+		try {
+			await this.post('/repos/migrate', {
+				oldRepoId,
+				newRepoId
+			});
+			return { success: true };
+		} catch (error: any) {
+			// Check if this is a 404 (endpoint not implemented) or other expected error
+			if (error.response?.status === 404) {
+				this.logger.warn('Repository migration endpoint not available on server');
+				return {
+					success: false,
+					message: 'Server does not support repository migration'
+				};
+			}
+
+			// For other errors, log and return failure
+			this.logger.error('Repository migration failed:', error.message);
+			return {
+				success: false,
+				message: error.message || 'Unknown error during migration'
+			};
+		}
+	}
 }

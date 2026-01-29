@@ -24,8 +24,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvVaultMetadataStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context);
-	const envInitService = EnvInitService.getInstance(metadataStore, apiClient, secrets, logger);
+	const envInitService = EnvInitService.getInstance(
+		context,
+		metadataStore,
+		apiClient,
+		secrets,
+		logger
+	);
 	const syncManager = SyncManager.getInstance(
+		context,
 		apiClient,
 		secrets,
 		metadataStore,
@@ -85,10 +92,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (authenticated) {
 				// User logged in - start all services
 				await startServices();
+				statusBar.setAuthenticationState(true);
 				loginWindow.dispose();
 			} else {
 				// User logged out - stop all services
 				stopServices();
+				statusBar.setAuthenticationState(false);
 			}
 		});
 	} else {
@@ -100,6 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		authProvider.onAuthenticationStateChanged(async (authenticated) => {
 			if (!authenticated) {
 				stopServices();
+				statusBar.setAuthenticationState(false);
 			}
 		});
 	}
