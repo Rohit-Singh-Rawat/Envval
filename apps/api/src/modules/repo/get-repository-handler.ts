@@ -1,25 +1,28 @@
 import { honoFactory } from '@/shared/utils/factory';
-import { z } from 'zod';
 import { customZValidator } from '@/shared/utils/zod-validator';
 import { authMiddleware } from '@/shared/middleware/auth.middleware';
-import { RepoService } from '@/modules/repo/repo.service';
+import { HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from '@/shared/constants/http-status';
+import { RepoService } from './repo.service';
+import { repoParamSchema } from './repo.schemas';
 
 const repoService = new RepoService();
 
-const paramSchema = z.object({
-	repoId: z.string().uuid(),
-});
-
 export const getRepositoryHandler = honoFactory.createHandlers(
-	customZValidator('param', paramSchema),
+	customZValidator('param', repoParamSchema),
 	authMiddleware,
 	async (ctx) => {
 		const user = ctx.get('user');
-		const { repoId } = ctx.req.valid('param');
-		const repository = await repoService.getRepositorySummary(user!.id, repoId);
-		if (!repository) {
-			return ctx.json({ error: 'Repository not found' }, 404);
+		if (!user) {
+			return ctx.json({ error: 'Unauthorized' }, HTTP_UNAUTHORIZED);
 		}
+
+		const { repoId } = ctx.req.valid('param');
+		const repository = await repoService.getRepositorySummary(user.id, repoId);
+
+		if (!repository) {
+			return ctx.json({ error: 'Repository not found' }, HTTP_NOT_FOUND);
+		}
+
 		return ctx.json(repository);
 	}
 );
