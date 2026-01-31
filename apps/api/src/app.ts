@@ -22,7 +22,6 @@ const app = new Hono<AppEnv>()
 	})
 	// Mount API routes
 	.route('/api', apiRoutes)
-	.route('/auth', authRoutes);
 
 export default app;
 export type AppType = typeof app;
