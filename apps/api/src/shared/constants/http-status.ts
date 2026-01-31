@@ -1,0 +1,47 @@
+/**
+ * Standard HTTP status codes for API responses.
+ */
+
+export const HTTP_OK = 200 as const;
+export const HTTP_CREATED = 201 as const;
+export const HTTP_ACCEPTED = 202 as const;
+export const HTTP_NO_CONTENT = 204 as const;
+
+export const HTTP_BAD_REQUEST = 400 as const;
+export const HTTP_UNAUTHORIZED = 401 as const;
+export const HTTP_FORBIDDEN = 403 as const;
+export const HTTP_NOT_FOUND = 404 as const;
+export const HTTP_METHOD_NOT_ALLOWED = 405 as const;
+export const HTTP_CONFLICT = 409 as const;
+export const HTTP_UNPROCESSABLE_ENTITY = 422 as const;
+export const HTTP_TOO_MANY_REQUESTS = 429 as const;
+
+export const HTTP_INTERNAL_SERVER_ERROR = 500 as const;
+export const HTTP_NOT_IMPLEMENTED = 501 as const;
+export const HTTP_BAD_GATEWAY = 502 as const;
+export const HTTP_SERVICE_UNAVAILABLE = 503 as const;
+export const HTTP_GATEWAY_TIMEOUT = 504 as const;
+
+export const HttpStatus = {
+	OK: HTTP_OK,
+	CREATED: HTTP_CREATED,
+	ACCEPTED: HTTP_ACCEPTED,
+	NO_CONTENT: HTTP_NO_CONTENT,
+
+	BAD_REQUEST: HTTP_BAD_REQUEST,
+	UNAUTHORIZED: HTTP_UNAUTHORIZED,
+	FORBIDDEN: HTTP_FORBIDDEN,
+	NOT_FOUND: HTTP_NOT_FOUND,
+	METHOD_NOT_ALLOWED: HTTP_METHOD_NOT_ALLOWED,
+	CONFLICT: HTTP_CONFLICT,
+	UNPROCESSABLE_ENTITY: HTTP_UNPROCESSABLE_ENTITY,
+	TOO_MANY_REQUESTS: HTTP_TOO_MANY_REQUESTS,
+
+	INTERNAL_SERVER_ERROR: HTTP_INTERNAL_SERVER_ERROR,
+	NOT_IMPLEMENTED: HTTP_NOT_IMPLEMENTED,
+	BAD_GATEWAY: HTTP_BAD_GATEWAY,
+	SERVICE_UNAVAILABLE: HTTP_SERVICE_UNAVAILABLE,
+	GATEWAY_TIMEOUT: HTTP_GATEWAY_TIMEOUT,
+} as const;
+
+export type HttpStatusCode = (typeof HttpStatus)[keyof typeof HttpStatus];
