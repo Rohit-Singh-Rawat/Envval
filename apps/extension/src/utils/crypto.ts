@@ -38,6 +38,19 @@ export const hashEnv = (envs: string): string => {
 	return crypto.createHash('sha256').update(envs).digest('hex');
 };
 
+export const countEnvVars = (content: string): number => {
+	const lines = content.split('\n');
+	let count = 0;
+	for (const line of lines) {
+		const trimmed = line.trim();
+		// Skip empty lines and comments, but count key=value pairs
+		if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+			count++;
+		}
+	}
+	return count;
+};
+
 /**
  * Generates an RSA-OAEP 2048-bit key pair for device key wrapping.
  * Returns PEM-formatted keys.
