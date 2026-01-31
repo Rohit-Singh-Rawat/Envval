@@ -23,7 +23,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const authProvider = AuthenticationProvider.getInstance(secrets, logger);
 	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvVaultMetadataStore.getInstance(context);
-	const envFileWatcher = EnvFileWatcher.getInstance(context);
+	const envFileWatcher = EnvFileWatcher.getInstance(context, logger);
 	const envInitService = EnvInitService.getInstance(
 		context,
 		metadataStore,
@@ -117,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		disposeConfigListener,
 		StatusBar.getStatusBarItem(),
-		EnvFileWatcher.getInstance(context)
+		EnvFileWatcher.getInstance(context, logger)
 	);
 }
 

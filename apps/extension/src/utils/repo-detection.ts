@@ -695,13 +695,13 @@ export async function getRepoAndEnvIds(
   fileName: string,
   userId?: string,
   context?: vscode.ExtensionContext
-): Promise<{ repoId: string; envId: string } | undefined> {
+): Promise<{ repoId: string; envId: string; gitRemote: string | undefined; workspacePath: string } | undefined> {
   const workspace = await getCurrentWorkspaceId(userId, context);
   if (!workspace) {
     return undefined;
   }
   const envId = computeEnvId(workspace.repoId, fileName);
-  return { repoId: workspace.repoId, envId };
+  return { repoId: workspace.repoId, envId, gitRemote: workspace.gitRemote, workspacePath: workspace.workspacePath };
 }
 
 /**
@@ -713,8 +713,14 @@ function shouldIgnoreEnvFile(fileName: string): boolean {
 }
 
 /**
- * Get all .env files in the workspace, respecting .gitignore and filtering out example/template files.
- * Returns an array of relative file paths.
+ * Retrieves all environment files (.env*) within the workspace.
+ * 
+ * This function performs a manual recursive scan of the filesystem to ensure it discovers 
+ * files typically excluded from version control (via .gitignore). It specifically avoids 
+ * scanning 'node_modules' and hidden directories to optimize performance and prevent 
+ * noise from dependency configurations or system files.
+ * 
+ * @returns A promise that resolves to a sorted array of relative file paths.
  */
 export async function getAllEnvFiles(): Promise<string[]> {
   const workspacePath = await getWorkspacePath();
@@ -722,76 +728,38 @@ export async function getAllEnvFiles(): Promise<string[]> {
     return [];
   }
 
-  try {
-    // Use git ls-files to respect .gitignore
-    const { stdout } = await execAsync('git ls-files "*.env*"', { cwd: workspacePath });
-    const gitTrackedFiles = stdout
-      .trim()
-      .split('\n')
-      .filter(line => line.length > 0)
-      .filter(file => !shouldIgnoreEnvFile(file));
+  const envFiles: string[] = [];
 
-    // Also check for untracked .env files that exist on disk
-    const allEnvFiles = new Set<string>(gitTrackedFiles);
-    
-    // Recursively find .env files in workspace
-    const findEnvFiles = (dir: string, relativePath: string = ''): void => {
-      try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        
-        for (const entry of entries) {
-          // Skip node_modules and hidden directories
-          if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+  /**
+   * Internal recursive helper for filesystem traversal.
+   */
+  const findEnvFiles = (dir: string, relativePath: string = ''): void => {
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const relPath = path.join(relativePath, entry.name);
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          // Standard optimization: skip dependencies and hidden system/config directories
+          if (entry.name === 'node_modules' || entry.name.startsWith('.')) {
             continue;
           }
-
-          const fullPath = path.join(dir, entry.name);
-          const relPath = path.join(relativePath, entry.name);
-
-          if (entry.isDirectory()) {
-            findEnvFiles(fullPath, relPath);
-          } else if (entry.isFile() && entry.name.match(/^\.env(\..+)?$/) && !shouldIgnoreEnvFile(entry.name)) {
-            allEnvFiles.add(relPath);
-          }
-        }
-      } catch (error) {
-        // Ignore permission errors or other file system errors
-        logMessage(`Error reading directory ${dir}: ${error}`, 'warn');
-      }
-    };
-
-    findEnvFiles(workspacePath);
-
-    return Array.from(allEnvFiles).sort();
-  } catch (error) {
-    // If git command fails, fall back to file system search only
-    logMessage(`Git command failed, falling back to file system search: ${error}`, 'warn');
-    
-    const envFiles: string[] = [];
-    const findEnvFiles = (dir: string, relativePath: string = ''): void => {
-      try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        
-        for (const entry of entries) {
-          if (entry.name.startsWith('.') || entry.name === 'node_modules') {
-            continue;
-          }
-
-          const fullPath = path.join(dir, entry.name);
-          const relPath = path.join(relativePath, entry.name);
-
-          if (entry.isDirectory()) {
-            findEnvFiles(fullPath, relPath);
-          } else if (entry.isFile() && entry.name.match(/^\.env(\..+)?$/) && !shouldIgnoreEnvFile(entry.name)) {
+          findEnvFiles(fullPath, relPath);
+        } else if (entry.isFile()) {
+          // Match .env or .env.suffix patterns while avoiding example/template files
+          const isEnvFile = entry.name === '.env' || entry.name.startsWith('.env.');
+          if (isEnvFile && !shouldIgnoreEnvFile(entry.name)) {
             envFiles.push(relPath);
           }
         }
-      } catch (error) {
-        // Ignore errors
       }
-    };
+    } catch (error) {
+      logMessage(`Error accessing directory ${dir}: ${error}`, 'warn');
+    }
+  };
 
-    findEnvFiles(workspacePath);
-    return envFiles.sort();
-  }
+  findEnvFiles(workspacePath);
+  return envFiles.sort();
 }

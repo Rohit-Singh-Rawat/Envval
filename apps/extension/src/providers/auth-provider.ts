@@ -1,25 +1,13 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
-import { API_BASE_URL, DEVICE_VERIFICATION_URL } from '../lib/constants';
+import { DEVICE_VERIFICATION_URL } from '../lib/constants';
 import { Logger } from '../utils/logger';
+import { AuthApiClient, DeviceCodeResponse, DeviceTokenResponse } from '../api/client';
 
-// Device code response from API
-export interface DeviceCodeResponse {
-	device_code: string;
-	user_code: string;
-	verification_uri: string;
-	verification_uri_complete: string;
-	expires_in: number;
-	interval: number;
-}
+// Re-export types for external use
+export type { DeviceCodeResponse, DeviceTokenResponse };
 
-// Token response from API
-export interface DeviceTokenResponse {
-	access_token: string;
-	device_id: string;
-	wrapped_key_material: string; // RSA-OAEP encrypted with device's public key
-}
 // Polling status for UI updates
 export type PollingStatus =
 	| { state: 'idle' }
@@ -50,6 +38,7 @@ export class AuthenticationProvider {
 	private static instance: AuthenticationProvider;
 	private readonly logger: Logger;
 	private readonly secretsManager: EnvVaultVsCodeSecrets;
+	private readonly authClient: AuthApiClient;
 
 	private authenticationStateEmitter = new vscode.EventEmitter<boolean>();
 	public readonly onAuthenticationStateChanged = this.authenticationStateEmitter.event;
@@ -65,6 +54,7 @@ export class AuthenticationProvider {
 	private constructor(secretsManager: EnvVaultVsCodeSecrets, logger: Logger) {
 		this.logger = logger;
 		this.secretsManager = secretsManager;
+		this.authClient = AuthApiClient.getInstance();
 	}
 
 	public static getInstance(
@@ -102,18 +92,7 @@ export class AuthenticationProvider {
 			this.logger.info('Device keypair generated and private key stored');
 
 			// Step 2: Request device code from better-auth's device authorization endpoint
-			const { data } = await axios.post<DeviceCodeResponse>(
-				`${API_BASE_URL}/api/auth/device/code`,
-				{
-					client_id: 'envval-extension',
-				},
-				{
-					headers: {
-						'Content-Type': 'application/json',
-						'User-Agent': 'envval-extension',
-					},
-				}
-			);
+			const data = await this.authClient.requestDeviceCode();
 
 			this.logger.info(`Device code received: ${data.user_code}`);
 
@@ -218,22 +197,11 @@ export class AuthenticationProvider {
 						throw new Error('Public key not found - keypair generation failed');
 					}
 
-					// Use custom extension endpoint that returns device_id and wrapped_key_material
-					const { data } = await axios.post<DeviceTokenResponse>(
-						`${API_BASE_URL}/api/auth/extension/device/token`,
-						{
-							grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-							device_code: deviceCode,
-							client_id: 'envval-extension',
-							public_key: publicKeyPem,
-						},
-						{
-							headers: {
-								'Content-Type': 'application/json',
-								'User-Agent': 'envval-extension',
-							},
-							signal: this.pollAbortController?.signal,
-						}
+					// Use AuthApiClient to poll for token
+					const data = await this.authClient.pollDeviceToken(
+						deviceCode,
+						publicKeyPem,
+						this.pollAbortController?.signal
 					);
 
 					// Success! Store token, device ID, and wrapped key material
