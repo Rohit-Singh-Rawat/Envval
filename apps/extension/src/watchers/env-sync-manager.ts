@@ -182,7 +182,9 @@ export class SyncManager {
   }
 
   public async handleEnvFileSave(uri: Uri): Promise<void> {
+    this.logger.info(`[handleEnvFileSave] Started for: ${uri.fsPath}`);
     try {
+      this.logger.info(`[handleEnvFileSave] Getting repo and env IDs...`);
       const result = await getRepoAndEnvIds(uri.fsPath, undefined, this.context);
       if (!result) {
         this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
@@ -190,28 +192,35 @@ export class SyncManager {
       }
       
       const { repoId, envId } = result;
+      this.logger.info(`[handleEnvFileSave] repoId: ${repoId}, envId: ${envId}`);
       
       // Check if file exists
       if (!fs.existsSync(uri.fsPath)) {
+        this.logger.info(`[handleEnvFileSave] File does not exist, skipping: ${uri.fsPath}`);
         return;
       }
 
       // Read file content
       const content = fs.readFileSync(uri.fsPath, 'utf8');
       const hash = hashEnv(content);
+      this.logger.info(`[handleEnvFileSave] Content hash: ${hash}, content length: ${content.length}`);
       
       // Check metadata - if not exists, delegate to init service
       const metadata = await this.metadataStore.loadEnvMetadata(envId);
+      this.logger.info(`[handleEnvFileSave] Metadata loaded: ${JSON.stringify(metadata)}`);
       if (!metadata) {
         // Not initialized yet, let init service handle it
+        this.logger.info(`[handleEnvFileSave] No metadata found, delegating to init service`);
         await this.envInitService.maybeInitializeOrRestore(uri);
         return;
       }
       
       // Skip if hash matches (no changes)
       if (metadata.lastSyncedHash === hash) {
+        this.logger.info(`[handleEnvFileSave] Hash unchanged, skipping sync. lastSyncedHash: ${metadata.lastSyncedHash}`);
         return;
       }
+      this.logger.info(`[handleEnvFileSave] Hash changed: ${metadata.lastSyncedHash} -> ${hash}`);
 
       // Get encryption key
       const keyMaterial = await this.secretsManager.getKeyMaterial();
@@ -220,25 +229,31 @@ export class SyncManager {
         this.logger.error('Missing encryption keys for sync');
         return;
       }
+      this.logger.info(`[handleEnvFileSave] Encryption keys available, deviceId: ${deviceId}`);
 
       const key = deriveKey(keyMaterial, deviceId);
       const { ciphertext, iv } = encryptEnv(content, key);
       const envCount = countEnvVars(content);
+      this.logger.info(`[handleEnvFileSave] Encrypted content, envCount: ${envCount}`);
 
       // Update on server
+      this.logger.info(`[handleEnvFileSave] Updating env on server: ${envId}`);
       await this.apiClient.updateEnv(envId, {
         content: `${ciphertext}:${iv}`,
         latestHash: hash,
         envCount
       });
+      this.logger.info(`[handleEnvFileSave] Server update successful`);
 
       // Update metadata with new hash
       await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
+      this.logger.info(`[handleEnvFileSave] Metadata updated`);
       
       this.logger.info(`Successfully synced ${path.basename(uri.fsPath)}`);
     } catch (error) {
       this.logger.error(`Failed to handle env file save: ${(error as Error).message}`);
     }
+    
   }
   public async handleNewEnvFile(uri: Uri): Promise<void> {
     // Delegate to init service which handles all scenarios

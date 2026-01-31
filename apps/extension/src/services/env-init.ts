@@ -167,19 +167,21 @@ export class EnvInitService {
 
     // Process each env file
     const allEnvFiles = new Set([...localEnvMap.keys(), ...remoteEnvMap.keys()]);
-
+this.logger.info(`Found ${allEnvFiles.size} env files`);
     for (const fileName of allEnvFiles) {
       const localPath = localEnvMap.get(fileName);
       const remoteEnv = remoteEnvMap.get(fileName);
       const uri = localPath ? Uri.file(localPath) : Uri.file(path.join(workspacePath, fileName));
       
       const { envId } = await getRepoAndEnvIds(fileName, undefined, this.context) ?? { repoId, envId: '' };
+     
       if (!envId) {
         continue;
       }
 
       // Check if already tracked in metadata
       const existingMeta = await this.metadataStore.loadEnvMetadata(envId);
+      this.logger.info(`Env file: ${fileName}, envId: ${envId}, existingMeta: ${existingMeta}`);
       if (existingMeta) {
         this.logger.info(`Env file already tracked: ${fileName}`);
         continue; // Already initialized, skip
@@ -188,6 +190,7 @@ export class EnvInitService {
       // Handle different scenarios
       const localExists = !!localPath && fs.existsSync(localPath);
       const remoteExists = !!remoteEnv;
+      this.logger.info(`Local env exists: ${localExists}, Remote env exists: ${remoteExists}`+fileName);
 
       if (remoteExists && !localExists) {
         // Remote exists, local doesn't - restore
@@ -307,7 +310,7 @@ export class EnvInitService {
         const { ciphertext, iv } = encryptEnv(content, key);
 
         // Create env on server
-        await this.apiClient.createEnv({
+       const env= await this.apiClient.createEnv({
           repoId,
           fileName,
           content: `${ciphertext}:${iv}`, // Format: ciphertext:iv
@@ -316,7 +319,7 @@ export class EnvInitService {
         });
 
         // Save metadata
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
+        await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
 
         this.logger.info(`Successfully initialized ${fileName}`);
         showSuccess(`${fileName} is now backed up and synced.`);

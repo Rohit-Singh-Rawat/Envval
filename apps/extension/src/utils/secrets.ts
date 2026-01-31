@@ -1,6 +1,12 @@
 import { ExtensionContext } from 'vscode';
 import { generateKeyPair, unwrapKeyMaterial } from './crypto';
 
+/**
+ * Manages secure storage of sensitive credentials using VS Code's SecretStorage API.
+ * Handles access tokens, device IDs, and cryptographic keys required for end-to-end encryption.
+ *
+ * Uses the singleton pattern to ensure consistent access across the extension.
+ */
 export class EnvVaultVsCodeSecrets {
 	private static instance: EnvVaultVsCodeSecrets;
 	private ctx: ExtensionContext;
@@ -9,6 +15,11 @@ export class EnvVaultVsCodeSecrets {
 		this.ctx = ctx;
 	}
 
+	/**
+	 * Returns the singleton instance, creating it if necessary.
+	 * @param ctx - Required on first call to initialize the secret storage.
+	 * @throws Error if ctx is not provided on first initialization.
+	 */
 	public static getInstance(ctx?: ExtensionContext): EnvVaultVsCodeSecrets {
 		if (!EnvVaultVsCodeSecrets.instance) {
 			if (!ctx) {
@@ -19,57 +30,55 @@ export class EnvVaultVsCodeSecrets {
 		return EnvVaultVsCodeSecrets.instance;
 	}
 
-	// ==================== Access Token ====================
-
+	/** Retrieves the stored JWT access token for API authentication. */
 	public getAccessToken(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.accessToken');
 	}
 
+	/** Stores the JWT access token received after successful authentication. */
 	public async setAccessToken(token: string): Promise<void> {
 		await this.ctx.secrets.store('envval.accessToken', token);
 	}
 
-	// ==================== Device ID ====================
-
+	/** Retrieves the unique device identifier assigned during authentication. */
 	public getDeviceId(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.deviceId');
 	}
 
+	/** Stores the device ID used to identify this VS Code instance. */
 	public async setDeviceId(id: string): Promise<void> {
 		await this.ctx.secrets.store('envval.deviceId', id);
 	}
 
-	// ==================== Private Key ====================
-
+	/** Retrieves the RSA private key (PEM format) used for decrypting environment secrets. */
 	public getPrivateKey(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.privateKey');
 	}
 
+	/** Stores the RSA private key (PEM format) for local decryption operations. */
 	public async setPrivateKey(privateKeyPem: string): Promise<void> {
 		await this.ctx.secrets.store('envval.privateKey', privateKeyPem);
 	}
 
-	// ==================== Public Key ====================
-
+	/** Retrieves the RSA public key (PEM format) shared with the server. */
 	public getPublicKey(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.publicKey');
 	}
 
+	/** Stores the RSA public key (PEM format) sent to server during authentication. */
 	public async setPublicKey(publicKeyPem: string): Promise<void> {
 		await this.ctx.secrets.store('envval.publicKey', publicKeyPem);
 	}
 
-	// ==================== Wrapped Key Material ====================
-
+	/** Retrieves the server-encrypted key material (base64) for decryption. */
 	public getWrappedKeyMaterial(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.wrappedKeyMaterial');
 	}
 
+	/** Stores the wrapped key material received from the server. */
 	public async setWrappedKeyMaterial(wrappedKey: string): Promise<void> {
 		await this.ctx.secrets.store('envval.wrappedKeyMaterial', wrappedKey);
 	}
-
-	// ==================== Key Material (Decrypted) ====================
 
 	/**
 	 * Gets the decrypted key material by unwrapping with the stored private key.
@@ -90,8 +99,6 @@ export class EnvVaultVsCodeSecrets {
 			return undefined;
 		}
 	}
-
-	// ==================== Key Pair Generation ====================
 
 	/**
 	 * Generates a new RSA keypair and stores both keys.
@@ -119,8 +126,7 @@ export class EnvVaultVsCodeSecrets {
 		return !!privateKey && !!publicKey;
 	}
 
-	// ==================== Clear All ====================
-
+	/** Removes all stored secrets. Used during logout or credential reset. */
 	public async clearAll(): Promise<void> {
 		await Promise.all([
 			this.ctx.secrets.delete('envval.accessToken'),
