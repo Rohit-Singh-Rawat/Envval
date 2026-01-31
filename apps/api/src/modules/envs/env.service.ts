@@ -2,7 +2,7 @@ import { db } from '@envval/db';
 import { environment } from '@envval/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { CreateEnvBody, UpdateEnvBody } from './env.schemas';
-import { nanoid } from 'nanoid';
+import { computeEnvId } from '@/shared/utils/id';
 
 export class EnvService {
 	async getAllEnvironments(userId: string, repoId?: string) {
@@ -28,7 +28,8 @@ export class EnvService {
 	}
 
 	async createEnvironment(userId: string, data: CreateEnvBody) {
-		const id = nanoid();
+		// Use deterministic ID based on repoId + fileName 
+		const id = computeEnvId(data.repoId, data.fileName);
 		const [result] = await db
 			.insert(environment)
 			.values({

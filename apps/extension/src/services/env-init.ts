@@ -2,14 +2,14 @@ import path from "path";
 import fs from "fs";
 import * as vscode from "vscode";
 import { Uri } from "vscode";
-import { getRepoAndEnvIds, getAllEnvFiles, getWorkspacePath, getCurrentWorkspaceId } from "../utils/repo-detection";
+import { getRepoAndEnvIds, getAllEnvFiles, getCurrentWorkspaceId } from "../utils/repo-detection";
 import type { Env } from "../api/types";
 import { EnvVaultMetadataStore } from "./metadata-store";
 import { RepoMigrationService } from "./repo-migration";
 import { RepoIdentityStore } from "./repo-identity-store";
 import { EnvVaultApiClient } from "../api/client";
 import { EnvVaultVsCodeSecrets } from "../utils/secrets";
-import { hashEnv, encryptEnv, decryptEnv, deriveKey } from "../utils/crypto";
+import { hashEnv, encryptEnv, decryptEnv, deriveKey, countEnvVars } from "../utils/crypto";
 import { Logger } from "../utils/logger";
 import { 
   showInitPrompt, 
@@ -21,6 +21,11 @@ import {
   showError
 } from "../ui/dialog/init-prompt";
 
+/**
+ * Service responsible for the initial discovery and synchronization of environment files.
+ * It handles the "first-run" scenarios when a workspace is opened or when a new environment 
+ * file is created locally or discovered on the server.
+ */
 export class EnvInitService {
   private static instance: EnvInitService;
   private context: vscode.ExtensionContext;
@@ -56,6 +61,16 @@ export class EnvInitService {
     return EnvInitService.instance;
   }
 
+  /**
+   * Orchestrates the primary startup check.
+   * Execution Flow:
+   * 1. Detects repo identity for the current workspace.
+   * 2. Verifies if the repository is registered in the cloud vault.
+   * 3. Triggers bulk synchronization of all environment files.
+   * 4. Checks if the repository should be migrated to a better identity (e.g., local -> git).
+   * 
+   * Used: Automatically during extension activation or manual workspace scan.
+   */
   async performInitialCheck(): Promise<void> {
     this.logger.info("Performing initial check for repo and env files");
     // Get repoId for current workspace - now with context for full priority chain support
@@ -83,7 +98,11 @@ export class EnvInitService {
 
       if (shouldRegister === "register") {
         try {
-          await this.apiClient.createRepo({ repoId });
+          await this.apiClient.createRepo({ 
+            repoId, 
+            workspacePath, 
+            gitRemoteUrl: workspace.gitRemote 
+          });
           this.logger.info(`Repo registered: ${repoId}`);
         } catch (error) {
           this.logger.error(`Failed to register repo: ${(error as Error).message}`);
@@ -112,13 +131,20 @@ export class EnvInitService {
     }
   }
 
+  /**
+   * Reconciles all local environment files with those on the server for a specific repo.
+   * Identifies untracked local files, missing local files that exist on server, 
+   * and potential conflicts.
+   * 
+   * Used: Internal helper for bulk synchronization during performInitialCheck.
+   */
   async syncRepoEnvs(repoId: string, workspacePath: string): Promise<void> {
     // Get all local env files
     const localEnvFilePaths = await getAllEnvFiles();
     this.logger.info(`Found ${localEnvFilePaths.length} local env files`);
 
     // Get all remote envs for this repo
-    let remoteEnvs: Env[] = [];
+    let remoteEnvs : readonly Env [] = [];
     try {
       remoteEnvs = await this.apiClient.getEnvs(repoId);
       this.logger.info(`Found ${remoteEnvs.length} remote env files`);
@@ -179,6 +205,12 @@ export class EnvInitService {
     }
   }
 
+  /**
+   * Targeted synchronization for a single file.
+   * Checks if a specific file needs to be initialized (backed up) or restored (pulled).
+   * 
+   * Used: By SyncManager when a new file is detected by the file watcher (onDidCreate).
+   */
   async maybeInitializeOrRestore(uri: Uri): Promise<void> {
     // This method is called from SyncManager for new file events
     // Use the repo-first approach here too - with context for full priority chain support
@@ -188,14 +220,18 @@ export class EnvInitService {
       return;
     }
       
-    const { repoId, envId } = result;
+    const { repoId, envId, workspacePath, gitRemote } = result;
 
     // Check if repo exists first
     const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
     if (!repoExistsResponse.exists) {
       // Auto-register repo if it doesn't exist
       try {
-        await this.apiClient.createRepo({ repoId });
+        await this.apiClient.createRepo({ 
+          repoId, 
+          workspacePath, 
+          gitRemoteUrl: gitRemote 
+        });
         this.logger.info(`Auto-registered repo: ${repoId}`);
       } catch (error) {
         this.logger.error(`Failed to register repo: ${(error as Error).message}`);
@@ -232,6 +268,12 @@ export class EnvInitService {
     }
   }
 
+  /**
+   * Prompts the user to back up a local environment file that doesn't exist on the server.
+   * Performs encryption and cloud storage upon approval.
+   * 
+   * Used: During initial scan or file creation when no remote copy is found.
+   */
   private async promptAndInitialize(uri: Uri, repoId: string, envId: string, fileName: string): Promise<void> {
     this.logger.info(`Prompting to initialize: ${uri.fsPath}`);
     
@@ -261,17 +303,20 @@ export class EnvInitService {
 
         const key = deriveKey(keyMaterial, deviceId);
         const hash = hashEnv(content);
+        const envCount = countEnvVars(content);
         const { ciphertext, iv } = encryptEnv(content, key);
 
         // Create env on server
         await this.apiClient.createEnv({
           repoId,
           fileName,
-          content: `${ciphertext}:${iv}` // Format: ciphertext:iv
+          content: `${ciphertext}:${iv}`, // Format: ciphertext:iv
+          latestHash: hash,
+          envCount
         });
 
         // Save metadata
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
 
         this.logger.info(`Successfully initialized ${fileName}`);
         showSuccess(`${fileName} is now backed up and synced.`);
@@ -284,6 +329,12 @@ export class EnvInitService {
     }
   }
 
+  /**
+   * Prompts the user to pull an environment file from the cloud that is missing locally.
+   * Decrypts and writes the file upon approval.
+   * 
+   * Used: During initial scan or when a file exists on server but not in local workspace.
+   */
   private async promptAndRestore(uri: Uri, repoId: string, envId: string, fileName: string, remoteEnv?: Env): Promise<void> {
     this.logger.info(`Prompting to restore: ${uri.fsPath}`);
     
@@ -316,12 +367,13 @@ export class EnvInitService {
         const [ciphertext, iv] = remoteEnv.content.split(':');
         const decrypted = decryptEnv(ciphertext, iv, key);
         const hash = hashEnv(decrypted);
+        const envCount = countEnvVars(decrypted);
 
         // Create local file
         fs.writeFileSync(uri.fsPath, decrypted, 'utf8');
 
         // Save metadata
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
 
         this.logger.info(`Successfully restored ${fileName}`);
         showSuccess(`${fileName} restored successfully.`);
@@ -334,6 +386,12 @@ export class EnvInitService {
     }
   }
 
+  /**
+   * Resolves reconciliation when both local and remote copies exist but they are not yet linked.
+   * Handles hash comparison to avoid unnecessary prompts and provides conflict resolution options.
+   * 
+   * Used: When a user brings a local repo to a new machine where the repo is already registered.
+   */
   private async handleFirstTimeSync(uri: Uri, repoId: string, envId: string, fileName: string, remoteEnv?: Env): Promise<void> {
     this.logger.info(`Handling first time sync: ${uri.fsPath}`);
     
@@ -343,21 +401,21 @@ export class EnvInitService {
       const localHash = hashEnv(localContent);
 
       // Get remote env if not provided
+      if (!remoteEnv) {
+        remoteEnv = await this.apiClient.getEnv(envId);
         if (!remoteEnv) {
-          remoteEnv = await this.apiClient.getEnv(envId);
-          if (!remoteEnv) {
-            showError(`Failed to fetch remote ${fileName}`);
-            return;
-          }
-        }
-
-        // Get encryption key
-        const keyMaterial = await this.secretsManager.getKeyMaterial();
-        const deviceId = await this.secretsManager.getDeviceId();
-        if (!keyMaterial || !deviceId) {
-          showError('Missing encryption keys. Please re-authenticate.');
+          showError(`Failed to fetch remote ${fileName}`);
           return;
         }
+      }
+
+      // Get encryption key
+      const keyMaterial = await this.secretsManager.getKeyMaterial();
+      const deviceId = await this.secretsManager.getDeviceId();
+      if (!keyMaterial || !deviceId) {
+        showError('Missing encryption keys. Please re-authenticate.');
+        return;
+      }
 
       const key = deriveKey(keyMaterial, deviceId);
       
@@ -369,7 +427,8 @@ export class EnvInitService {
       // Compare hashes
       if (localHash === remoteHash) {
         // Same content, just mark as synced
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash);
+        const envCount = countEnvVars(localContent);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
         this.logger.info(`${fileName} is already in sync`);
         showSuccess(`${fileName} is already in sync.`);
         return;
@@ -382,16 +441,20 @@ export class EnvInitService {
       if (localEmpty && !remoteEmpty) {
         // Local empty, use remote
         fs.writeFileSync(uri.fsPath, remoteContent, 'utf8');
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash);
+        const envCount = countEnvVars(remoteContent);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash, envCount);
         showSuccess(`${fileName} restored from remote.`);
         return;
       } else if (!localEmpty && remoteEmpty) {
         // Remote empty, push local
         const { ciphertext: newCiphertext, iv: newIv } = encryptEnv(localContent, key);
+        const envCount = countEnvVars(localContent);
         await this.apiClient.updateEnv(envId, {
-          content: `${newCiphertext}:${newIv}`
+          content: `${newCiphertext}:${newIv}`,
+          latestHash: localHash,
+          envCount
         });
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
         showSuccess(`${fileName} pushed to remote.`);
         return;
       }
@@ -402,15 +465,19 @@ export class EnvInitService {
       if (choice === 'useLocal') {
         // Push local to remote
         const { ciphertext: newCiphertext, iv: newIv } = encryptEnv(localContent, key);
+        const envCount = countEnvVars(localContent);
         await this.apiClient.updateEnv(envId, {
-          content: `${newCiphertext}:${newIv}`
+          content: `${newCiphertext}:${newIv}`,
+          latestHash: localHash,
+          envCount
         });
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
         showSuccess(`Conflict resolved using local ${fileName}.`);
       } else if (choice === 'useRemote') {
         // Pull remote to local
         fs.writeFileSync(uri.fsPath, remoteContent, 'utf8');
-        await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash);
+        const envCount = countEnvVars(remoteContent);
+        await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash, envCount);
         showSuccess(`Conflict resolved using remote ${fileName}.`);
       }
     } catch (error) {

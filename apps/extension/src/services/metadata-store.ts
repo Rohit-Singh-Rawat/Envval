@@ -7,6 +7,7 @@ export interface EnvMetadata {
   fileName: string;
   lastSyncedHash: string;
   lastSyncedAt: string; // ISO timestamp
+  envCount: number;
 }
 
 interface EnvVaultMetadataStorage {
@@ -54,19 +55,21 @@ export class EnvVaultMetadataStore {
   }
 
   /**
-   * Convenience method to save metadata with just envId, fileName, and hash.
+   * Convenience method to save metadata with just envId, fileName, hash, and envCount.
    * Automatically sets lastSyncedAt to current time.
    */
   public async saveEnvMetadataSync(
     envId: string,
     fileName: string,
-    hash: string
+    hash: string,
+    envCount: number
   ): Promise<void> {
     const metadata: EnvMetadata = {
       envId,
       fileName,
       lastSyncedHash: hash,
       lastSyncedAt: new Date().toISOString(),
+      envCount,
     };
     await this.saveEnvMetadata(envId, metadata);
   }
@@ -118,7 +121,7 @@ export class EnvVaultMetadataStore {
         // Remove old entry and add new one
         allMetadata.delete(envId);
 
-        // Update the envId in metadata
+        // Update the envId in metadata (preserve all existing fields including envCount)
         const newMetadata: EnvMetadata = {
           ...metadata,
           envId: newEnvId
