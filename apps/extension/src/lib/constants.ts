@@ -15,3 +15,5 @@ export const IGNORED_ENV_FILES = [
 	'.env.test',
 	'.env.testing',
 ];
+
+export const IGNORE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours

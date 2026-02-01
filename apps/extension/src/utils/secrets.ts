@@ -50,6 +50,16 @@ export class EnvVaultVsCodeSecrets {
 		await this.ctx.secrets.store('envval.deviceId', id);
 	}
 
+	/** Retrieves the user ID for use in key derivation (PBKDF2 salt). */
+	public getUserId(): Thenable<string | undefined> {
+		return this.ctx.secrets.get('envval.userId');
+	}
+
+	/** Stores the user ID received during authentication. */
+	public async setUserId(id: string): Promise<void> {
+		await this.ctx.secrets.store('envval.userId', id);
+	}
+
 	/** Retrieves the RSA private key (PEM format) used for decrypting environment secrets. */
 	public getPrivateKey(): Thenable<string | undefined> {
 		return this.ctx.secrets.get('envval.privateKey');
@@ -95,7 +105,10 @@ export class EnvVaultVsCodeSecrets {
 		try {
 			return unwrapKeyMaterial(privateKey, wrappedKeyMaterial);
 		} catch (error) {
-			console.error('Failed to unwrap key material:', error);
+			// Log the error but don't expose crypto internals to user
+			if (error instanceof Error) {
+				console.error('[EnvVault] Failed to unwrap key material:', error.message);
+			}
 			return undefined;
 		}
 	}
@@ -131,6 +144,7 @@ export class EnvVaultVsCodeSecrets {
 		await Promise.all([
 			this.ctx.secrets.delete('envval.accessToken'),
 			this.ctx.secrets.delete('envval.deviceId'),
+			this.ctx.secrets.delete('envval.userId'),
 			this.ctx.secrets.delete('envval.privateKey'),
 			this.ctx.secrets.delete('envval.publicKey'),
 			this.ctx.secrets.delete('envval.wrappedKeyMaterial'),

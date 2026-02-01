@@ -1,4 +1,4 @@
-// The module 'vscode' contains the VS Code extensibility API
+ // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { createLogger } from './utils/logger';
@@ -59,6 +59,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Perform initial check for existing env files
 		await envInitService.performInitialCheck();
 
+		// In startServices function
+		logger.debug(`Current Metadata Store: ${JSON.stringify(Object.fromEntries(await metadataStore.getAllMetadata()), null, 2)}`);
+		
 		// Start polling for remote changes
 		syncManager.startPolling();
 

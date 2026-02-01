@@ -1,16 +1,17 @@
-import { deriveKey, encryptEnv, hashEnv, decryptEnv, countEnvVars } from '../utils/crypto';
+import { encryptEnv, hashEnv, decryptEnv, countEnvVars, deriveKeyAsync } from '../utils/crypto';
 import { getCurrentWorkspaceId, getRepoAndEnvIds, getWorkspacePath } from '../utils/repo-detection';
 import { getVSCodeConfig } from '../lib/config';
 import { Logger } from '../utils/logger';
 import * as vscode from 'vscode';
 import { ExtensionContext, Uri, workspace, WorkspaceEdit, Range, window } from 'vscode';
-import { EnvVaultApiClient } from '../api/client';
+import { EnvVaultApiClient, ApiError } from '../api/client';
 import { EnvVaultMetadataStore } from '../services/metadata-store';
 import { EnvFileWatcher } from './env-file-watcher';
 import { EnvInitService } from '../services/env-init';
 import fs from 'fs';
 import path from 'path';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
+import { IGNORE_INTERVAL_MS } from '../lib/constants';
 
 export class SyncManager {
   private static instance: SyncManager; 
@@ -50,22 +51,37 @@ export class SyncManager {
 
       for (const localMeta of trackedEnvs) {
         try {
-          // Get remote metadata (or fetch full env to compare)
-          // For now, we'll fetch the full env to compare hashes
-          const remoteEnv = await this.apiClient.getEnv(localMeta.envId);
+          // Check if we should skip polling this env due to recent ignore
+          if (localMeta.ignoredAt) {
+            const ignoredTime = new Date(localMeta.ignoredAt).getTime();
+            if (Date.now() - ignoredTime < IGNORE_INTERVAL_MS) {
+              continue;
+            }
+          }
+
+          // Fetch remote state
+          let remoteEnv;
+          try {
+            remoteEnv = await this.apiClient.getEnv(localMeta.envId);
+          } catch (error) {
+            if (error instanceof ApiError && error.status === 404) {
+              // Remote deleted - this env is now a Zombie. 
+              // We'll let the user know on next scan or next save.
+              this.logger.warn(`Remote env ${localMeta.envId} (Zombie) not found on server during poll.`);
+              continue;
+            }
+            throw error;
+          }
+
           if (!remoteEnv) {
-            // Remote was deleted, but we still have metadata - skip for now
             continue;
           }
 
           // Get encryption key
-          const keyMaterial = await this.secretsManager.getKeyMaterial();
-          const deviceId = await this.secretsManager.getDeviceId();
-          if (!keyMaterial || !deviceId) {
+          const key = await this.getEncryptionKey();
+          if (!key) {
             continue;
           }
-
-          const key = deriveKey(keyMaterial, deviceId);
           
           // Decrypt remote content
           const [ciphertext, iv] = remoteEnv.content.split(':');
@@ -137,14 +153,10 @@ export class SyncManager {
     try {
       if (choice === 'Use Local') {
         // Push local to remote
-        const keyMaterial = await this.secretsManager.getKeyMaterial();
-        const deviceId = await this.secretsManager.getDeviceId();
-        if (!keyMaterial || !deviceId) {
-          return;
-        }
+        const key = await this.getEncryptionKey();
+        if (!key) return;
         
-        const key = deriveKey(keyMaterial, deviceId);
-        const { ciphertext, iv } = encryptEnv(localContent, key);
+        const { ciphertext, iv } = encryptEnv(localContent, key, this.logger);
         
         const envCount = countEnvVars(localContent);
         await this.apiClient.updateEnv(envId, {
@@ -185,7 +197,7 @@ export class SyncManager {
     this.logger.info(`[handleEnvFileSave] Started for: ${uri.fsPath}`);
     try {
       this.logger.info(`[handleEnvFileSave] Getting repo and env IDs...`);
-      const result = await getRepoAndEnvIds(uri.fsPath, undefined, this.context);
+      const result = await getRepoAndEnvIds(path.basename(uri.fsPath), undefined, this.context);
       if (!result) {
         this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
         return;
@@ -223,35 +235,44 @@ export class SyncManager {
       this.logger.info(`[handleEnvFileSave] Hash changed: ${metadata.lastSyncedHash} -> ${hash}`);
 
       // Get encryption key
-      const keyMaterial = await this.secretsManager.getKeyMaterial();
-      const deviceId = await this.secretsManager.getDeviceId();
-      if (!keyMaterial || !deviceId) {
+      const key = await this.getEncryptionKey();
+      if (!key) {
         this.logger.error('Missing encryption keys for sync');
         return;
       }
-      this.logger.info(`[handleEnvFileSave] Encryption keys available, deviceId: ${deviceId}`);
-
-      const key = deriveKey(keyMaterial, deviceId);
+      this.logger.info(`[handleEnvFileSave] Encryption keys available`);
       const { ciphertext, iv } = encryptEnv(content, key);
       const envCount = countEnvVars(content);
       this.logger.info(`[handleEnvFileSave] Encrypted content, envCount: ${envCount}`);
 
       // Update on server
       this.logger.info(`[handleEnvFileSave] Updating env on server: ${envId}`);
-      await this.apiClient.updateEnv(envId, {
-        content: `${ciphertext}:${iv}`,
-        latestHash: hash,
-        envCount
-      });
-      this.logger.info(`[handleEnvFileSave] Server update successful`);
-
-      // Update metadata with new hash
-      await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
-      this.logger.info(`[handleEnvFileSave] Metadata updated`);
+      try {
+        await this.apiClient.updateEnv(envId, {
+          content: `${ciphertext}:${iv}`,
+          latestHash: hash,
+          envCount
+        });
+        this.logger.info(`[handleEnvFileSave] Server update successful`);
+        
+        // Update metadata and clear any previous ignore state
+        await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
+        this.logger.info(`[handleEnvFileSave] Metadata updated`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          this.logger.warn(`[handleEnvFileSave] Env ${envId} not found on server. Triggering reconciliation.`);
+          // If 404, it means the server copy is gone. Clear metadata and let init service handle it.
+          await this.metadataStore.clearMetadata(envId);
+          await this.envInitService.maybeInitializeOrRestore(uri);
+          return;
+        }
+        throw error;
+      }
       
       this.logger.info(`Successfully synced ${path.basename(uri.fsPath)}`);
     } catch (error) {
       this.logger.error(`Failed to handle env file save: ${(error as Error).message}`);
+      window.showErrorMessage(`EnvVault Sync Failed: ${(error as Error).message}`);
     }
     
   }
@@ -260,10 +281,11 @@ export class SyncManager {
     await this.envInitService.maybeInitializeOrRestore(uri);
   }
   public async handleDeletedEnvFile(uri: Uri): Promise<void> {
-    const { repoId, envId } = await getRepoAndEnvIds(uri.fsPath, undefined, this.context) ?? { repoId: '', envId: '' };
-    if (!repoId || !envId) {
+    const result = await getRepoAndEnvIds(path.basename(uri.fsPath), undefined, this.context);
+    if (!result) {
       return;
     }
+    const { envId } = result;
     const metadata = await this.metadataStore.loadEnvMetadata(envId);
     if (!metadata) {
       return;
@@ -299,4 +321,17 @@ export class SyncManager {
     }
   }
 
+  /**
+   * Helper to retrieve and derive the encryption key.
+   */
+  private async getEncryptionKey(): Promise<string | null> {
+    const keyMaterial = await this.secretsManager.getKeyMaterial();
+    const userId = await this.secretsManager.getUserId();
+    
+    if (!keyMaterial || !userId) {
+      return null;
+    }
+
+    return deriveKeyAsync(keyMaterial, userId);
+  }
 }

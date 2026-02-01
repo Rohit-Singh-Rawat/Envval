@@ -9,17 +9,20 @@ import { RepoMigrationService } from "./repo-migration";
 import { RepoIdentityStore } from "./repo-identity-store";
 import { EnvVaultApiClient } from "../api/client";
 import { EnvVaultVsCodeSecrets } from "../utils/secrets";
-import { hashEnv, encryptEnv, decryptEnv, deriveKey, countEnvVars } from "../utils/crypto";
+import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from "../utils/crypto";
 import { Logger } from "../utils/logger";
+import { IGNORE_INTERVAL_MS } from "../lib/constants";
 import { 
   showInitPrompt, 
   showRestorePrompt, 
   showFirstTimeSyncPrompt,
+  showZombiePrompt,
   showRepoRegistrationPrompt,
   showEmptyFileConfirmation,
   showSuccess,
   showError
 } from "../ui/dialog/init-prompt";
+
 
 /**
  * Service responsible for the initial discovery and synchronization of environment files.
@@ -62,6 +65,23 @@ export class EnvInitService {
   }
 
   /**
+   * Helper to retrieve and derive the encryption key.
+   * Handles error reporting if keys are missing.
+   */
+  private async getEncryptionKey(): Promise<string | null> {
+    const keyMaterial = await this.secretsManager.getKeyMaterial();
+    const userId = await this.secretsManager.getUserId();
+    
+    if (!keyMaterial || !userId) {
+      this.logger.error('Missing encryption keys');
+      showError('Missing encryption keys. Please re-authenticate.');
+      return null;
+    }
+
+    return deriveKeyAsync(keyMaterial, userId);
+  }
+
+  /**
    * Orchestrates the primary startup check.
    * Execution Flow:
    * 1. Detects repo identity for the current workspace.
@@ -101,7 +121,7 @@ export class EnvInitService {
           await this.apiClient.createRepo({ 
             repoId, 
             workspacePath, 
-            gitRemoteUrl: workspace.gitRemote 
+            gitRemoteUrl: workspace.gitRemoteUrl 
           });
           this.logger.info(`Repo registered: ${repoId}`);
         } catch (error) {
@@ -167,44 +187,101 @@ export class EnvInitService {
 
     // Process each env file
     const allEnvFiles = new Set([...localEnvMap.keys(), ...remoteEnvMap.keys()]);
-this.logger.info(`Found ${allEnvFiles.size} env files`);
+    this.logger.info(`Found ${allEnvFiles.size} environment files to reconcile`);
+    
+    // Track reconciliation results for error reporting
+    const errors: Array<{ fileName: string; error: string }> = [];
+    let processed = 0;
+    
     for (const fileName of allEnvFiles) {
-      const localPath = localEnvMap.get(fileName);
-      const remoteEnv = remoteEnvMap.get(fileName);
-      const uri = localPath ? Uri.file(localPath) : Uri.file(path.join(workspacePath, fileName));
-      
-      const { envId } = await getRepoAndEnvIds(fileName, undefined, this.context) ?? { repoId, envId: '' };
-     
-      if (!envId) {
-        continue;
-      }
+      try {
+        const localPath = localEnvMap.get(fileName);
+        const remoteEnv = remoteEnvMap.get(fileName);
+        const uri = localPath ? Uri.file(localPath) : Uri.file(path.join(workspacePath, fileName));
+        
+        const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+        const envId = result?.envId;
+       
+        if (!envId) {
+          this.logger.warn(`Skipping ${fileName}: Unable to determine environment ID`);
+          continue;
+        }
 
-      // Check if already tracked in metadata
-      const existingMeta = await this.metadataStore.loadEnvMetadata(envId);
-      this.logger.info(`Env file: ${fileName}, envId: ${envId}, existingMeta: ${existingMeta}`);
-      if (existingMeta) {
-        this.logger.info(`Env file already tracked: ${fileName}`);
-        continue; // Already initialized, skip
-      }
+        // 1. Load Metadata (Base State)
+        const existingMeta = await this.metadataStore.loadEnvMetadata(envId);
+        
+        // 2. State Detection
+        const localExists = !!localPath && fs.existsSync(localPath);
+        const remoteExists = !!remoteEnv;
 
-      // Handle different scenarios
-      const localExists = !!localPath && fs.existsSync(localPath);
-      const remoteExists = !!remoteEnv;
-      this.logger.info(`Local env exists: ${localExists}, Remote env exists: ${remoteExists}`+fileName);
+        this.logger.info(`Reconciling ${fileName} [L:${localExists}, R:${remoteExists}, B:${!!existingMeta}]`);
 
-      if (remoteExists && !localExists) {
-        // Remote exists, local doesn't - restore
-        this.logger.info(`Remote env exists but local doesn't: ${fileName}`);
-        await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
-      } else if (!remoteExists && localExists) {
-        // Local exists, remote doesn't - initialize
-        this.logger.info(`New env file detected: ${fileName}`);
-        await this.promptAndInitialize(uri, repoId, envId, fileName);
-      } else if (remoteExists && localExists) {
-        // Both exist - first-time sync
-        this.logger.info(`Both local and remote exist for: ${fileName}`);
-        await this.handleFirstTimeSync(uri, repoId, envId, fileName, remoteEnv);
+        // 3. Decision Matrix (Three-Way Reconciliation)
+        if (existingMeta) {
+          // --- BASE EXISTS (Already Tracked) ---
+          if (remoteExists && localExists) {
+            // HEALTHY: Both sides match metadata tracking.
+            // Normal synchronization will be handled by SyncManager's polling or save events.
+            continue; 
+          } 
+          
+          if (!remoteExists && localExists) {
+            // ZOMBIE: Remote copy was deleted. Local file and tracking metadata still exist.
+            // Prompt user to re-push, delete local, or ignore (with cooldown).
+            if (existingMeta.ignoredAt) {
+              const ignoredTime = new Date(existingMeta.ignoredAt).getTime();
+              if (Date.now() - ignoredTime < IGNORE_INTERVAL_MS) {
+                this.logger.info(`Skipping zombie prompt for ${fileName} (ignored until tomorrow)`);
+                continue;
+              }
+            }
+
+            const choice = await showZombiePrompt(fileName);
+            if (choice === 'reinitialize') {
+              await this.promptAndInitialize(uri, repoId, envId, fileName);
+            } else if (choice === 'deleteLocal') {
+              fs.unlinkSync(uri.fsPath);
+              await this.metadataStore.clearMetadata(envId);
+              showSuccess(`${fileName} deleted locally.`);
+            } else if (choice === 'skip') {
+              await this.metadataStore.markAsIgnored(envId);
+            }
+          } else if (remoteExists && !localExists) {
+            // GHOST: Local file deleted, but remains on server.
+            // Prompt to restore or stop tracking.
+            await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
+          } else if (!remoteExists && !localExists) {
+            // DEAD: Both sides deleted. Clean up local tracking metadata.
+            await this.metadataStore.clearMetadata(envId);
+          }
+        } else {
+          // --- BASE MISSING (Unlinked) ---
+          if (remoteExists && !localExists) {
+            // NEW REMOTE: Discovered on server but not present locally.
+            await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
+          } else if (!remoteExists && localExists) {
+            // NEW LOCAL: Created locally but not yet backed up to EnvVault.
+            await this.promptAndInitialize(uri, repoId, envId, fileName);
+          } else if (remoteExists && localExists) {
+            // COLLISION: File exists on both sides but isn't linked via metadata.
+            // Reconcile by comparing hashes and prompting user.
+            await this.handleFirstTimeSync(uri, repoId, envId, fileName, remoteEnv);
+          }
+        }
+        
+        processed++;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to reconcile ${fileName}: ${errorMessage}`);
+        errors.push({ fileName, error: errorMessage });
       }
+    }
+    
+    // Report summary
+    this.logger.info(`Reconciliation complete: ${processed} processed, ${errors.length} errors`);
+    if (errors.length > 0) {
+      const errorList = errors.map(e => `${e.fileName}: ${e.error}`).join('\n');
+      this.logger.warn(`Reconciliation errors:\n${errorList}`);
     }
   }
 
@@ -217,7 +294,7 @@ this.logger.info(`Found ${allEnvFiles.size} env files`);
   async maybeInitializeOrRestore(uri: Uri): Promise<void> {
     // This method is called from SyncManager for new file events
     // Use the repo-first approach here too - with context for full priority chain support
-    const result = await getRepoAndEnvIds(uri.fsPath, undefined, this.context);
+    const result = await getRepoAndEnvIds(path.basename(uri.fsPath), undefined, this.context);
     if (!result) {
       this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
       return;
@@ -297,32 +374,37 @@ this.logger.info(`Found ${allEnvFiles.size} env files`);
         }
 
         // Get encryption key
-        const keyMaterial = await this.secretsManager.getKeyMaterial();
-        const deviceId = await this.secretsManager.getDeviceId();
-        if (!keyMaterial || !deviceId) {
-          showError('Missing encryption keys. Please re-authenticate.');
+        const key = await this.getEncryptionKey();
+        if (!key) return;
+
+        // Encrypt and upload
+        try {
+          const hash = hashEnv(content);
+          const envCount = countEnvVars(content);
+
+          this.logger.debug(`[Init ${fileName}] Step 4/4: Encrypting content`);
+          const { ciphertext, iv } = encryptEnv(content, key, this.logger);
+
+          // Create env on server
+          const env = await this.apiClient.createEnv({
+            repoId,
+            fileName,
+            content: `${ciphertext}:${iv}`, // Format: ciphertext:iv
+            latestHash: hash,
+            envCount
+          });
+
+          // Save metadata
+          await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
+
+          this.logger.info(`Successfully initialized ${fileName}`);
+          showSuccess(`${fileName} is now backed up and synced.`);
+        } catch (cryptoError) {
+          const message = cryptoError instanceof Error ? cryptoError.message : 'Encryption failed';
+          this.logger.error(`Crypto error during initialization of ${fileName}: ${message}`);
+          showError(`Failed to encrypt ${fileName}. Please try again.`);
           return;
         }
-
-        const key = deriveKey(keyMaterial, deviceId);
-        const hash = hashEnv(content);
-        const envCount = countEnvVars(content);
-        const { ciphertext, iv } = encryptEnv(content, key);
-
-        // Create env on server
-       const env= await this.apiClient.createEnv({
-          repoId,
-          fileName,
-          content: `${ciphertext}:${iv}`, // Format: ciphertext:iv
-          latestHash: hash,
-          envCount
-        });
-
-        // Save metadata
-        await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
-
-        this.logger.info(`Successfully initialized ${fileName}`);
-        showSuccess(`${fileName} is now backed up and synced.`);
       } catch (error) {
         this.logger.error(`Failed to initialize ${fileName}: ${(error as Error).message}`);
         showError(`Failed to initialize ${fileName}. Please try again.`);
@@ -357,14 +439,8 @@ this.logger.info(`Found ${allEnvFiles.size} env files`);
         }
 
         // Get encryption key
-        const keyMaterial = await this.secretsManager.getKeyMaterial();
-        const deviceId = await this.secretsManager.getDeviceId();
-        if (!keyMaterial || !deviceId) {
-          showError('Missing encryption keys. Please re-authenticate.');
-          return;
-        }
-
-        const key = deriveKey(keyMaterial, deviceId);
+        const key = await this.getEncryptionKey();
+        if (!key) return;
         
         // Parse ciphertext and iv from content (format: ciphertext:iv)
         const [ciphertext, iv] = remoteEnv.content.split(':');
@@ -404,29 +480,34 @@ this.logger.info(`Found ${allEnvFiles.size} env files`);
       const localHash = hashEnv(localContent);
 
       // Get remote env if not provided
-      if (!remoteEnv) {
+      if (!remoteEnv || !remoteEnv.content) {
         remoteEnv = await this.apiClient.getEnv(envId);
         if (!remoteEnv) {
-          showError(`Failed to fetch remote ${fileName}`);
+          this.logger.error(`Failed to fetch remote ${fileName}`);
           return;
         }
       }
 
       // Get encryption key
-      const keyMaterial = await this.secretsManager.getKeyMaterial();
-      const deviceId = await this.secretsManager.getDeviceId();
-      if (!keyMaterial || !deviceId) {
-        showError('Missing encryption keys. Please re-authenticate.');
-        return;
-      }
-
-      const key = deriveKey(keyMaterial, deviceId);
+      const key = await this.getEncryptionKey();
+      if (!key) return;
       
       // Decrypt remote content
       const [ciphertext, iv] = remoteEnv.content.split(':');
-      const remoteContent = decryptEnv(ciphertext, iv, key);
-      const remoteHash = hashEnv(remoteContent);
-
+      if (!ciphertext || !iv) {
+        this.logger.error(`Failed to decrypt ${fileName}`);
+        return;
+      }
+      let remoteContent: string;
+      let remoteHash: string;
+      try {
+         remoteContent = decryptEnv(ciphertext, iv, key);
+         remoteHash = hashEnv(remoteContent);
+      } catch (error) {
+        this.logger.error(`Failed to decrypt ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
+        return; 
+      }
+     
       // Compare hashes
       if (localHash === remoteHash) {
         // Same content, just mark as synced

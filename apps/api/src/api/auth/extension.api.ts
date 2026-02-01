@@ -24,6 +24,7 @@ const extensionTokenSchema = z.object({
 interface ExtensionTokenResponse {
 	access_token: string;
 	device_id: string;
+	user_id: string; // For PBKDF2 salt in key derivation
 	wrapped_key_material: string; // RSA-OAEP encrypted with device's public key
 }
 
@@ -132,6 +133,7 @@ export const extensionApi = new Hono()
 			const response: ExtensionTokenResponse = {
 				access_token: accessToken,
 				device_id: deviceId,
+				user_id: userId, // Add userId for PBKDF2 salt
 				wrapped_key_material: wrappedKeyMaterial,
 			};
 

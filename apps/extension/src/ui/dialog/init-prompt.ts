@@ -60,6 +60,19 @@ export async function showFirstTimeSyncPrompt(fileName: string): Promise<'useLoc
 	return result ?? 'cancel';
 }
 
+export async function showZombiePrompt(fileName: string): Promise<'reinitialize' | 'deleteLocal' | 'skip'> {
+	const result = await showModalQuickPick<'reinitialize' | 'deleteLocal' | 'skip'>(
+		'EnvVault: Remote Environment Missing',
+		`${fileName} was deleted from the server but still exists locally.`,
+		[
+			{ label: '$(cloud-upload) Re-initialize', description: 'Upload local version to server', value: 'reinitialize' },
+			{ label: '$(trash) Delete Local', description: 'Remove local file', value: 'deleteLocal' },
+			{ label: '$(history) Skip', description: 'Don\'t ask again for 24 hours', value: 'skip' },
+		]
+	);
+	return result ?? 'skip';
+}
+
 export async function showRepoRegistrationPrompt(): Promise<'register' | 'skip'> {
 	const result = await showModalQuickPick<'register' | 'skip'>(
 		'EnvVault: Repository Setup',

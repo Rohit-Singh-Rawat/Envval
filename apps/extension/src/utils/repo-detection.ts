@@ -42,6 +42,7 @@ interface WorkspaceIdentity {
   repoId: string;
   identitySource: 'manual' | 'git' | 'stored-git' | 'content' | 'user-specified';
   gitRemote?: string;
+  gitRemoteUrl?: string;
   gitRemoteType?: 'normal' | 'submodule' | 'worktree';
   subProjectPath?: string;
   workspacePath: string;
@@ -575,6 +576,7 @@ export async function getCurrentWorkspaceId(
       repoId,
       identitySource: 'git',
       gitRemote: normalizedRemote,
+      gitRemoteUrl: gitRemoteResult.remoteUrl,
       gitRemoteType: gitRemoteResult.type,
       subProjectPath,
       workspacePath
@@ -601,6 +603,7 @@ export async function getCurrentWorkspaceId(
       repoId,
       identitySource: 'stored-git',
       gitRemote: storedGitRemote.normalizedUrl,
+      gitRemoteUrl: storedGitRemote.url,
       subProjectPath,
       workspacePath
     };
@@ -690,6 +693,9 @@ export async function getCurrentWorkspaceIdLegacy(
 /**
  * Get repoId and envId for the current workspace and a given file.
  * Returns undefined if no workspace is open.
+ * @param fileName The basename of the environment file (e.g. ".env")
+ * @param userId Optional userId to include in ID computation
+ * @param context Extension context for persistent storage access
  */
 export async function getRepoAndEnvIds(
   fileName: string,

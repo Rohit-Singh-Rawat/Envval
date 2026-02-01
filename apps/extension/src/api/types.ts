@@ -80,6 +80,7 @@ export interface DeviceCodeResponse {
 export interface DeviceTokenResponse {
 	readonly access_token: string;
 	readonly device_id: string;
+	readonly user_id: string;
 	readonly wrapped_key_material: string;
 }
 

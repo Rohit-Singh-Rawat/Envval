@@ -8,6 +8,7 @@ export interface EnvMetadata {
   lastSyncedHash: string;
   lastSyncedAt: string; // ISO timestamp
   envCount: number;
+  ignoredAt?: string; // ISO timestamp for when user skipped sync
 }
 
 interface EnvVaultMetadataStorage {
@@ -93,6 +94,28 @@ export class EnvVaultMetadataStore {
     } else {
       await this.ctx.workspaceState?.update(METADATA_STORAGE_KEY, {});
       this._onDidChangeMetadata.fire('*');
+    }
+  }
+
+  /**
+   * Mark an environment as ignored (skipped by user).
+   */
+  public async markAsIgnored(envId: string): Promise<void> {
+    const metadata = await this.loadEnvMetadata(envId);
+    if (metadata) {
+      metadata.ignoredAt = new Date().toISOString();
+      await this.saveEnvMetadata(envId, metadata);
+    }
+  }
+
+  /**
+   * Clear the ignore status of an environment.
+   */
+  public async clearIgnoredAt(envId: string): Promise<void> {
+    const metadata = await this.loadEnvMetadata(envId);
+    if (metadata) {
+      delete metadata.ignoredAt;
+      await this.saveEnvMetadata(envId, metadata);
     }
   }
 

@@ -3,7 +3,8 @@ import axios from 'axios';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 import { DEVICE_VERIFICATION_URL } from '../lib/constants';
 import { Logger } from '../utils/logger';
-import { AuthApiClient, DeviceCodeResponse, DeviceTokenResponse } from '../api/client';
+import { AuthApiClient } from '../api/client';
+import { DeviceCodeResponse, DeviceTokenResponse } from '../api/types';
 
 // Re-export types for external use
 export type { DeviceCodeResponse, DeviceTokenResponse };
@@ -204,12 +205,14 @@ export class AuthenticationProvider {
 						this.pollAbortController?.signal
 					);
 
-					// Success! Store token, device ID, and wrapped key material
+					// Success! Store token, device ID, user ID, and wrapped key material
 					this.logger.info('Device authorization successful!');
 					this.logger.info(`Device ID: ${data.device_id}`);
+					this.logger.info(`User ID: ${data.user_id}`);
 
 					await this.secretsManager.setAccessToken(data.access_token);
 					await this.secretsManager.setDeviceId(data.device_id);
+					await this.secretsManager.setUserId(data.user_id);
 					await this.secretsManager.setWrappedKeyMaterial(data.wrapped_key_material);
 
 					// Verify we can decrypt the key material
