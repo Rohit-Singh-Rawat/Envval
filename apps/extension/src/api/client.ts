@@ -358,11 +358,12 @@ export class EnvVaultApiClient extends ApiClient {
 	}
 
 	/** Migrates environments from an old repo ID to a new one. Returns success status. */
-	public async migrateRepo(oldRepoId: string, newRepoId: string): Promise<MigrateRepoResponse> {
+	public async migrateRepo(oldRepoId: string, newRepoId: string, gitRemoteUrl?: string): Promise<MigrateRepoResponse> {
 		try {
 			await this.post<void, MigrateRepoData>(`${API_V1}/repos/migrate`, {
 				oldRepoId,
 				newRepoId,
+				gitRemoteUrl,
 			});
 			return { success: true };
 		} catch (error: unknown) {

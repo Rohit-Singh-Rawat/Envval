@@ -108,6 +108,29 @@ export class EnvInitService {
       return;
     }
 
+    // Check for migration opportunities (e.g. Content -> Git, or Git Remote Change)
+    if (workspace.requiresMigration && workspace.suggestedMigration) {
+      this.logger.info(`Migration opportunity detected: ${workspace.suggestedMigration.reason}`);
+      const identityStore = new RepoIdentityStore(this.context);
+      const migrationService = new RepoMigrationService(
+        this.context,
+        this.metadataStore,
+        identityStore,
+        this.apiClient,
+        this.logger
+      );
+      
+      const migrated = await migrationService.handleAutomaticMigrationPrompt(workspacePath);
+      if (migrated) {
+        this.logger.info('Migration successful, restarting initial check with new identity');
+        return this.performInitialCheck();
+      }
+    }
+
+    // Update last active repo ID to track this as the current valid identity
+    const identityStore = new RepoIdentityStore(this.context);
+    await identityStore.updateLastActiveRepoId(workspacePath, repoId);
+
     // Repo-first approach: Check if repo exists on server
     const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
     
@@ -137,18 +160,7 @@ export class EnvInitService {
     // Now handle all env files for this repo
     await this.syncRepoEnvs(repoId, workspacePath);
 
-    // Check for migration opportunities (e.g., Git remote added to content-signature-based project)
-    if (workspace.requiresMigration && workspace.suggestedMigration) {
-      this.logger.info(`Migration opportunity detected: ${workspace.suggestedMigration.reason}`);
-      const identityStore = new RepoIdentityStore(this.context);
-      const migrationService = new RepoMigrationService(
-        this.context,
-        this.metadataStore,
-        identityStore,
-        this.logger
-      );
-      await migrationService.handleAutomaticMigrationPrompt(workspacePath);
-    }
+
   }
 
   /**

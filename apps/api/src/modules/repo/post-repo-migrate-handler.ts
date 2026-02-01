@@ -14,6 +14,7 @@ const repoService = new RepoService();
 const migrateSchema = z.object({
 	oldRepoId: z.string(),
 	newRepoId: z.string(),
+	gitRemoteUrl: z.string().optional(),
 });
 
 /**
@@ -31,13 +32,13 @@ export const postRepoMigrateHandler = honoFactory.createHandlers(
 		}
 
 		try {
-			const { oldRepoId, newRepoId } = ctx.req.valid('json');
+			const { oldRepoId, newRepoId, gitRemoteUrl } = ctx.req.valid('json');
 
 			if (oldRepoId === newRepoId) {
 				return ctx.json({ success: true, message: 'Source and target IDs are the same' });
 			}
 
-			await repoService.migrateRepository(user.id, oldRepoId, newRepoId);
+			await repoService.migrateRepository(user.id, oldRepoId, newRepoId, gitRemoteUrl);
 
 			return ctx.json({ success: true, oldRepoId, newRepoId });
 		} catch (error: any) {

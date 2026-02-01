@@ -20,7 +20,6 @@ export const postEnvsHandler = honoFactory.createHandlers(
 		if (!user) {
 			return ctx.json({ error: 'Unauthorized' }, HTTP_UNAUTHORIZED);
 		}
-
 		try {
 			const body = ctx.req.valid('json');
 

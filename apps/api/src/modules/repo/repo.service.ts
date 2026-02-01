@@ -1,6 +1,7 @@
 import { and, count, eq, max, sum } from 'drizzle-orm';
 import { db } from '@envval/db';
-import { environment, repo } from '@envval/db/schema';
+import { auditLog, environment, repo } from '@envval/db/schema';
+import { computeEnvId } from '@/shared/utils/id';
 
 export class RepoService {
 	async getRepositories(userId: string, page: number, limit: number) {
@@ -87,7 +88,12 @@ export class RepoService {
 		return repository;
 	}
 
-	async migrateRepository(userId: string, oldRepoId: string, newRepoId: string) {
+	async migrateRepository(
+		userId: string,
+		oldRepoId: string,
+		newRepoId: string,
+		gitRemoteUrl?: string
+	) {
 		return await db.transaction(async (tx) => {
 			// 1. Check if old repo exists and belongs to user
 			const [existingRepo] = await tx
@@ -109,16 +115,57 @@ export class RepoService {
 			await tx.insert(repo).values({
 				...existingRepo,
 				id: newRepoId,
+				gitRemoteUrl: gitRemoteUrl ?? existingRepo.gitRemoteUrl,
 				updatedAt: new Date(),
 			});
 
-			// 4. Update all environments to point to new repo ID
-			await tx
-				.update(environment)
-				.set({ repoId: newRepoId })
+			// 4. Fetch all environments for the old repo
+			const environments = await tx
+				.select()
+				.from(environment)
 				.where(and(eq(environment.repoId, oldRepoId), eq(environment.userId, userId)));
 
-			// 5. Delete old repo record
+			// 5. Migrate environments with new IDs based on new RepoID
+			// OPTIMIZED: Prepare data in memory and perform bulk inserts in chunks.
+			// Bulk inserts are significantly faster than sequential awaits.
+			// Old records are automatically cleaned up via ON DELETE CASCADE when we delete the old repo.
+			const newEnvRecords = environments.map((env) => ({
+				...env,
+				id: computeEnvId(newRepoId, env.fileName), // Deterministic new ID
+				repoId: newRepoId,
+				updatedAt: new Date(),
+			}));
+
+				if (newEnvRecords.length > 0) {
+				// Chunking to avoid hitting Postgres parameter limits (max 65535 params)
+				// Each row has ~10 columns, so 1000 rows = ~10,000 params, well within limits
+				const CHUNK_SIZE = 1000;
+				for (let i = 0; i < newEnvRecords.length; i += CHUNK_SIZE) {
+					const chunk = newEnvRecords.slice(i, i + CHUNK_SIZE);
+					await tx.insert(environment).values(chunk);
+				}
+
+				// 6. Migrate Audit Logs
+				// We must map oldEnvId -> newEnvId and update the audit logs.
+				// Since we can't easily do a bulk connection update based on a map in SQL without temp tables,
+				// and audit logs primarily need to just NOT BE LOST, we can iterate.
+				// Optimization: Group by envId to minimize queries (1 update per environment file, not per log entry).
+				for (const newRec of newEnvRecords) {
+					// We can derive old ID from the original 'environments' fetch or re-compute.
+					// environments[x].id is the OLD ID. newRec.id is the NEW ID.
+					// We need to match them. 'newEnvRecords' was mapped from 'environments', so order is preserved?
+					// Safer to look up by fileName.
+					const oldEnv = environments.find(e => e.fileName === newRec.fileName);
+					if (oldEnv) {
+						await tx
+							.update(auditLog)
+							.set({ environmentId: newRec.id })
+							.where(eq(auditLog.environmentId, oldEnv.id));
+					}
+				}
+			}
+
+			// 6. Delete old repo record (Triggers CASCADE delete for old environments)
 			await tx.delete(repo).where(and(eq(repo.id, oldRepoId), eq(repo.userId, userId)));
 
 			return { success: true };

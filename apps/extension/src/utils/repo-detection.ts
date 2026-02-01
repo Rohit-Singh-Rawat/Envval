@@ -572,6 +572,19 @@ export async function getCurrentWorkspaceId(
     const repoId = await computeStableRepoId(normalizedRemote, userId, subProjectPath);
     logMessage(`Computed repoId from Git remote: ${repoId}`, 'debug', logger);
 
+    // Check for migration needed
+    let requiresMigration = false;
+    let suggestedMigration: WorkspaceIdentity['suggestedMigration'];
+    if (storedIdentity?.lastActiveRepoId && storedIdentity.lastActiveRepoId !== repoId) {
+      logMessage(`Identity change detected: ${storedIdentity.lastActiveRepoId} -> ${repoId}`, 'info', logger);
+      requiresMigration = true;
+      suggestedMigration = {
+        oldRepoId: storedIdentity.lastActiveRepoId,
+        newRepoId: repoId,
+        reason: 'Repository identity changed (Git remote detected/changed)'
+      };
+    }
+
     return {
       repoId,
       identitySource: 'git',
@@ -579,7 +592,9 @@ export async function getCurrentWorkspaceId(
       gitRemoteUrl: gitRemoteResult.remoteUrl,
       gitRemoteType: gitRemoteResult.type,
       subProjectPath,
-      workspacePath
+      workspacePath,
+      requiresMigration,
+      suggestedMigration
     };
   } else {
     logMessage('No Git remote found', 'debug', logger);
@@ -599,13 +614,28 @@ export async function getCurrentWorkspaceId(
     const repoId = await computeStableRepoId(storedGitRemote.normalizedUrl, userId, subProjectPath);
     logMessage(`Computed repoId from stored Git remote: ${repoId}`, 'debug', logger);
 
+    // Check for migration needed
+    let requiresMigration = false;
+    let suggestedMigration: WorkspaceIdentity['suggestedMigration'];
+    if (storedIdentity?.lastActiveRepoId && storedIdentity.lastActiveRepoId !== repoId) {
+      logMessage(`Identity change detected: ${storedIdentity.lastActiveRepoId} -> ${repoId}`, 'info', logger);
+      requiresMigration = true;
+      suggestedMigration = {
+        oldRepoId: storedIdentity.lastActiveRepoId,
+        newRepoId: repoId,
+        reason: 'Repository identity changed (Using stored Git remote)'
+      };
+    }
+
     return {
       repoId,
       identitySource: 'stored-git',
       gitRemote: storedGitRemote.normalizedUrl,
       gitRemoteUrl: storedGitRemote.url,
       subProjectPath,
-      workspacePath
+      workspacePath,
+      requiresMigration,
+      suggestedMigration
     };
   } else {
     logMessage('No stored Git remote history found', 'debug', logger);
@@ -635,26 +665,36 @@ export async function getCurrentWorkspaceId(
   const repoId = await computeStableRepoId(contentSignature, userId, subProjectPath);
   logMessage(`Computed repoId from content signature: ${repoId}`, 'debug', logger);
 
-  // Check for migration: if we have a stored Git remote but are now using content signature
+  // Check for migration: compare against last active repo ID
   let requiresMigration = false;
   let suggestedMigration: WorkspaceIdentity['suggestedMigration'];
 
-  if (storedGitRemote) {
-    logMessage('Checking for migration opportunity', 'debug', logger);
-    // Calculate what the Git-based repoId would be
-    const gitBasedRepoId = await computeStableRepoId((storedGitRemote as { url: string; normalizedUrl: string }).normalizedUrl, userId, subProjectPath);
-    logMessage(`Potential Git-based repoId: ${gitBasedRepoId}`, 'debug', logger);
-
-    if (gitBasedRepoId !== repoId) {
+  if (storedIdentity?.lastActiveRepoId && storedIdentity.lastActiveRepoId !== repoId) {
+      logMessage(`Identity change detected: ${storedIdentity.lastActiveRepoId} -> ${repoId}`, 'info', logger);
       requiresMigration = true;
       suggestedMigration = {
-        oldRepoId: repoId,
-        newRepoId: gitBasedRepoId,
-        reason: 'Git remote detected after using content signature'
+        oldRepoId: storedIdentity.lastActiveRepoId,
+        newRepoId: repoId,
+        reason: 'Repository identity changed (Content signature changed)'
       };
-      logMessage(`Migration recommended: ${repoId} → ${gitBasedRepoId}`, 'info', logger);
-    } else {
-      logMessage('No migration needed (repoIds match)', 'debug', logger);
+  } else if (storedGitRemote) {
+    // FALLBACK: checking if we moved from git -> content without a stored lastActiveId (legacy case)
+    logMessage('Checking for fallback legacy migration opportunity', 'debug', logger);
+    const gitBasedRepoId = await computeStableRepoId((storedGitRemote as { url: string; normalizedUrl: string }).normalizedUrl, userId, subProjectPath);
+    
+    if (gitBasedRepoId !== repoId) {
+      // If we differ from the known git remote, but we are in content mode, it implies we lost the git remote.
+      // This might be a "Git -> Content" downgrade.
+      // However, if we don't have lastActiveRepoId, we might be guessing.
+      // For now, let's trust the lastActiveRepoId primarily, but keep this as a secondary check if lastActiveRepoId is missing.
+       if (!storedIdentity?.lastActiveRepoId) {
+          requiresMigration = true;
+          suggestedMigration = {
+            oldRepoId: gitBasedRepoId, // Assume we were using the git one
+            newRepoId: repoId,
+            reason: 'Git remote removed, falling back to content signature'
+          };
+       }
     }
   }
 

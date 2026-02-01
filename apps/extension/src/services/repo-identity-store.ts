@@ -23,6 +23,7 @@ interface RepoIdentityData {
     migratedAt: string;
     reason: string;
   }>;
+  lastActiveRepoId?: string;
 }
 
 /**
@@ -127,6 +128,22 @@ export class RepoIdentityStore {
     }
   }
 
+
+
+  /**
+   * Update the last active repo ID for a workspace.
+   * This is used to track "successful" identity usage to detect subsequent changes.
+   */
+  async updateLastActiveRepoId(workspacePath: string, repoId: string): Promise<void> {
+    const data = this.getStoredData(workspacePath) || this.createDefaultData(workspacePath);
+    // Only update if it's different to save writes
+    if (data.lastActiveRepoId !== repoId) {
+      data.lastActiveRepoId = repoId;
+      data.lastUpdatedAt = new Date().toISOString();
+      await this.setStoredData(workspacePath, data);
+    }
+  }
+
   /**
    * Clear identity for a workspace (reset to automatic detection)
    */
@@ -135,6 +152,7 @@ export class RepoIdentityStore {
     if (data) {
       data.manualIdentity = undefined;
       data.identitySource = 'content'; // Reset to content-based detection
+      data.lastActiveRepoId = undefined; // Reset active ID so we don't migrate from old garbage
       data.lastUpdatedAt = new Date().toISOString();
       await this.setStoredData(workspacePath, data);
     }
@@ -183,7 +201,8 @@ export class RepoIdentityStore {
       identitySource: 'content',
       createdAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString(),
-      migrationHistory: []
+      migrationHistory: [],
+      lastActiveRepoId: undefined
     };
   }
 }

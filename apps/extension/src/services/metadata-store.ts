@@ -136,6 +136,12 @@ export class EnvVaultMetadataStore {
       // Since we don't store the repoId separately, we'll need to extract it from the envId structure
       // This is a limitation of the current design, but we can work around it
 
+      // Verify this environment actually belongs to the old repo
+      const expectedOldEnvId = computeEnvId(oldRepoId, metadata.fileName);
+      if (expectedOldEnvId !== envId) {
+        continue;
+      }
+
       // Get the fileName from metadata and recalculate envId with new repoId
       const newEnvId = computeEnvId(newRepoId, metadata.fileName);
 

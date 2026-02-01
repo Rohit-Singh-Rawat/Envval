@@ -87,6 +87,7 @@ export interface DeviceTokenResponse {
 export interface MigrateRepoData {
 	readonly oldRepoId: string;
 	readonly newRepoId: string;
+	readonly gitRemoteUrl?: string;
 }
 
 export interface MigrateRepoResponse {

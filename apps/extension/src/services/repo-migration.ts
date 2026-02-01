@@ -1,7 +1,8 @@
-// repo-migration.ts
 import * as vscode from 'vscode';
 import { RepoIdentityStore } from './repo-identity-store';
 import { EnvVaultMetadataStore } from './metadata-store';
+import { EnvVaultApiClient } from '../api/client';
+import { getCurrentWorkspaceId } from '../utils/repo-detection';
 import type { Logger } from '../utils/logger';
 
 /**
@@ -13,6 +14,7 @@ export class RepoMigrationService {
     private context: vscode.ExtensionContext,
     private metadataStore: EnvVaultMetadataStore,
     private identityStore: RepoIdentityStore,
+    private apiClient: EnvVaultApiClient,
     private logger: Logger
   ) {}
 
@@ -26,32 +28,18 @@ export class RepoMigrationService {
     reason?: string;
   }> {
     try {
-      const currentIdentity = await this.getCurrentIdentitySource(workspacePath);
+      const identity = await getCurrentWorkspaceId(undefined, this.context, this.logger);
 
-      if (!currentIdentity) {
+      if (!identity || !identity.requiresMigration || !identity.suggestedMigration) {
         return { needsMigration: false };
       }
 
-      // Check if we're transitioning from content-based to Git-based identity
-      if (currentIdentity.source === 'content' && currentIdentity.gitRemote) {
-        const storedGitRemote = this.identityStore.getMostRecentGitRemote(workspacePath);
-        if (storedGitRemote) {
-          // Calculate what the old (content-based) and new (Git-based) repoIds would be
-          const oldRepoId = currentIdentity.currentRepoId;
-          const newRepoId = await this.calculateGitBasedRepoId(storedGitRemote.normalizedUrl, workspacePath);
-
-          if (oldRepoId !== newRepoId) {
-            return {
-              needsMigration: true,
-              oldRepoId,
-              newRepoId,
-              reason: 'Git remote detected after using content signature'
-            };
-          }
-        }
-      }
-
-      return { needsMigration: false };
+      return {
+        needsMigration: true,
+        oldRepoId: identity.suggestedMigration.oldRepoId,
+        newRepoId: identity.suggestedMigration.newRepoId,
+        reason: identity.suggestedMigration.reason
+      };
     } catch (error) {
       console.error('[RepoMigration] Error detecting migration need:', error);
       return { needsMigration: false };
@@ -96,13 +84,22 @@ export class RepoMigrationService {
 
       // Update identity store with migration record
       await this.identityStore.migrateRepoId(oldRepoId, newRepoId, 'user-initiated');
+      
+      // Update last active repo ID to prevent re-detection of migration needed
+      await this.identityStore.updateLastActiveRepoId(workspacePath, newRepoId);
 
-      // Try to migrate on server (if API supports it)
+      // Try to migrate on server
       try {
-        // This will be implemented when we add the API client method
-        // await this.apiClient.migrateRepo(oldRepoId, newRepoId);
+        const { getGitRemoteUrl } = await import('../utils/repo-detection.js');
+        const gitRemoteUrl = await getGitRemoteUrl(workspacePath);
+        
+        const result = await this.apiClient.migrateRepo(oldRepoId, newRepoId, gitRemoteUrl);
+        if (!result.success) {
+           vscode.window.showWarningMessage(`Local migration successful, but server sync failed: ${result.message}`);
+        }
       } catch (error) {
-        console.warn('[RepoMigration] Server migration not supported or failed:', error);
+        console.warn('[RepoMigration] Server migration failed:', error);
+         vscode.window.showWarningMessage('Local migration successful, but server sync failed. Please check your connection.');
       }
 
       console.log(`[RepoMigration] Successfully migrated ${migratedCount} metadata entries`);
@@ -124,17 +121,17 @@ export class RepoMigrationService {
   /**
    * Handle automatic migration prompt based on configuration
    */
-  async handleAutomaticMigrationPrompt(workspacePath: string): Promise<void> {
+  async handleAutomaticMigrationPrompt(workspacePath: string): Promise<boolean> {
     const config = vscode.workspace.getConfiguration('envval');
     const shouldPrompt = config.get('promptForMigration', true);
 
     if (!shouldPrompt) {
-      return;
+      return false;
     }
 
     const migrationCheck = await this.detectMigrationNeeded(workspacePath);
     if (!migrationCheck.needsMigration) {
-      return;
+      return false;
     }
 
     const userChoice = await this.promptUserForMigration(
@@ -146,59 +143,20 @@ export class RepoMigrationService {
     switch (userChoice) {
       case 'migrate':
         await this.performMigration(migrationCheck.oldRepoId!, migrationCheck.newRepoId!, workspacePath);
-        break;
+        return true;
       case 'keep':
         // Set manual override to keep current identity
         await this.identityStore.setManualIdentity(workspacePath, migrationCheck.oldRepoId!);
-        break;
+        return false;
       case 'later':
         // Do nothing, user will be prompted again later
-        break;
+        return false;
       case 'cancel':
         // Do nothing
-        break;
+        return false;
     }
+    return false;
   }
 
-  /**
-   * Get current identity information for a workspace
-   */
-  private async getCurrentIdentitySource(workspacePath: string): Promise<{
-    source: string;
-    currentRepoId: string;
-    gitRemote?: string;
-  } | null> {
-    try {
-      // Import here to avoid circular dependency
-      const { getCurrentWorkspaceId } = await import('../utils/repo-detection.js');
 
-      const identity = await getCurrentWorkspaceId(undefined, this.context, this.logger);
-      if (!identity) {
-        return null;
-      }
-
-      return {
-        source: identity.identitySource,
-        currentRepoId: identity.repoId,
-        gitRemote: identity.gitRemote
-      };
-    } catch (error) {
-      console.error('[RepoMigration] Error getting current identity:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Calculate what the Git-based repoId would be for a given remote
-   */
-  private async calculateGitBasedRepoId(normalizedRemote: string, workspacePath: string): Promise<string> {
-    const { computeStableRepoId } = await import('../utils/repo-detection.js');
-
-    // Get sub-project path if set
-    const storedIdentity = this.identityStore.getRepoIdentity(workspacePath);
-    const subProjectPath = storedIdentity?.subProjectPath;
-
-    // Use same userId logic as main detection (for now, assume no userId)
-    return await computeStableRepoId(normalizedRemote, undefined, subProjectPath);
-  }
 }
