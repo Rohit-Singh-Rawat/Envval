@@ -22,14 +22,6 @@
 				"title": "EnvVal: Show Quick Sync Action"
 			},
 			{
-				"command": "envval.openStatus",
-				"title": "EnvVal: Open Status"
-			},
-			{
-				"command": "envval.reauthenticate",
-				"title": "EnvVal: Re-authenticate"
-			},
-			{
 				"command": "envval.forceSync",
 				"title": "EnvVal: Force Sync"
 			},
@@ -64,8 +56,75 @@
 			{
 				"command": "envval.diagnoseRepoDetection",
 				"title": "EnvVal: Diagnose Repository Detection"
+			},
+			{
+				"command": "envval.refreshTrackedEnvs",
+				"title": "Refresh Tracked Environments",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "envval.pushEnv",
+				"title": "Sync Now",
+				"icon": "$(sync)"
+			},
+			{
+				"command": "envval.openFile",
+				"title": "Open File",
+				"icon": "$(go-to-file)"
 			}
-		]
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "envval-explorer",
+					"title": "EnvVault",
+					"icon": "assets/icons/envval.svg"
+				}
+			]
+		},
+		"views": {
+			"envval-explorer": [
+				{
+					"id": "envvalTrackedEnvs",
+					"name": "Tracked Environments",
+					"type": "tree",
+					"icon": "assets/icons/envval.svg"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "envvalTrackedEnvs",
+				"contents": "EnvVault helps you securely sync and back up your environment variables.\n[Sign In to Start Syncing](command:envval.showLogin)\nLearn more about [EnvVault](https://envvault.io)",
+				"when": "envval:unauthenticated"
+			},
+			{
+				"view": "envvalTrackedEnvs",
+				"contents": "No environments are being tracked in this workspace yet.\n[Initialize Environment](command:envval.showInitPrompt)\n[Scan Workspace](command:envval.refreshTrackedEnvs)",
+				"when": "envval:authenticated && envval:empty"
+			}
+		],
+		"menus": {
+			"view/item/context": [
+				{
+					"command": "envval.pushEnv",
+					"when": "view == envvalTrackedEnvs && viewItem == envItemSynced",
+					"group": "inline"
+				},
+				{
+					"command": "envval.openFile",
+					"when": "view == envvalTrackedEnvs",
+					"group": "navigation"
+				}
+			],
+			"view/title": [
+				{
+					"command": "envval.refreshTrackedEnvs",
+					"when": "view == envvalTrackedEnvs",
+					"group": "navigation"
+				}
+			]
+		}
 	},
 	"configuration": {
 		"type": "object",
