@@ -1,22 +1,34 @@
-import { StatusBarAlignment, StatusBarItem, window } from "vscode";
+import { StatusBarAlignment, StatusBarItem, window, ThemeColor, Disposable } from "vscode";
 import { Commands } from "../commands";
 
 /**
  * Configuration for a status bar state
  */
 interface StatusBarStateConfig {
-  icon: string;
-  tooltip: string;
+  readonly icon: string;
+  readonly tooltip: string;
+  readonly color?: ThemeColor;
 }
 
 /**
  * Available states for the EnvVault status bar item.
- * Each state has an icon and tooltip to communicate the current sync/auth status to the user.
  */
-export const StatusBarStates = {
+export type StatusBarState = 
+  | "Unauthenticated" 
+  | "Loading" 
+  | "Authenticated" 
+  | "Synced" 
+  | "Syncing" 
+  | "Error";
+
+const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
   Unauthenticated: {
     icon: "$(circle-slash)",
     tooltip: "Not authenticated - Click to sign in",
+  },
+  Loading: {
+    icon: "$(loading~spin)",
+    tooltip: "Extension is initializing...",
   },
   Authenticated: {
     icon: "$(account)",
@@ -25,6 +37,7 @@ export const StatusBarStates = {
   Synced: {
     icon: "$(check)",
     tooltip: "All environment files are synced",
+    color: new ThemeColor('charts.green'),
   },
   Syncing: {
     icon: "$(sync~spin)",
@@ -33,48 +46,26 @@ export const StatusBarStates = {
   Error: {
     icon: "$(warning)",
     tooltip: "Error occurred - Click for details",
+    color: new ThemeColor('statusBarItem.errorForeground'),
   },
-} as const satisfies Record<string, StatusBarStateConfig>;
-
-export type StatusBarState = keyof typeof StatusBarStates;
+};
 
 /**
  * Singleton class that manages the VS Code status bar item for EnvVault.
- * Displays the current authentication and sync state to the user.
+ * Implements a counter-based state machine to handle concurrent operations.
  */
-export class StatusBar {
+export class StatusBar implements Disposable {
   private static instance: StatusBar;
-  private statusBarItem: StatusBarItem;
+  private readonly statusBarItem: StatusBarItem;
+  
+  private activeOperationsCount: number = 0;
+  private lastKnownAuthState: boolean = false;
 
   private constructor() {
     this.statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 10);
-
-    this.updateState("Unauthenticated");
     this.statusBarItem.command = Commands.SHOW_QUICK_SYNC_ACTION;
+    this.updateBaseState();
     this.statusBarItem.show();
-  }
-
-  /**
-   * Updates the status bar to reflect the given state
-   */
-  public updateState(state: StatusBarState, customTooltip?: string): void {
-    const config = StatusBarStates[state];
-    this.statusBarItem.text = `${config.icon} EnvVault`;
-    this.statusBarItem.tooltip = customTooltip || `EnvVault: ${config.tooltip}`;
-  }
-
-  public setAuthenticationState(authenticated: boolean): void {
-    this.updateState(authenticated ? "Authenticated" : "Unauthenticated");
-  }
-
-  public setSyncState(synced: boolean, lastSyncedAt?: Date): void {
-    if (synced && lastSyncedAt) {
-      this.updateState("Synced", `EnvVault: Synced at ${lastSyncedAt.toLocaleTimeString()}`);
-    } else if (synced) {
-      this.updateState("Synced");
-    } else {
-      this.updateState("Syncing");
-    }
   }
 
   public static getInstance(): StatusBar {
@@ -84,7 +75,63 @@ export class StatusBar {
     return StatusBar.instance;
   }
 
-  public static getStatusBarItem(): StatusBarItem {
+  public updateState(state: StatusBarState, customTooltip?: string): void {
+    const config = StatusBarStates[state];
+    this.statusBarItem.text = `${config.icon} EnvVault`;
+    this.statusBarItem.tooltip = customTooltip || `EnvVault: ${config.tooltip}`;
+    this.statusBarItem.color = config.color;
+  }
+
+  public setAuthenticationState(authenticated: boolean): void {
+    this.lastKnownAuthState = authenticated;
+    if (this.activeOperationsCount === 0) {
+      this.updateBaseState();
+    }
+  }
+
+  public setLoading(loading: boolean, message?: string): void {
+    if (loading) {
+      this.activeOperationsCount++;
+      this.updateState("Loading", message);
+    } else {
+      this.decrementOpCount();
+    }
+  }
+
+  public setSyncState(syncing: boolean, lastSyncedAt?: Date): void {
+    if (syncing) {
+      this.activeOperationsCount++;
+      this.updateState("Syncing");
+    } else {
+      this.decrementOpCount(lastSyncedAt);
+    }
+  }
+
+  public setSyncError(message?: string): void {
+    this.updateState("Error", message);
+  }
+
+  private decrementOpCount(lastSyncedAt?: Date): void {
+    this.activeOperationsCount = Math.max(0, this.activeOperationsCount - 1);
+    if (this.activeOperationsCount === 0) {
+      if (lastSyncedAt) {
+        this.updateState("Synced", `EnvVault: Last synced at ${lastSyncedAt.toLocaleTimeString()}`);
+      } else {
+        this.updateBaseState();
+      }
+    }
+  }
+
+  private updateBaseState(): void {
+    const state = this.lastKnownAuthState ? "Authenticated" : "Unauthenticated";
+    this.updateState(state);
+  }
+
+  public dispose(): void {
+    this.statusBarItem.dispose();
+  }
+
+  public static getStatusBarItemReference(): StatusBarItem {
     return StatusBar.getInstance().statusBarItem;
   }
 }

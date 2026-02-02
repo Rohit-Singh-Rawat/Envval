@@ -40,20 +40,20 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ## 1. Configuration & Settings
 
-- [ ] **Define user settings in `package.json`**
-  - [ ] `envvault.apiBaseUrl` (string)
-    - [ ] Default to `http://localhost:3000` for dev.
-  - [ ] `envvault.sync.pollIntervalSeconds` (number)
-    - [ ] Default 60–120 seconds.
-  - [ ] `envvault.logging.verbose` (boolean)
-    - [ ] Default `false`.
+- [X] **Define user settings in `package.json`**
+  - [X] `envvault.apiBaseUrl` (string)
+    - [X] Default to `http://localhost:3000` for dev.
+  - [X] `envvault.sync.pollIntervalSeconds` (number)
+    - [X] Default 60–120 seconds.
+  - [X] `envvault.logging.verbose` (boolean)
+    - [X] Default `false`.
 
-- [ ] **Create config helper module**
-  - [ ] Add a small helper to read VS Code configuration:
-    - [ ] Get API base URL.
-    - [ ] Get poll interval.
-    - [ ] Get logging flag.
-  - [ ] Ensure config can be refreshed when user changes settings.
+- [X] **Create config helper module**
+  - [X] Add a small helper to read VS Code configuration:
+    - [X] Get API base URL.
+    - [X] Get poll interval.
+    - [X] Get logging flag.
+  - [X] Ensure config can be refreshed when user changes settings.
 
 ---
 
@@ -61,79 +61,79 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ### 2.1 Status Bar
 
-- [ ] **Create a status bar item on activation**
-  - [ ] Position on right side.
-  - [ ] Initial text: `EnvVault: 🔴`
-  - [ ] Tooltip: `EnvVault: Not authenticated`.
+- [X] **Create a status bar item on activation**
+  - [X] Position on right side.
+  - [X] Initial text: `EnvVault: 🔴`
+  - [X] Tooltip: `EnvVault: Not authenticated`.
 
-- [ ] **Define status states**
-  - [ ] Unauthenticated (🔴)
-  - [ ] Authenticated but not initialized (🟡)
-  - [ ] Synced / idle (🟢)
-  - [ ] Syncing (🔁)
-  - [ ] Error (⚠️)
+- [X] **Define status states**
+  - [X] Unauthenticated (🔴)
+  - [X] Authenticated but not initialized (🟡)
+  - [X] Synced / idle (🟢)
+  - [X] Syncing (🔁)
+  - [X] Error (⚠️)
 
-- [ ] **Implement a small UI manager**
-  - [ ] Functions to:
-    - [ ] Set auth state (update icon + tooltip).
-    - [ ] Set sync state (e.g. “Syncing…”, “Synced at 12:30”).
-    - [ ] Attach click handler:
-      - [ ] On click, open a quick pick with:
-        - [ ] “View EnvVault Status”
-        - [ ] “Re-authenticate”
-        - [ ] “Open Logs”
+- [X] **Implement a small UI manager**
+  - [X] Functions to:
+    - [X] Set auth state (update icon + tooltip).
+    - [X] Set sync state (e.g. “Syncing…”, “Synced at 12:30”).
+    - [X] Attach click handler:
+      - [X] On click, open a quick pick with:
+        - [X] “View EnvVault Status”
+        - [X] “Re-authenticate”
+        - [X] “Open Logs”
 
 ### 2.2 Notifications
 
-- [ ] **Define key notification types**
-  - [ ] Info:
-    - [ ] Welcome message (first install).
-    - [ ] Env initialized successfully.
-    - [ ] Env synced.
-  - [ ] Warning:
-    - [ ] No `.env` found.
-    - [ ] Network issues (cannot reach API).
-  - [ ] Error:
-    - [ ] Token invalid / expired.
-    - [ ] Failed to encrypt/decrypt.
-    - [ ] Failed to sync.
+- [X] **Define key notification types**
+  - [X] Info:
+    - [X] Welcome message (first install).
+    - [X] Env initialized successfully.
+    - [X] Env synced.
+  - [X] Warning:
+    - [X] No `.env` found.
+    - [X] Network issues (cannot reach API).
+  - [X] Error:
+    - [X] Token invalid / expired.
+    - [X] Failed to encrypt/decrypt.
+    - [X] Failed to sync.
 
-- [ ] **Plan where to show them**
-  - [ ] After failed auth.
-  - [ ] After first-time env initialization.
-  - [ ] On conflict detection.
-  - [ ] On repeated errors (but avoid spam).
+- [X] **Plan where to show them**
+  - [X] After failed auth.
+  - [X] After first-time env initialization.
+  - [X] On conflict detection.
+  - [X] On repeated errors (but avoid spam).
 
 ### 2.3 Logging / Output Channel
 
-- [ ] **Create `EnvVault` output channel**
-  - [ ] Used for debug logs, not visible to normal users unless opened.
-- [ ] **Logging helper**
-  - [ ] `logInfo(message)` – writes to output channel if verbose logging enabled.
-  - [ ] `logError(message, error)` – writes detailed errors for debugging.
-  - [ ] `logDebug(message)` – only when `envvault.logging.verbose` is `true`.
+- [X] **Create `EnvVault` output channel**
+  - [X] Used for debug logs, not visible to normal users unless opened.
+- [X] **Logging helper**
+  - [X] `logInfo(message)` – writes to output channel if verbose logging enabled.
+  - [X] `logError(message, error)` – writes detailed errors for debugging.
+  - [X] `logDebug(message)` – only when `envvault.logging.verbose` is `true`.
 
 ---
 
 ## 3. Secure Storage (Tokens & Keys)
 
-- [ ] **Define secrets to store**
-  - [ ] `envvault.accessToken`
-  - [ ] `envvault.refreshToken`
-  - [ ] `envvault.deviceId`
-  - [ ] `envvault.encryptionKey` or `envvault.keyMaterial` (derived key or wrapped key).
+- [X] **Define secrets to store**
+  - [X] `envvault.accessToken`
+  - [X] `envvault.refreshToken`
+  - [X] `envvault.deviceId`
+  - [X] `envvault.encryptionKey` or `envvault.keyMaterial` (derived key or wrapped key).
 
-- [ ] **Implement secure storage manager**
-  - [ ] Helper functions:
-    - [ ] `getAccessToken()`
-    - [ ] `setAccessToken(token)`
-    - [ ] `getRefreshToken()`
-    - [ ] `setRefreshToken(token)`
-    - [ ] `getDeviceId()`
-    - [ ] `setDeviceId(id)`
-    - [ ] `getEncryptionKey()`
-    - [ ] `setEncryptionKey(key)`
-    - [ ] `clearAll()` – clear all secrets on forced logout.
+- [X] **Implement secure storage manager**
+  - [X] Helper functions:
+    - [X] `getAccessToken()`
+    - [X] `setAccessToken(token)`
+    - [X] `getRefreshToken()`
+    - [X] `setRefreshToken(token)`
+    - [X] `getDeviceId()`
+    - [X] `setDeviceId(id)`
+    - [X] `getEncryptionKey()`
+    - [X] `setEncryptionKey(key)`
+    - [X] `clearAll()` – clear all secrets on forced logout.
 
 ---
 
@@ -141,19 +141,15 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ### 4.1 First-Time Auth UX
 
-- [ ] **On activation, check auth state**
-  - [ ] Try reading `accessToken` and `refreshToken` from SecretStorage.
-  - [ ] If none found → mark as unauthenticated (🔴).
+- [X] **On activation, check auth state**
+  - [X] Try reading `accessToken` and `refreshToken` from SecretStorage.
+  - [X] If none found → mark as unauthenticated (🔴).
 
-- [ ] **Show welcome/auth prompt**
-  - [ ] If unauthenticated:
-    - [ ] Show a notification:
-      - Message: “EnvVault: Connect your account to sync `.env` files.”
-      - Buttons:
-        - “Paste Token”
-        - “Open Docs” (optional)
-    - [ ] On “Paste Token”:
-      - [ ] Show an input box asking for **Personal Access Token** generated on web.
+- [X] **Show welcome/auth prompt**
+  - [X] If unauthenticated:
+    - [X] Show a login window (WebView).
+    - [X] On “Sign In”:
+      - [X] Initiate device code flow.
 
 - [ ] **Call API: login with token**
   - [ ] Use `apiBaseUrl` and call `/auth/login-with-token`.
@@ -193,59 +189,59 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ## 5. Encryption Key Handling (Device Key Material)
 
-- [ ] **Decide on key material format with API**
-  - [ ] E.g. `deviceKey` or `wrappedUserKey`.
+- [X] **Decide on key material format with API**
+  - [X] E.g. `deviceKey` or `wrappedUserKey`.
 
-- [ ] **Derive usable encryption key**
-  - [ ] From the device key material (details depend on your crypto spec).
-  - [ ] Store the derived key securely:
-    - [ ] Only the symmetric key needed for AES-GCM.
+- [X] **Derive usable encryption key**
+  - [X] From the device key material (details depend on your crypto spec).
+  - [X] Store the derived key securely:
+    - [X] Only the symmetric key needed for AES-GCM.
 
-- [ ] **Implement crypto helpers (conceptually)**
-  - [ ] `encryptEnv(plaintextEnvString) -> { ciphertextBase64, ivBase64 }`
-  - [ ] `decryptEnv(ciphertextBase64, ivBase64) -> plaintextEnvString`
-  - [ ] `hashEnv(plaintextEnvString) -> hashHexString` (SHA-256).
+- [X] **Implement crypto helpers (conceptually)**
+  - [X] `encryptEnv(plaintextEnvString) -> { ciphertextBase64, ivBase64 }`
+  - [X] `decryptEnv(ciphertextBase64, ivBase64) -> plaintextEnvString`
+  - [X] `hashEnv(plaintextEnvString) -> hashHexString` (SHA-256).
 
-- [ ] **Ensure all encryption/decryption is done client-side**
-  - [ ] Never send plaintext env to server.
+- [X] **Ensure all encryption/decryption is done client-side**
+  - [X] Never send plaintext env to server.
 
 ---
 
 ## 6. Repo & Env Identification Logic
 
-- [ ] **Workspace detection**
-  - [ ] Get active workspace folder path.
-  - [ ] Handle case: no workspace open → show error and skip.
+- [X] **Workspace detection**
+  - [X] Get active workspace folder path.
+  - [X] Handle case: no workspace open → show error and skip.
 
-- [ ] **Read git remote**
-  - [ ] Try run `git remote get-url origin` from workspace path.
-  - [ ] If not available:
-    - [ ] Use only workspace path for repo identity.
-    - [ ] Log a warning: “No git remote, using folder path.”
+- [X] **Read git remote**
+  - [X] Try run `git remote get-url origin` from workspace path.
+  - [X] If not available:
+    - [X] Use only workspace path for repo identity.
+    - [X] Log a warning: “No git remote, using folder path.”
 
-- [ ] **Compute `repoId`**
-  - [ ] Combine remote URL + workspace path + maybe user ID.
-  - [ ] Hash into a stable hex string.
+- [X] **Compute `repoId`**
+  - [X] Combine remote URL + workspace path + maybe user ID.
+  - [X] Hash into a stable hex string.
 
-- [ ] **Compute `envId`**
-  - [ ] For `.env` file:
-    - [ ] `envId = hash(repoId + ".env")`.
+- [X] **Compute `envId`**
+  - [X] For `.env` file:
+    - [X] `envId = hash(repoId + ".env")`.
 
-- [ ] **Local metadata store**
-  - [ ] Decide location:
+- [X] **Local metadata store**
+  - [X] Decide location:
     - Option A: `.envvault.meta.json` at workspace root:
       - Pros: transparent on disk.
       - Cons: extra file in repo (add to `.gitignore`).
     - Option B: VS Code `workspaceState`.
-  - [ ] Metadata per env:
+  - [X] Metadata per env:
     - `envId`
     - `fileName` (".env")
     - `lastSyncedHash`
     - `lastSyncedAt` (timestamp string).
 
-- [ ] **Implement helpers**
-  - [ ] `loadEnvMetadata(envId)` → metadata or default.
-  - [ ] `saveEnvMetadata(envId, data)`.
+- [X] **Implement helpers**
+  - [X] `loadEnvMetadata(envId)` → metadata or default.
+  - [X] `saveEnvMetadata(envId, data)`.
 
 ---
 
@@ -253,42 +249,42 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ### 7.1 Detect whether env exists on server
 
-- [ ] On extension activation:
-  - [ ] After auth & repo detection, check if `.env` exists locally:
-    - [ ] If not → do nothing yet, but keep track.
+- [X] On extension activation:
+  - [X] After auth & repo detection, check if `.env` exists locally:
+    - [X] If not → do nothing yet, but keep track.
 
-- [ ] When `.env` is created or opened:
-  - [ ] Compute `repoId` and `envId`.
-  - [ ] Call API: `GET /envs/exists?repoId=&fileName=.env`.
-  - [ ] Check response:
-    - [ ] If `exists = false` → show init prompt.
-    - [ ] If `exists = true` → run initial sync (see below).
+- [X] When `.env` is created or opened:
+  - [X] Compute `repoId` and `envId`.
+  - [X] Call API: `GET /envs/exists?repoId=&fileName=.env`.
+  - [X] Check response:
+    - [X] If `exists = false` → show init prompt.
+    - [X] If `exists = true` → run initial sync (see below).
 
 ### 7.2 Init prompt UI
 
-- [ ] Show a dialog:
+- [X] Show a dialog:
   - Title: “Initialize EnvVault for this project?”
   - Message: “Do you want EnvVault to securely back up and sync this `.env` across your devices?”
   - Buttons:
     - “Initialize”
     - “Not now”
 
-- [ ] If user clicks **Initialize**:
-  - [ ] Read `.env` file content.
-  - [ ] If empty:
-    - [ ] Confirm with user or show info: “.env file is empty. Initialize anyway?”
-  - [ ] Encrypt content with device key.
-  - [ ] Compute hash of plaintext.
-  - [ ] Call `POST /envs` with:
+- [X] If user clicks **Initialize**:
+  - [X] Read `.env` file content.
+  - [X] If empty:
+    - [X] Confirm with user or show info: “.env file is empty. Initialize anyway?”
+  - [X] Encrypt content with device key.
+  - [X] Compute hash of plaintext.
+  - [X] Call `POST /envs` with:
     - `repoId`
     - `fileName`
     - `ciphertext`
     - `hash`
-  - [ ] On success:
-    - [ ] Save `lastSyncedHash = hash`.
-    - [ ] Save `lastSyncedAt = now`.
-    - [ ] Update status bar to `EnvVault: 🟢 Synced`.
-    - [ ] Notify: “EnvVault: `.env` is now backed up and synced.”
+  - [X] On success:
+    - [X] Save `lastSyncedHash = hash`.
+    - [X] Save `lastSyncedAt = now`.
+    - [X] Update status bar to `EnvVault: 🟢 Synced`.
+    - [X] Notify: “EnvVault: `.env` is now backed up and synced.”
 
 ---
 
@@ -324,35 +320,35 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ### 9.1 Watch `.env` file
 
-- [ ] Register a watcher for `.env`:
-  - [ ] On file open: keep reference.
-  - [ ] On file save: trigger sync check.
+- [X] Register a watcher for `.env`:
+  - [X] On file open: keep reference.
+  - [X] On file save: trigger sync check.
 
 ### 9.2 On save sync flow
 
-- [ ] When `.env` is saved:
-  - [ ] Read current `.env` content.
-  - [ ] If file not found → skip.
-  - [ ] Compute `hashLocal`.
-  - [ ] Load `lastSyncedHash` from metadata.
-  - [ ] If `hashLocal == lastSyncedHash`:
-    - [ ] Do nothing.
-  - [ ] Else:
-    - [ ] Encrypt `.env` using device key.
-    - [ ] Call `PUT /envs/:envId` with `ciphertext` + `hashLocal`.
-    - [ ] On success:
-      - [ ] Update `lastSyncedHash = hashLocal`.
-      - [ ] Update `lastSyncedAt`.
-      - [ ] Update status bar: “Synced at HH:MM”.
-    - [ ] On failure:
-      - [ ] Show error notification: “EnvVault: Failed to sync `.env`.”
-      - [ ] Log details.
+- [X] When `.env` is saved:
+  - [X] Read current `.env` content.
+  - [X] If file not found → skip.
+  - [X] Compute `hashLocal`.
+  - [X] Load `lastSyncedHash` from metadata.
+  - [X] If `hashLocal == lastSyncedHash`:
+    - [X] Do nothing.
+  - [X] Else:
+    - [X] Encrypt `.env` using device key.
+    - [X] Call `PUT /envs/:envId` with `ciphertext` + `hashLocal`.
+    - [X] On success:
+      - [X] Update `lastSyncedHash = hashLocal`.
+      - [X] Update `lastSyncedAt`.
+      - [X] Update status bar: “Synced at HH:MM”.
+    - [X] On failure:
+      - [X] Show error notification: “EnvVault: Failed to sync `.env`.”
+      - [X] Log details.
 
 ### 9.3 Optional: Debounce changes before save
 
-- [ ] Optionally track text changes & auto sync without save:
-  - [ ] Set up a debounce timer (e.g. 3–5 seconds after last edit) before pushing.
-  - [ ] Only do this if it doesn’t feel annoying.
+- [X] Optionally track text changes & auto sync without save:
+  - [X] Set up a debounce timer (e.g. 3–5 seconds after last edit) before pushing.
+  - [X] Only do this if it doesn’t feel annoying.
 
 ---
 
@@ -360,29 +356,29 @@ This file lists **everything** needed to build the extension from zero → produ
 
 ### 10.1 Polling loop
 
-- [ ] On activation:
-  - [ ] Start an interval timer (dur = `envvault.sync.pollIntervalSeconds`).
-  - [ ] On each tick:
-    - [ ] For each known `envId`:
-      - [ ] Call `GET /envs/:envId/metadata`.
-      - [ ] Compare `remoteHash` vs `lastSyncedHash`.
+- [X] On activation:
+  - [X] Start an interval timer (dur = `envvault.sync.pollIntervalSeconds`).
+  - [X] On each tick:
+    - [X] For each known `envId`:
+      - [X] Call `GET /envs/:envId/metadata`.
+      - [X] Compare `remoteHash` vs `lastSyncedHash`.
 
 ### 10.2 Auto-pull when safe
 
-- [ ] If `remoteHash == lastSyncedHash`:
-  - [ ] No remote changes → skip.
+- [X] If `remoteHash == lastSyncedHash`:
+  - [X] No remote changes → skip.
 
-- [ ] If `remoteHash != lastSyncedHash`:
-  - [ ] Read local `.env`, compute `hashLocal`.
-  - [ ] If `hashLocal == lastSyncedHash`:
-    - [ ] Local is unchanged since last sync:
-      - [ ] Safe to auto-pull:
-        - [ ] `GET /envs/:envId` to get ciphertext.
-        - [ ] Decrypt to plaintext.
-        - [ ] Overwrite local `.env`.
-        - [ ] Update `lastSyncedHash = remoteHash`.
-        - [ ] Notify:
-          - [ ] “EnvVault: `.env` updated from remote changes.”
+- [X] If `remoteHash != lastSyncedHash`:
+  - [X] Read local `.env`, compute `hashLocal`.
+  - [X] If `hashLocal == lastSyncedHash`:
+    - [X] Local is unchanged since last sync:
+      - [X] Safe to auto-pull:
+        - [X] `GET /envs/:envId` to get ciphertext.
+        - [X] Decrypt to plaintext.
+        - [X] Overwrite local `.env`.
+        - [X] Update `lastSyncedHash = remoteHash`.
+        - [X] Notify:
+          - [X] “EnvVault: `.env` updated from remote changes.”
           - (Optional: show which device updated it.)
 
 ---

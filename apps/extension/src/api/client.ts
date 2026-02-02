@@ -146,7 +146,10 @@ class ApiClient {
 		}
 
 		// Server-side transient errors
-		return RETRY_CONFIG.retryableStatusCodes.has(error.response.status);
+		if (error.response) {
+			return RETRY_CONFIG.retryableStatusCodes.has(error.response.status);
+		}
+		return false;
 	}
 
 	/**
@@ -163,14 +166,14 @@ class ApiClient {
 	private extractErrorMessage(error: AxiosError): string {
 		if (error.response?.data && typeof error.response.data === 'object') {
 			const data = error.response.data as Record<string, unknown>;
-			if (typeof data.error === 'string') return data.error;
-			if (typeof data.message === 'string') return data.message;
+			if (typeof data.error === 'string') { return data.error; }
+			if (typeof data.message === 'string') { return data.message; }
 		}
 		return error.message;
 	}
 
 	private sleep(ms: number): Promise<void> {
-		return new Promise((resolve) => setTimeout(resolve, ms));
+		return new Promise((resolve) => { setTimeout(resolve, ms); });
 	}
 
 	protected async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

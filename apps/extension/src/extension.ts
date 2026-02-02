@@ -13,6 +13,8 @@ import { EnvFileWatcher } from './watchers/env-file-watcher';
 import { SyncManager } from './watchers/env-sync-manager';
 import { EnvVaultMetadataStore } from './services/metadata-store';
 import { EnvInitService } from './services/env-init';
+import { RepoIdentityCommands } from './commands/repo-identity';
+import { TrackedEnvsProvider } from './views/tracked-envs';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -31,6 +33,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		secrets,
 		logger
 	);
+	
+	const repoIdentityCommands = new RepoIdentityCommands(context, metadataStore, logger);
+
 	const syncManager = SyncManager.getInstance(
 		context,
 		apiClient,
@@ -44,85 +49,87 @@ export async function activate(context: vscode.ExtensionContext) {
 	logger.info('EnvVault extension is now active!');
 
 	Commands.getInstance().registerCommands(context);
+	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, logger);
 
-	const disposeConfigListener = onConfigChange((config: any) => {
+	const trackedEnvsProvider = new TrackedEnvsProvider(metadataStore);
+	vscode.window.registerTreeDataProvider('envvalTrackedEnvs', trackedEnvsProvider);
+	
+	vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
+		trackedEnvsProvider.refresh();
+	});
+
+	const disposeConfigListener = onConfigChange((config) => {
 		logger.setVerbose(config.loggingVerbose);
 	});
 
 	// Function to start all services (only when authenticated)
 	const startServices = async () => {
 		logger.info('Starting EnvVault services...');
-
-		// Start file watcher
 		envFileWatcher.start();
-
-		// Perform initial check for existing env files
 		await envInitService.performInitialCheck();
-
-		// In startServices function
-		logger.debug(`Current Metadata Store: ${JSON.stringify(Object.fromEntries(await metadataStore.getAllMetadata()), null, 2)}`);
-		
-		// Start polling for remote changes
 		syncManager.startPolling();
-
+		trackedEnvsProvider.refresh();
 		logger.info('EnvVault services started');
 	};
 
 	// Function to stop all services (when logged out)
 	const stopServices = () => {
 		logger.info('Stopping EnvVault services...');
-
-		// Stop polling
 		syncManager.stopPolling();
-
-		// Stop file watcher (but keep emitters for restart)
 		envFileWatcher.stop();
-
 		logger.info('EnvVault services stopped');
 	};
 
 	// Check authentication status
 	const isAuthenticated = await authProvider.isAuthenticated();
+	vscode.commands.executeCommand('setContext', 'envval:authenticated', isAuthenticated);
+	vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !isAuthenticated);
 
 	if (!isAuthenticated) {
-		// Show login window if not authenticated
 		statusBar.setAuthenticationState(false);
 		const loginWindow = LoginWindow.getInstance(context, authProvider, logger);
 		await loginWindow.show();
 
-		// Listen for auth state changes
 		authProvider.onAuthenticationStateChanged(async (authenticated) => {
+			vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
+			vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
 			if (authenticated) {
-				// User logged in - start all services
 				await startServices();
 				statusBar.setAuthenticationState(true);
 				loginWindow.dispose();
 			} else {
-				// User logged out - stop all services
 				stopServices();
+				syncManager.invalidateCache();
 				statusBar.setAuthenticationState(false);
+				trackedEnvsProvider.refresh();
 			}
 		});
 	} else {
-		// Already authenticated - start services immediately
 		statusBar.setAuthenticationState(true);
 		await startServices();
 
-		// Listen for auth state changes (e.g., logout)
 		authProvider.onAuthenticationStateChanged(async (authenticated) => {
+			vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
+			vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
 			if (!authenticated) {
 				stopServices();
+				syncManager.invalidateCache();
 				statusBar.setAuthenticationState(false);
+				trackedEnvsProvider.refresh();
 			}
 		});
 	}
 
 	context.subscriptions.push(
 		disposeConfigListener,
-		StatusBar.getStatusBarItem(),
-		EnvFileWatcher.getInstance(context, logger)
+		statusBar,
+		authProvider,
+		envFileWatcher,
+		syncManager
 	);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+	// VS Code disposes of all subscriptions in context.subscriptions automatically
+	// This includes our singleton instances that implement Disposable
+}

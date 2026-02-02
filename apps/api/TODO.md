@@ -16,11 +16,11 @@ The EnvVault API server is the **backend** for:
 
 ### 1. Project & Infrastructure Setup
 
-- [ ] Bootstrap Node.js + TypeScript server (Fastify/Express/Hono).
-- [ ] Environment configuration:
+- [X] Bootstrap Node.js + TypeScript server (Fastify/Express/Hono).
+- [X] Environment configuration:
   - Port, DB connection URL, JWT/crypto secrets, CORS config.
-- [ ] Global error handling + logging middleware.
-- [ ] Health check route (`/health`).
+- [X] Global error handling + logging middleware.
+- [X] Health check route (`/health`).
 
 ---
 
@@ -39,7 +39,7 @@ The EnvVault API server is the **backend** for:
     - `createdAt` (Date) - Timestamp of when the user account was created
     - `updatedAt` (Date) - Timestamp of the last update to the user's information
 
-- [ ] **Session**
+- [X] **Session**
   - Table Name: `session`
   - Fields:
     - `id` (string, PK) - Unique identifier for each session
@@ -52,7 +52,7 @@ The EnvVault API server is the **backend** for:
     - `createdAt` (Date) - Timestamp of when the session was created
     - `updatedAt` (Date) - Timestamp of when the session was updated
 
-- [ ] **Account**
+- [X] **Account**
   - Table Name: `account`
   - Fields:
     - `id` (string, PK) - Unique identifier for each account
@@ -69,7 +69,7 @@ The EnvVault API server is the **backend** for:
     - `createdAt` (Date) - Timestamp of when the account was created
     - `updatedAt` (Date) - Timestamp of when the account was updated
 
-- [ ] **Verification**
+- [X] **Verification**
   - Table Name: `verification`
   - Fields:
     - `id` (string, PK) - Unique identifier for each verification
@@ -81,7 +81,7 @@ The EnvVault API server is the **backend** for:
 
 #### Custom Tables
 
-- [ ] **Device**
+- [X] **Device**
   - Table Name: `device`
   - Fields:
     - `id` (string, PK) - Unique identifier for each device
@@ -102,7 +102,7 @@ The EnvVault API server is the **backend** for:
     - `lastUsedAt` (Date, optional) - Timestamp of when the token was last used
     - `revoked` (boolean) - Whether the token has been revoked
 
-- [ ] **Environment**
+- [X] **Environment**
   - Table Name: `environment`
   - Fields:
     - `id` (string, PK) - Unique identifier (envId)
@@ -113,7 +113,7 @@ The EnvVault API server is the **backend** for:
     - `createdAt` (Date) - Timestamp of when the environment was created
     - `updatedAt` (Date) - Timestamp of when the environment was last updated
 
-- [ ] **EnvVersion**
+- [X] **EnvVersion**
   - Table Name: `envVersion`
   - Fields:
     - `id` (string, PK) - Unique identifier for each version
@@ -124,7 +124,7 @@ The EnvVault API server is the **backend** for:
     - `updatedByDeviceId` (string, FK, optional) - The ID of the device that created this version
     - `updatedByTokenId` (string, FK, optional) - The ID of the token that created this version
 
-- [ ] **AuditLog**
+- [X] **AuditLog**
   - Table Name: `auditLog`
   - Fields:
     - `id` (string, PK) - Unique identifier for each log entry
@@ -164,16 +164,16 @@ The EnvVault API server is the **backend** for:
 
 ### 4. Device Key Material Handling
 
-- [ ] Decide key model (simple v1):
-  - Generate a **per-user or per-device symmetric key** used to encrypt env blobs.
-- [ ] Store key material:
-  - Preferably in a secure secret store or encrypted at rest.
-- [ ] Provide an endpoint to **deliver encrypted device key** to the extension:
-  - e.g. part of login/refresh response or separate `/device/key` endpoint.
-- [ ] Server should avoid exposing raw key where possible; if it does, enforce:
-  - Only over HTTPS.
-  - Only to authenticated devices.
-  - Restrictable via device revocation.
+- [X] **Decide key model (simple v1):**
+  - [X] Generate a **per-user or per-device symmetric key** used to encrypt env blobs.
+- [X] **Store key material:**
+  - [X] Preferably in a secure secret store or encrypted at rest.
+- [X] **Provide an endpoint to **deliver encrypted device key** to the extension:**
+  - [X] e.g. part of login/refresh response or separate `/device/key` endpoint.
+- [X] **Server should avoid exposing raw key where possible; if it does, enforce:**
+  - [X] Only over HTTPS.
+  - [X] Only to authenticated devices.
+  - [X] Restrictable via device revocation.
 
 > Note: this is where you decide how “zero-knowledge” vs “managed” you want to be. The more server knows about keys, the easier UX but weaker guarantees.
 

@@ -5,6 +5,7 @@ import { DEVICE_VERIFICATION_URL } from '../lib/constants';
 import { Logger } from '../utils/logger';
 import { AuthApiClient } from '../api/client';
 import { DeviceCodeResponse, DeviceTokenResponse } from '../api/types';
+import { StatusBar } from '../ui/status-bar';
 
 // Re-export types for external use
 export type { DeviceCodeResponse, DeviceTokenResponse };
@@ -84,6 +85,7 @@ export class AuthenticationProvider {
 	 */
 	public async initiateLogin(): Promise<DeviceCodeResponse> {
 		this.logger.info('Initiating EnvVault device authorization flow');
+		StatusBar.getInstance().setLoading(true, 'Requesting device code...');
 		this.pollingStatusEmitter.fire({ state: 'requesting_code' });
 
 		try {
@@ -104,12 +106,13 @@ export class AuthenticationProvider {
 			});
 
 			return data;
-		} catch (error) {
+		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : 'Failed to request device code';
 			this.logger.error(`Device code request failed: ${message}`);
-			this.logger.error(`Error: ${JSON.stringify(error)}`);
 			this.pollingStatusEmitter.fire({ state: 'error', message });
 			throw error;
+		} finally {
+			StatusBar.getInstance().setLoading(false);
 		}
 	}
 
@@ -161,6 +164,7 @@ export class AuthenticationProvider {
 		const pollingConfig: PollingConfig = { ...DEFAULT_POLLING_CONFIG, ...config };
 
 		this.isPolling = true;
+		StatusBar.getInstance().setLoading(true, 'Waiting for sign-in approval...');
 		this.pollAbortController = new AbortController();
 
 		let pollingInterval = Math.max(interval, pollingConfig.initialInterval);
@@ -228,17 +232,17 @@ export class AuthenticationProvider {
 					this.isPolling = false;
 					this.pollAbortController = null;
 					return true;
-				} catch (error: any) {
+				} catch (error: unknown) {
 					// Check if request was aborted
-					if (axios.isCancel(error) || error.name === 'AbortError') {
+					if (axios.isCancel(error) || (error instanceof Error && error.name === 'AbortError')) {
 						this.logger.info('Polling request was aborted');
 						this.isPolling = false;
 						this.pollAbortController = null;
 						return false;
 					}
 
-					const errorCode = error.response?.data?.error;
-					const errorDescription = error.response?.data?.error_description || error.message;
+					const errorCode = (error as any).response?.data?.error;
+					const errorDescription = (error as any).response?.data?.error_description || (error as Error).message;
 
 					switch (errorCode) {
 						case 'authorization_pending':
@@ -302,9 +306,12 @@ export class AuthenticationProvider {
 			this.isPolling = false;
 			this.pollAbortController = null;
 			return false;
+			this.pollAbortController = null;
+			return false;
 		} finally {
 			this.isPolling = false;
 			this.pollAbortController = null;
+			StatusBar.getInstance().setLoading(false);
 		}
 	}
 
