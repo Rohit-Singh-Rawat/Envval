@@ -3,13 +3,17 @@ import * as vscode from 'vscode';
 import { RepoIdentityStore } from '../services/repo-identity-store';
 import { RepoMigrationService } from '../services/repo-migration';
 import { EnvVaultMetadataStore } from '../services/metadata-store';
-import { getCurrentWorkspaceId, detectMonorepoStructure, getAllGitRemotes } from '../utils/repo-detection';
+import { getCurrentWorkspaceId, detectMonorepoStructure, getAllGitRemotes, getGitRemoteUrl } from '../utils/repo-detection';
+import { EnvVaultApiClient } from '../api/client';
 import type { Logger } from '../utils/logger';
 
 /**
  * Command implementations for repository identity management
  */
 export class RepoIdentityCommands {
+  private _identityStore: RepoIdentityStore | undefined;
+  private _migrationService: RepoMigrationService | undefined;
+
   constructor(
     private context: vscode.ExtensionContext,
     private metadataStore: EnvVaultMetadataStore,
@@ -17,11 +21,27 @@ export class RepoIdentityCommands {
   ) {}
 
   private get identityStore(): RepoIdentityStore {
-    return new RepoIdentityStore(this.context);
+    if (!this._identityStore) {
+      this._identityStore = new RepoIdentityStore(this.context);
+    }
+    return this._identityStore;
   }
 
   private get migrationService(): RepoMigrationService {
-    return new RepoMigrationService(this.context, this.metadataStore, this.identityStore, this.logger);
+    if (!this._migrationService) {
+      this._migrationService = new RepoMigrationService(
+        this.context,
+        this.metadataStore,
+        this.identityStore,
+        this.apiClient,
+        this.logger
+      );
+    }
+    return this._migrationService;
+  }
+
+  private get apiClient(): EnvVaultApiClient {
+    return EnvVaultApiClient.getInstance();
   }
 
   /**
@@ -94,7 +114,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      console.error('Error viewing repo identity:', error);
+      this.logger.error(`Error viewing repo identity: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Failed to retrieve repository identity information.');
     }
   }
@@ -128,7 +148,9 @@ export class RepoIdentityCommands {
         }
       });
 
-      if (!newIdentity) return;
+      if (!newIdentity) {
+        return;
+      }
 
       // Check if this is different from current identity
       if (currentId && newIdentity.trim() === currentId) {
@@ -167,7 +189,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      console.error('Error setting manual repo identity:', error);
+      this.logger.error(`Error setting manual repo identity: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Failed to set repository identity.');
     }
   }
@@ -218,7 +240,9 @@ export class RepoIdentityCommands {
           placeHolder: 'Select sub-project path'
         });
 
-        if (!selection) return;
+        if (!selection) {
+          return;
+        }
 
         if (selection.label === 'Custom Path...') {
           selectedPath = await vscode.window.showInputBox({
@@ -236,7 +260,9 @@ export class RepoIdentityCommands {
         }
       }
 
-      if (!selectedPath) return;
+      if (!selectedPath) {
+        return;
+      }
 
       // Store the sub-project path
       await this.identityStore.setSubProjectPath(workspacePath, selectedPath.trim());
@@ -260,7 +286,7 @@ export class RepoIdentityCommands {
       vscode.window.showInformationMessage(`Sub-project path set to: ${selectedPath.trim()}`);
 
     } catch (error) {
-      console.error('Error setting sub-project path:', error);
+      this.logger.error(`Error setting sub-project path: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Failed to set sub-project path.');
     }
   }
@@ -282,7 +308,9 @@ export class RepoIdentityCommands {
         'Cancel'
       );
 
-      if (confirm !== 'Reset Identity') return;
+      if (confirm !== 'Reset Identity') {
+        return;
+      }
 
       await this.identityStore.clearIdentity(workspacePath);
 
@@ -300,7 +328,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      console.error('Error resetting repo identity:', error);
+      this.logger.error(`Error resetting repo identity: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Failed to reset repository identity.');
     }
   }
@@ -341,7 +369,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      console.error('Error during manual migration:', error);
+      this.logger.error(`Error during manual migration: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Migration failed. Please try again.');
     }
   }
@@ -524,7 +552,7 @@ export class RepoIdentityCommands {
       outputChannel.appendLine('='.repeat(60));
 
     } catch (error) {
-      console.error('Error during repo detection diagnostics:', error);
+      this.logger.error(`Error during repo detection diagnostics: ${error instanceof Error ? error.message : String(error)}`);
       vscode.window.showErrorMessage('Failed to generate diagnostic report.');
     }
   }

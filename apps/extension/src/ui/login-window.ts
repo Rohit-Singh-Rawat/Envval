@@ -204,7 +204,7 @@ export class LoginWindow {
 		return code;
 	}
 
-	private sendMessage(message: any): void {
+	private sendMessage(message: { command: string; [key: string]: unknown }): void {
 		if (this.panel) {
 			this.panel.webview.postMessage(message);
 		}

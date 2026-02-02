@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { RepoIdentityStore } from './repo-identity-store';
 import { EnvVaultMetadataStore } from './metadata-store';
 import { EnvVaultApiClient } from '../api/client';
-import { getCurrentWorkspaceId } from '../utils/repo-detection';
+import { getCurrentWorkspaceId, getGitRemoteUrl } from '../utils/repo-detection';
 import type { Logger } from '../utils/logger';
 
 /**
@@ -88,9 +88,7 @@ export class RepoMigrationService {
       // Update last active repo ID to prevent re-detection of migration needed
       await this.identityStore.updateLastActiveRepoId(workspacePath, newRepoId);
 
-      // Try to migrate on server
       try {
-        const { getGitRemoteUrl } = await import('../utils/repo-detection.js');
         const gitRemoteUrl = await getGitRemoteUrl(workspacePath);
         
         const result = await this.apiClient.migrateRepo(oldRepoId, newRepoId, gitRemoteUrl);
