@@ -143,7 +143,13 @@ export class Commands {
 			}),
 
 			vscode.commands.registerCommand(Commands.SHOW_INIT_PROMPT, async () => {
-				EnvInitService.getInstance(context, undefined as any, undefined as any, undefined as any, logger).performInitialCheck();
+				EnvInitService.getInstance(
+					context,
+					undefined as any,
+					undefined as any,
+					undefined as any,
+					logger
+				).performInitialCheck();
 			})
 		);
 

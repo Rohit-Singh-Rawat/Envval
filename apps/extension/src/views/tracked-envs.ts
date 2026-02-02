@@ -11,9 +11,13 @@ import * as fs from 'fs';
  */
 export type EnvSyncStatus = 'synced' | 'modified' | 'conflict' | 'ignored';
 
-export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem> {
-	private _onDidChangeTreeData: vscode.EventEmitter<EnvItem | undefined | void> = new vscode.EventEmitter<EnvItem | undefined | void>();
-	readonly onDidChangeTreeData: vscode.Event<EnvItem | undefined | void> = this._onDidChangeTreeData.event;
+/**
+ * Provides the environment list for the VS Code sidebar.
+ * Supports hierarchical grouping by folder and real-time status tracking.
+ */
+export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem | FolderItem> {
+	private _onDidChangeTreeData: vscode.EventEmitter<EnvItem | FolderItem | undefined | void> = new vscode.EventEmitter<EnvItem | FolderItem | undefined | void>();
+	readonly onDidChangeTreeData: vscode.Event<EnvItem | FolderItem | undefined | void> = this._onDidChangeTreeData.event;
 
 	constructor(private readonly metadataStore: EnvVaultMetadataStore) {
 		this.metadataStore.onDidChangeMetadata(() => {
@@ -31,36 +35,77 @@ export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem> {
 		vscode.commands.executeCommand('setContext', 'envval:empty', envs.length === 0);
 	}
 
-	getTreeItem(element: EnvItem): vscode.TreeItem {
+	getTreeItem(element: EnvItem | FolderItem): vscode.TreeItem {
 		return element;
 	}
 
-	async getChildren(element?: EnvItem): Promise<EnvItem[]> {
-		if (element) {
-			return [];
-		}
-
+	async getChildren(element?: EnvItem | FolderItem): Promise<(EnvItem | FolderItem)[]> {
 		try {
 			const trackedEnvs = await this.metadataStore.getAllTrackedEnvs();
-			return trackedEnvs
-				.sort((a, b) => a.fileName.localeCompare(b.fileName))
-				.map((meta) => new EnvItem(meta));
+			
+			if (!element) {
+				// Root level - build folder structure
+				const rootItems: (EnvItem | FolderItem)[] = [];
+				const folders = new Map<string, EnvMetadata[]>();
+				
+				for (const meta of trackedEnvs) {
+					const parts = meta.fileName.split(/[/\\]/);
+					if (parts.length > 1) {
+						const folderPath = parts.slice(0, -1).join('/');
+						if (!folders.has(folderPath)) folders.set(folderPath, []);
+						folders.get(folderPath)!.push(meta);
+					} else {
+						rootItems.push(new EnvItem(meta));
+					}
+				}
+				
+				// Add folders as top-level items
+				for (const [folderPath, envs] of folders.entries()) {
+					rootItems.push(new FolderItem(folderPath, envs));
+				}
+				
+				return rootItems.sort((a, b) => {
+					// Folders first
+					if (a instanceof FolderItem && !(b instanceof FolderItem)) return -1;
+					if (!(a instanceof FolderItem) && b instanceof FolderItem) return 1;
+					
+					const aLabel = typeof a.label === 'string' ? a.label : a.label?.label || '';
+					const bLabel = typeof b.label === 'string' ? b.label : b.label?.label || '';
+					return aLabel.localeCompare(bLabel);
+				});
+			}
+
+			if (element instanceof FolderItem) {
+				return element.envs.map(meta => new EnvItem(meta));
+			}
+
+			return [];
 		} catch (error) {
 			return [];
 		}
 	}
 }
 
+export class FolderItem extends vscode.TreeItem {
+	constructor(public readonly folderPath: string, public readonly envs: EnvMetadata[]) {
+		super(folderPath, vscode.TreeItemCollapsibleState.Expanded);
+		this.iconPath = new vscode.ThemeIcon('folder-opened', new vscode.ThemeColor('symbolIcon.folderForeground'));
+		this.contextValue = 'folderItem';
+		this.description = `(${envs.length} environments)`;
+	}
+}
+
 export class EnvItem extends vscode.TreeItem {
 	constructor(public readonly metadata: EnvMetadata) {
-		super(metadata.fileName, vscode.TreeItemCollapsibleState.None);
+		const basename = path.basename(metadata.fileName);
+		super(basename, vscode.TreeItemCollapsibleState.None);
 
 		const status = this.calculateStatus();
 		const lastSynced = new Date(metadata.lastSyncedAt);
 		const relativeTime = this.getRelativeTime(lastSynced);
 
 		this.tooltip = this.createTooltip(status, lastSynced, relativeTime);
-		this.description = relativeTime;
+		this.description = `(${metadata.envCount} vars) • ${relativeTime}`;
 		this.iconPath = this.getIcon(status);
 		this.contextValue = `envItem:${status}`;
 		

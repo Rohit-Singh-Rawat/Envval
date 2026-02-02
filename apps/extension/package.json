@@ -108,7 +108,7 @@
 			"view/item/context": [
 				{
 					"command": "envval.pushEnv",
-					"when": "view == envvalTrackedEnvs && viewItem == envItemSynced",
+					"when": "view == envvalTrackedEnvs && viewItem =~ /envItem/",
 					"group": "inline"
 				},
 				{
