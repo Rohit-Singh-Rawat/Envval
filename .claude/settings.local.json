@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(npm run check-types:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run compile:*)"
+    ]
+  }
+}

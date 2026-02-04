@@ -17,3 +17,9 @@ export const IGNORED_ENV_FILES = [
 ];
 
 export const IGNORE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Hover feature defaults
+export const DEFAULT_HOVER_ENABLED = true;
+export const DEFAULT_HOVER_SHOW_VALUES = true;
+export const DEFAULT_HOVER_MASK_SENSITIVE = true;
+export const DEFAULT_HOVER_SHOW_UNDEFINED = true;

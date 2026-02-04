@@ -1,4 +1,4 @@
- // The module 'vscode' contains the VS Code extensibility API
+// The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { createLogger } from './utils/logger';
@@ -15,6 +15,9 @@ import { EnvVaultMetadataStore } from './services/metadata-store';
 import { EnvInitService } from './services/env-init';
 import { RepoIdentityCommands } from './commands/repo-identity';
 import { TrackedEnvsProvider } from './views/tracked-envs';
+import { EnvCacheService } from './services/env-cache';
+import { EnvStatusCalculator } from './services/env-status-calculator';
+import { EnvHoverProvider, SUPPORTED_LANGUAGES } from './providers/env-hover-provider';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -26,6 +29,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvVaultMetadataStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context, logger);
+
+	// Initialize env cache and hover provider (works without authentication)
+	const envCache = EnvCacheService.getInstance(envFileWatcher, logger);
+	const hoverProvider = new EnvHoverProvider(envCache, logger);
+	const hoverDisposable = vscode.languages.registerHoverProvider(
+		SUPPORTED_LANGUAGES.map(lang => ({ scheme: 'file', language: lang })),
+		hoverProvider
+	);
+
 	const envInitService = EnvInitService.getInstance(
 		context,
 		metadataStore,
@@ -51,7 +63,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	Commands.getInstance().registerCommands(context);
 	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, logger);
 
-	const trackedEnvsProvider = new TrackedEnvsProvider(metadataStore);
+	// Initialize status calculator for tree view
+	const statusCalculator = EnvStatusCalculator.getInstance(logger);
+	const trackedEnvsProvider = new TrackedEnvsProvider(
+		metadataStore,
+		envFileWatcher,
+		statusCalculator,
+		logger
+	);
 	vscode.window.registerTreeDataProvider('envvalTrackedEnvs', trackedEnvsProvider);
 	
 	vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
@@ -125,7 +144,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		statusBar,
 		authProvider,
 		envFileWatcher,
-		syncManager
+		syncManager,
+		envCache,
+		hoverDisposable
 	);
 }
 

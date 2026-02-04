@@ -150,6 +150,26 @@
 				"type": "boolean",
 				"default": true,
 				"description": "Prompt when repo identity migration is detected"
+			},
+			"envval.hover.enabled": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show environment variable values when hovering over variable references in code"
+			},
+			"envval.hover.showValues": {
+				"type": "boolean",
+				"default": true,
+				"description": "Display actual values in hover (false = always mask all values)"
+			},
+			"envval.hover.maskSensitive": {
+				"type": "boolean",
+				"default": true,
+				"description": "Mask values for keys containing sensitive patterns (KEY, SECRET, PASSWORD, TOKEN, etc.)"
+			},
+			"envval.hover.showUndefined": {
+				"type": "boolean",
+				"default": true,
+				"description": "Show hover for variables not defined in any .env file"
 			}
 		}
 	},

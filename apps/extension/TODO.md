@@ -1,508 +1,518 @@
-# 🧩 EnvVault VS Code Extension — Full TODO
+# 🚀 EnvVault Extension - Production Readiness Checklist
 
-This file lists **everything** needed to build the extension from zero → production, in small, actionable steps.
+> **Status**: Preparing for VS Code Marketplace Release  
+> **Last Updated**: 2026-02-04
 
----
-
-## 0. Project Setup & Basics
-
-- [ ] **Create extension project**
-  - [X] Scaffold a new VS Code extension (TypeScript).
-  - [X] Confirm `src/extension.ts` (or `main.ts`) exists.
-  - [X] Ensure build works (`npm run compile` or equivalent).
-  - [X] Ensure debug launch works (F5 opens Extension Development Host).
-
-- [ ] **Set extension metadata**
-  - [X] Update `package.json`:
-  - [X] `name`
-    - [X] `displayName`
-    - [X] `description`
-    - [X] `publisher`
-    - [X] `version`
-    - [X] `engines.vscode` (min VS Code version)
-  - [ ] Add icon entry (optional, later).
-
-- [ ] **Set activation events**
-  - [ ] Activate on workspace open:
-    - [ ] Add `"*"` or `"onStartupFinished"` (or a more specific event).
-  - [ ] (Optional) Activate on specific commands:
-    - [ ] `onCommand:envvault.openStatus`
-    - [ ] `onCommand:envvault.reauthenticate`
-
-- [ ] **Add extension commands (for dev & debug)**
-  - [ ] In `contributes.commands`:
-    - [ ] `envvault.openStatus` → open a status/info view.
-    - [ ] `envvault.reauthenticate` → manually re-run auth flow.
-    - [ ] `envvault.forceSync` → manually force a sync (debug only, optional).
-    - [ ] `envvault.showLogs` → show debug logs (optional).
+This document tracks everything needed to make EnvVault production-ready and publishable to the VS Code Marketplace.
 
 ---
 
-## 1. Configuration & Settings
+## 📦 Marketplace Readiness (Required for Publishing)
 
-- [X] **Define user settings in `package.json`**
-  - [X] `envvault.apiBaseUrl` (string)
-    - [X] Default to `http://localhost:3000` for dev.
-  - [X] `envvault.sync.pollIntervalSeconds` (number)
-    - [X] Default 60–120 seconds.
-  - [X] `envvault.logging.verbose` (boolean)
-    - [X] Default `false`.
+### Publishing Requirements
+- [ ] **Extension Metadata** (package.json)
+  - [x] Name, display name, description
+  - [x] Publisher ID verified
+  - [x] Version number follows semver
+  - [ ] Add proper icon (PNG, 128x128 recommended)
+  - [ ] Add extension banner color
+  - [ ] Add categories (Security, Other)
+  - [ ] Add keywords for search (env, environment, secrets, sync)
+  - [ ] Set repository URL in package.json
+  - [ ] Set homepage/bugs/license URLs
 
-- [X] **Create config helper module**
-  - [X] Add a small helper to read VS Code configuration:
-    - [X] Get API base URL.
-    - [X] Get poll interval.
-    - [X] Get logging flag.
-  - [X] Ensure config can be refreshed when user changes settings.
+- [ ] **README.md** (marketplace listing)
+  - [ ] Clear description of what extension does
+  - [ ] Feature list with screenshots/GIFs
+  - [ ] Installation instructions
+  - [ ] Usage guide (how to get started)
+  - [ ] Requirements (workspace, Git, etc.)
+  - [ ] Security information (encryption, privacy)
+  - [ ] Troubleshooting section
+  - [ ] Links to documentation
 
----
+- [ ] **CHANGELOG.md**
+  - [ ] Version history with release notes
+  - [ ] Follow "Keep a Changelog" format
 
-## 2. UI Foundation (Status Bar, Notifications, Output Channel)
+- [ ] **LICENSE**
+  - [ ] Add appropriate license file
+  - [ ] Update package.json license field
 
-### 2.1 Status Bar
+- [ ] **Privacy & Security Documentation**
+  - [ ] Privacy policy (how data is handled)
+  - [ ] Security documentation (encryption method)
+  - [ ] Terms of service
 
-- [X] **Create a status bar item on activation**
-  - [X] Position on right side.
-  - [X] Initial text: `EnvVault: 🔴`
-  - [X] Tooltip: `EnvVault: Not authenticated`.
-
-- [X] **Define status states**
-  - [X] Unauthenticated (🔴)
-  - [X] Authenticated but not initialized (🟡)
-  - [X] Synced / idle (🟢)
-  - [X] Syncing (🔁)
-  - [X] Error (⚠️)
-
-- [X] **Implement a small UI manager**
-  - [X] Functions to:
-    - [X] Set auth state (update icon + tooltip).
-    - [X] Set sync state (e.g. “Syncing…”, “Synced at 12:30”).
-    - [X] Attach click handler:
-      - [X] On click, open a quick pick with:
-        - [X] “View EnvVault Status”
-        - [X] “Re-authenticate”
-        - [X] “Open Logs”
-
-### 2.2 Notifications
-
-- [X] **Define key notification types**
-  - [X] Info:
-    - [X] Welcome message (first install).
-    - [X] Env initialized successfully.
-    - [X] Env synced.
-  - [X] Warning:
-    - [X] No `.env` found.
-    - [X] Network issues (cannot reach API).
-  - [X] Error:
-    - [X] Token invalid / expired.
-    - [X] Failed to encrypt/decrypt.
-    - [X] Failed to sync.
-
-- [X] **Plan where to show them**
-  - [X] After failed auth.
-  - [X] After first-time env initialization.
-  - [X] On conflict detection.
-  - [X] On repeated errors (but avoid spam).
-
-### 2.3 Logging / Output Channel
-
-- [X] **Create `EnvVault` output channel**
-  - [X] Used for debug logs, not visible to normal users unless opened.
-- [X] **Logging helper**
-  - [X] `logInfo(message)` – writes to output channel if verbose logging enabled.
-  - [X] `logError(message, error)` – writes detailed errors for debugging.
-  - [X] `logDebug(message)` – only when `envvault.logging.verbose` is `true`.
+- [ ] **Publisher Account Setup**
+  - [ ] Create publisher account on VS Code Marketplace
+  - [ ] Verify publisher identity
+  - [ ] Set up Personal Access Token (PAT) for publishing
 
 ---
 
-## 3. Secure Storage (Tokens & Keys)
+## 🔴 CRITICAL ISSUES (Must Fix Before Release)
 
-- [X] **Define secrets to store**
-  - [X] `envvault.accessToken`
-  - [X] `envvault.refreshToken`
-  - [X] `envvault.deviceId`
-  - [X] `envvault.encryptionKey` or `envvault.keyMaterial` (derived key or wrapped key).
+### 1. Offline/Network Handling
+**Priority: CRITICAL** | **Research: ✅ Complete** | **Status: ⚠️ Not Implemented**
 
-- [X] **Implement secure storage manager**
-  - [X] Helper functions:
-    - [X] `getAccessToken()`
-    - [X] `setAccessToken(token)`
-    - [X] `getRefreshToken()`
-    - [X] `setRefreshToken(token)`
-    - [X] `getDeviceId()`
-    - [X] `setDeviceId(id)`
-    - [X] `getEncryptionKey()`
-    - [X] `setEncryptionKey(key)`
-    - [X] `clearAll()` – clear all secrets on forced logout.
+- [ ] **Connection Status Detection**
+  - [ ] Create `ConnectionMonitor` service
+  - [ ] Implement health check endpoint ping
+  - [ ] Detect online/offline transitions
+  - [ ] Update context variables: `envval:offline`
 
----
+- [ ] **Status Bar Indicators**
+  - [ ] Show connection status in status bar
+  - [ ] Online: `🟢 EnvVault`
+  - [ ] Offline: `⚪ EnvVault (Offline)`
+  - [ ] Connecting: `🔄 EnvVault (Connecting...)`
+  - [ ] Click to retry connection when offline
 
-## 4. Authentication & Device Registration Flow (Extension Side)
+- [ ] **Graceful Degradation**
+  - [ ] Allow viewing .env files when offline
+  - [ ] Show "offline" badge on cached data in tree view
+  - [ ] Queue sync operations for when connection returns
+  - [ ] Don't spam error notifications when offline
 
-### 4.1 First-Time Auth UX
+- [ ] **Operation Queue**
+  - [ ] Create `OfflineQueue` service
+  - [ ] Queue push/pull operations when offline
+  - [ ] Auto-execute queue when back online
+  - [ ] Show notification: "Queued for sync when online"
 
-- [X] **On activation, check auth state**
-  - [X] Try reading `accessToken` and `refreshToken` from SecretStorage.
-  - [X] If none found → mark as unauthenticated (🔴).
+- [ ] **Smart Polling**
+  - [ ] Stop polling when offline (save resources)
+  - [ ] Resume polling when online
+  - [ ] Adjust poll frequency based on connection quality
+  - [ ] Add backoff on repeated failures
 
-- [X] **Show welcome/auth prompt**
-  - [X] If unauthenticated:
-    - [X] Show a login window (WebView).
-    - [X] On “Sign In”:
-      - [X] Initiate device code flow.
-
-- [ ] **Call API: login with token**
-  - [ ] Use `apiBaseUrl` and call `/auth/login-with-token`.
-  - [ ] On success:
-    - [ ] Receive:
-      - Access token
-      - Refresh token
-      - Device ID
-      - Device key material (if your API returns it)
-    - [ ] Store tokens + deviceId in SecretStorage.
-    - [ ] Derive/store encryption key from key material.
-    - [ ] Update status bar → `EnvVault: 🟡` (authenticated, repo not yet initialized).
-  - [ ] On failure:
-    - [ ] Show error notification: “Invalid token.”
-    - [ ] Log detailed error to output channel.
-
-### 4.2 Token Refresh Handling
-
-- [ ] **Implement API client wrapper**
-  - [ ] All network calls go through a single helper that:
-    - [ ] Attaches access token in headers.
-    - [ ] Detects 401 / token expired response.
-    - [ ] Automatically tries refresh flow.
-
-- [ ] **Refresh flow**
-  - [ ] If API returns 401 or access token known expired:
-    - [ ] Call `/auth/refresh` with refresh token.
-    - [ ] On success:
-      - [ ] Update access (and possibly refresh) token in SecretStorage.
-      - [ ] Retry original request.
-    - [ ] On failure:
-      - [ ] Clear tokens and encryption key.
-      - [ ] Update status bar to 🔴.
-      - [ ] Show notification: “EnvVault: Login expired. Please reconnect.”
+- [ ] **User Notifications**
+  - [ ] Non-intrusive "gone offline" notification
+  - [ ] "Back online, syncing..." notification
+  - [ ] Don't spam - use debouncing (5s minimum)
+  - [ ] Clear offline-related messages when online
 
 ---
 
-## 5. Encryption Key Handling (Device Key Material)
+### 2. Workspace Context Handling
+**Priority: CRITICAL** | **Research: ✅ Complete** | **Status: ⚠️ Partially Implemented**
 
-- [X] **Decide on key material format with API**
-  - [X] E.g. `deviceKey` or `wrappedUserKey`.
+- [ ] **Workspace Validation**
+  - [ ] Add `validateWorkspace()` function
+  - [ ] Check if workspace folder is open
+  - [ ] Detect "unsafe" paths (Desktop, Documents, C:\, etc.)
+  - [ ] Warn users opening broad folders
+  - [ ] Provide "Open Project Folder" action button
 
-- [X] **Derive usable encryption key**
-  - [X] From the device key material (details depend on your crypto spec).
-  - [X] Store the derived key securely:
-    - [X] Only the symmetric key needed for AES-GCM.
+- [ ] **Performance & Safety Limits**
+  - [ ] Add `MAX_FILES = 10000` limit to `getAllEnvFiles()`
+  - [ ] Add `MAX_DEPTH = 10` limit to prevent infinite recursion
+  - [ ] Track scannedFiles counter
+  - [ ] Show warning when hitting limits
+  - [ ] Log performance metrics
 
-- [X] **Implement crypto helpers (conceptually)**
-  - [X] `encryptEnv(plaintextEnvString) -> { ciphertextBase64, ivBase64 }`
-  - [X] `decryptEnv(ciphertextBase64, ivBase64) -> plaintextEnvString`
-  - [X] `hashEnv(plaintextEnvString) -> hashHexString` (SHA-256).
+- [ ] **Single File Mode Support**
+  - [ ] Detect when single .env file is opened
+  - [ ] Use file's directory as temporary workspace
+  - [ ] Show prompt: "Track this .env file?"
+  - [ ] Provide "Open Folder" alternative
 
-- [X] **Ensure all encryption/decryption is done client-side**
-  - [X] Never send plaintext env to server.
+- [ ] **Multi-Root Workspace Support**
+  - [ ] Update `getWorkspacePath()` to handle multi-root
+  - [ ] Show workspace folder picker when multiple folders
+  - [ ] Use active editor's folder if available
+  - [ ] Add "Switch Workspace Folder" command
+  - [ ] Show which folder is being tracked in UI
 
----
+- [ ] **Contextual Welcome Messages**
+  - [ ] Show different messages based on context
+  - [ ] No workspace: "Open Folder" button
+  - [ ] Unauthenticated: "Sign In" button
+  - [ ] Empty workspace: "Create .env" / "Import" buttons
+  - [ ] Use `when` clauses in viewsWelcome
 
-## 6. Repo & Env Identification Logic
-
-- [X] **Workspace detection**
-  - [X] Get active workspace folder path.
-  - [X] Handle case: no workspace open → show error and skip.
-
-- [X] **Read git remote**
-  - [X] Try run `git remote get-url origin` from workspace path.
-  - [X] If not available:
-    - [X] Use only workspace path for repo identity.
-    - [X] Log a warning: “No git remote, using folder path.”
-
-- [X] **Compute `repoId`**
-  - [X] Combine remote URL + workspace path + maybe user ID.
-  - [X] Hash into a stable hex string.
-
-- [X] **Compute `envId`**
-  - [X] For `.env` file:
-    - [X] `envId = hash(repoId + ".env")`.
-
-- [X] **Local metadata store**
-  - [X] Decide location:
-    - Option A: `.envvault.meta.json` at workspace root:
-      - Pros: transparent on disk.
-      - Cons: extra file in repo (add to `.gitignore`).
-    - Option B: VS Code `workspaceState`.
-  - [X] Metadata per env:
-    - `envId`
-    - `fileName` (".env")
-    - `lastSyncedHash`
-    - `lastSyncedAt` (timestamp string).
-
-- [X] **Implement helpers**
-  - [X] `loadEnvMetadata(envId)` → metadata or default.
-  - [X] `saveEnvMetadata(envId, data)`.
+- [ ] **Status Context Indicators**
+  - [ ] Show workspace info in status bar tooltip
+  - [ ] Indicate multi-root workspace tracking
+  - [ ] Add breadcrumb to tree view header
 
 ---
 
-## 7. Environment Initialization Flow (First Time per Repo)
+### 3. Enhanced Tree View & Control Panel
+**Priority: HIGH** | **Research: ✅ Complete** | **Status: ⚠️ Needs Enhancement**
 
-### 7.1 Detect whether env exists on server
+#### Phase 1: Enhanced Tree View (Essential)
 
-- [X] On extension activation:
-  - [X] After auth & repo detection, check if `.env` exists locally:
-    - [X] If not → do nothing yet, but keep track.
+- [ ] **Control Panel Section**
+  - [ ] Create `SectionHeaderItem` class
+  - [ ] Create `ActionButtonItem` class
+  - [ ] Add "🎛️ CONTROL PANEL" section to tree
+  - [ ] Add "⬆️ Push All Changes" button
+  - [ ] Add "⬇️ Pull All Updates" button
+  - [ ] Add "➕ Create New .env" button
+  - [ ] Add "🔄 Force Sync All" button
+  - [ ] Add "⚙️ Settings" button
 
-- [X] When `.env` is created or opened:
-  - [X] Compute `repoId` and `envId`.
-  - [X] Call API: `GET /envs/exists?repoId=&fileName=.env`.
-  - [X] Check response:
-    - [X] If `exists = false` → show init prompt.
-    - [X] If `exists = true` → run initial sync (see below).
+- [ ] **Repository Info Section**
+  - [ ] Create `RepoInfoItem` class
+  - [ ] Add "📦 REPOSITORY" section
+  - [ ] Show repo name/ID (truncated)
+  - [ ] Show git remote URL
+  - [ ] Show connection status (🟢 Connected / 🔴 Offline)
+  - [ ] Show last sync time
+  - [ ] Add "Switch Repository" button (multi-root)
 
-### 7.2 Init prompt UI
+- [ ] **Statistics Section**
+  - [ ] Create `StatItem` class
+  - [ ] Add "📊 STATISTICS" section
+  - [ ] Show "Files tracked" count
+  - [ ] Show "Modified" count
+  - [ ] Show "Variables encrypted" total count
 
-- [X] Show a dialog:
-  - Title: “Initialize EnvVault for this project?”
-  - Message: “Do you want EnvVault to securely back up and sync this `.env` across your devices?”
-  - Buttons:
-    - “Initialize”
-    - “Not now”
+- [ ] **Enhanced Env Items**
+  - [ ] Keep existing status icons (✅ synced, ✏️ modified, etc.)
+  - [ ] Add inline action buttons (push, pull)
+  - [ ] Improve tooltips with more details
+  - [ ] Add accessibility labels
 
-- [X] If user clicks **Initialize**:
-  - [X] Read `.env` file content.
-  - [X] If empty:
-    - [X] Confirm with user or show info: “.env file is empty. Initialize anyway?”
-  - [X] Encrypt content with device key.
-  - [X] Compute hash of plaintext.
-  - [X] Call `POST /envs` with:
-    - `repoId`
-    - `fileName`
-    - `ciphertext`
-    - `hash`
-  - [X] On success:
-    - [X] Save `lastSyncedHash = hash`.
-    - [X] Save `lastSyncedAt = now`.
-    - [X] Update status bar to `EnvVault: 🟢 Synced`.
-    - [X] Notify: “EnvVault: `.env` is now backed up and synced.”
+- [ ] **Rich Context Menus**
+  - [ ] Add "Push" action for modified files
+  - [ ] Add "Pull" action for all files
+  - [ ] Add "Ignore" action
+  - [ ] Add "Delete" action (with confirmation)
+  - [ ] Add "Copy Env ID" for debugging
+  - [ ] Add "View Diff" (future)
+  - [ ] Group actions logically (1_sync, 2_manage, 3_clipboard)
 
----
+- [ ] **New Commands**
+  - [ ] Implement `envval.pushAll`
+  - [ ] Implement `envval.pullAll`
+  - [ ] Implement `envval.createEnv`
+  - [ ] Implement `envval.deleteEnv`
+  - [ ] Implement `envval.ignoreEnv`
+  - [ ] Implement `envval.copyEnvId`
+  - [ ] Implement `envval.switchRepository`
+  - [ ] Implement `envval.openSettings`
 
-## 8. Initial Sync When Env Already Exists
+#### Phase 2: Optional Webview Panel (Advanced)
 
-- [ ] If `exists = true` from `/envs/exists`:
-  - [ ] Fetch metadata from `GET /envs/:envId/metadata`.
-  - [ ] Optionally fetch full ciphertext via `GET /envs/:envId`.
+- [ ] **Conflict Resolution Webview**
+  - [ ] Create `ConflictResolverPanel` class
+  - [ ] Side-by-side diff view (local vs remote)
+  - [ ] "Use Local" / "Use Remote" buttons
+  - [ ] Syntax highlighted preview
+  - [ ] Show variable count differences
 
-- [ ] Read local `.env` if present:
-  - [ ] If no local `.env`:
-    - [ ] Offer to restore from remote:
-      - “A remote `.env` exists for this repo. Restore it locally?”
-      - Buttons: “Restore” / “Skip”.
-  - [ ] If local `.env` present:
-    - [ ] Decrypt remote ciphertext.
-    - [ ] Compute `hashRemote` and `hashLocal`.
-    - [ ] Compare:
-      - [ ] If `hashLocal == hashRemote`:
-        - [ ] Mark as synced and set `lastSyncedHash = hashLocal`.
-      - [ ] If one of them empty / very small:
-        - [ ] Offer to pick the non-empty one as source.
-      - [ ] If both non-empty and differ:
-        - [ ] Show conflict prompt (first-time conflict):
-          - Buttons:
-            - “Use Local `.env` and overwrite remote”
-            - “Use Remote `.env` and overwrite local”
-        - [ ] Apply chosen version and set `lastSyncedHash`.
+- [ ] **Settings Management UI**
+  - [ ] Custom settings editor (instead of JSON)
+  - [ ] Connection settings (API URL, poll interval)
+  - [ ] Privacy settings (logging, telemetry)
+  - [ ] Advanced settings (encryption, debugging)
 
----
-
-## 9. Local Change Detection & Auto Sync (Push)
-
-### 9.1 Watch `.env` file
-
-- [X] Register a watcher for `.env`:
-  - [X] On file open: keep reference.
-  - [X] On file save: trigger sync check.
-
-### 9.2 On save sync flow
-
-- [X] When `.env` is saved:
-  - [X] Read current `.env` content.
-  - [X] If file not found → skip.
-  - [X] Compute `hashLocal`.
-  - [X] Load `lastSyncedHash` from metadata.
-  - [X] If `hashLocal == lastSyncedHash`:
-    - [X] Do nothing.
-  - [X] Else:
-    - [X] Encrypt `.env` using device key.
-    - [X] Call `PUT /envs/:envId` with `ciphertext` + `hashLocal`.
-    - [X] On success:
-      - [X] Update `lastSyncedHash = hashLocal`.
-      - [X] Update `lastSyncedAt`.
-      - [X] Update status bar: “Synced at HH:MM”.
-    - [X] On failure:
-      - [X] Show error notification: “EnvVault: Failed to sync `.env`.”
-      - [X] Log details.
-
-### 9.3 Optional: Debounce changes before save
-
-- [X] Optionally track text changes & auto sync without save:
-  - [X] Set up a debounce timer (e.g. 3–5 seconds after last edit) before pushing.
-  - [X] Only do this if it doesn’t feel annoying.
+- [ ] **Sync History Timeline**
+  - [ ] Visual timeline of sync events
+  - [ ] Show which device made changes
+  - [ ] Show timestamps and change summaries
+  - [ ] Rollback capability (future)
 
 ---
 
-## 10. Background Polling & Remote Sync (Pull)
+## ⚠️ HIGH Priority Issues
 
-### 10.1 Polling loop
+### Error Handling & Edge Cases
 
-- [X] On activation:
-  - [X] Start an interval timer (dur = `envvault.sync.pollIntervalSeconds`).
-  - [X] On each tick:
-    - [X] For each known `envId`:
-      - [X] Call `GET /envs/:envId/metadata`.
-      - [X] Compare `remoteHash` vs `lastSyncedHash`.
+- [ ] **Improved Error Messages**
+  - [ ] Replace generic errors with actionable messages
+  - [ ] Include "what went wrong" and "how to fix"
+  - [ ] Add error codes for debugging
+  - [ ] Log full stack traces to output channel
 
-### 10.2 Auto-pull when safe
+- [ ] **Network Error Handling**
+  - [ ] Distinguish timeout vs connection refused vs DNS failure
+  - [ ] Show different messages for different error types
+  - [ ] Don't retry non-retryable errors (400, 404, etc.)
+  - [ ] Add circuit breaker pattern for repeated failures
 
-- [X] If `remoteHash == lastSyncedHash`:
-  - [X] No remote changes → skip.
+- [ ] **API Error Handling**
+  - [ ] Handle 401 Unauthorized (token expired)
+  - [ ] Handle 403 Forbidden (device revoked)
+  - [ ] Handle 409 Conflict (concurrent edits)
+  - [ ] Handle 429 Rate Limit
+  - [ ] Handle 500s gracefully with retry
 
-- [X] If `remoteHash != lastSyncedHash`:
-  - [X] Read local `.env`, compute `hashLocal`.
-  - [X] If `hashLocal == lastSyncedHash`:
-    - [X] Local is unchanged since last sync:
-      - [X] Safe to auto-pull:
-        - [X] `GET /envs/:envId` to get ciphertext.
-        - [X] Decrypt to plaintext.
-        - [X] Overwrite local `.env`.
-        - [X] Update `lastSyncedHash = remoteHash`.
-        - [X] Notify:
-          - [X] “EnvVault: `.env` updated from remote changes.”
-          - (Optional: show which device updated it.)
+- [ ] **Crypto Error Handling**
+  - [ ] Detect corrupted encryption keys
+  - [ ] Handle decryption failures gracefully
+  - [ ] Show clear message: "Cannot decrypt - key may be invalid"
+  - [ ] Provide recovery options
 
----
-
-## 11. Conflict Detection & Resolution UI
-
-- [ ] If `remoteHash != lastSyncedHash` **and** `hashLocal != lastSyncedHash`:
-  - [ ] Both local and remote changed since last sync → conflict.
-
-- [ ] Show conflict UI:
-  - [ ] Message:  
-    `EnvVault: Conflict detected between local and remote ".env".`
-  - [ ] Buttons:
-    - [ ] “Keep Local (.env)”
-    - [ ] “Use Remote (.env)”
-    - [ ] (Later) “View Diff”
-
-- [ ] If user selects **Keep Local**:
-  - [ ] Encrypt local `.env`.
-  - [ ] Push to server (`PUT /envs/:envId`).
-  - [ ] Set `lastSyncedHash = hashLocal`.
-
-- [ ] If user selects **Use Remote**:
-  - [ ] Fetch remote ciphertext.
-  - [ ] Decrypt.
-  - [ ] Overwrite local `.env`.
-  - [ ] Set `lastSyncedHash = remoteHash`.
-
-- [ ] Show final notification:
-  - [ ] “EnvVault: Conflict resolved using Local/Remote.”
+- [ ] **Large File Handling**
+  - [ ] Set max .env file size (e.g., 1MB)
+  - [ ] Warn before syncing large files
+  - [ ] Show progress for large uploads
+  - [ ] Handle timeouts on large files
 
 ---
 
-## 12. Extension Settings UI & Commands UX
+### Security & Performance
 
-- [ ] **`EnvVault: Open Status` command**
-  - [ ] Show a simple info popup:
-    - [ ] Auth state (user account/email if available).
-    - [ ] Current repo sync state.
-    - [ ] Last sync time.
-    - [ ] Number of envs tracked.
+- [ ] **Input Validation**
+  - [ ] Validate all API responses
+  - [ ] Sanitize file paths
+  - [ ] Validate env IDs before using
+  - [ ] Check for null/undefined before operations
 
-- [ ] **`EnvVault: Re-authenticate` command**
-  - [ ] Clear tokens from SecretStorage (or ask).
-  - [ ] Re-run login flow (paste PAT).
-  - [ ] Keep metadata but warn: “You will need to re-sync.”
+- [ ] **Memory Management**
+  - [ ] Don't load entire .env into memory repeatedly
+  - [ ] Clear crypto buffers after use
+  - [ ] Dispose of watchers properly
+  - [ ] Use streaming for large files
 
-- [ ] **Settings UI**
-  - [ ] Users can adjust:
-    - [ ] API URL (for dev/stage/prod).
-    - [ ] Poll interval.
-    - [ ] Verbose logging.
-  - [ ] React to change events:
-    - [ ] If poll interval changes, restart timer.
-    - [ ] If API URL changes, future requests use new URL.
+- [ ] **Rate Limiting**
+  - [ ] Add client-side rate limiting
+  - [ ] Debounce rapid file changes before sync
+  - [ ] Don't spam API on every keystroke
+  - [ ] Implement exponential backoff
 
----
-
-## 13. Error Handling, Edge Cases & Polish
-
-- [ ] **No workspace open**
-  - [ ] Show message:
-    - [ ] “EnvVault: No workspace open. Open a project folder to use EnvVault.”
-
-- [ ] **.env missing**
-  - [ ] On init attempt:
-    - [ ] Show warning: “No .env file found in this workspace.”
-  - [ ] Optionally provide a button:
-    - [ ] “Create .env and initialize”.
-
-- [ ] **API unreachable**
-  - [ ] On network error:
-    - [ ] Show non-blocking warning:
-      - [ ] “EnvVault: Unable to reach server. Will retry automatically.”
-    - [ ] Retry on next save/poll.
-
-- [ ] **Device revoked from web**
-  - [ ] If API starts returning:
-    - [ ] `403 Forbidden` or `401` with “device revoked” code:
-      - [ ] Clear tokens.
-      - [ ] Status: `🔴`.
-      - [ ] Notification: “EnvVault: This device has been revoked. Please reconnect or contact your admin.”
-
-- [ ] **Large `.env` files**
-  - [ ] Decide a max size threshold.
-  - [ ] If > threshold:
-    - [ ] Warn user: “Large .env file, sync may be slower.”
-    - [ ] Allow them to continue or disable sync for this file.
+- [ ] **Secure Cleanup**
+  - [ ] Clear secrets on logout
+  - [ ] Clear cached plaintext
+  - [ ] Dispose of encryption keys properly
+  - [ ] Zero out sensitive memory
 
 ---
 
-## 14. Testing, Debugging, and Packaging
+## 📝 Medium Priority
 
-- [ ] **Manual testing scenarios**
-  - [ ] First-time installation & auth.
-  - [ ] First repo init.
-  - [ ] Edit `.env` and check it syncs.
-  - [ ] Clone same repo on another machine, login, confirm restore.
-  - [ ] Remote change (simulate via web) and see extension pull update.
-  - [ ] Conflicting changes from two machines → conflict prompt.
+### UX Improvements
 
-- [ ] **Debugging tools**
-  - [ ] Ensure output channel logs enough details.
-  - [ ] Add a hidden or debug-only command:
-    - [ ] “EnvVault: Dump Debug State” to show:
-      - [ ] RepoId
-      - [ ] envId
-      - [ ] lastSyncedHash
-      - [ ] timestamps
-      - [ ] auth state (without showing tokens)
+- [x] Status bar showing sync status
+- [x] Tree view with tracked environments
+- [ ] Better onboarding (first-use tutorial)
+- [ ] Keyboard shortcuts for common actions
+- [ ] Quick actions from command palette
+- [ ] Hover tooltips on env variables (in code)
+- [ ] Inline sync status in editor
 
-- [ ] **Packaging**
-  - [ ] Define `vsce` packaging config or use `npm run package`.
-  - [ ] Validate extension manifest.
-  - [ ] Prepare Marketplace listing (later).
+### Features
+
+- [x] Multiple .env file support (.env.local, .env.production)
+- [ ] Bulk operations (sync all, ignore all)
+- [ ] Export/import .env files
+- [ ] Team collaboration features
+- [ ] Env variable search across files
+- [ ] Git integration (respect .gitignore)
+- [ ] Conflict resolution with merge
+
+### Documentation
+
+- [ ] In-extension help documentation
+- [ ] Video tutorials
+- [ ] FAQ section
+- [ ] Migration guide (from other tools)
+- [ ] API documentation for developers
+- [ ] Security whitepaper
+
+---
+
+## 🧪 Testing & Quality
+
+### Testing
+- [ ] **Manual Test Scenarios**
+  - [ ] First-time installation & auth flow
+  - [ ] First repo initialization
+  - [ ] Edit .env and verify sync
+  - [ ] Multi-device sync (simulate with 2 VS Code instances)
+  - [ ] Conflict resolution flow
+  - [ ] Offline mode handling
+  - [ ] Large workspace scanning (1000+ files)
+  - [ ] Multi-root workspace
+  - [ ] Single file mode
+
+- [ ] **Automated Tests**
+  - [ ] Unit tests for crypto functions
+  - [ ] Unit tests for repo detection
+  - [ ] Unit tests for sync logic
+  - [ ] Integration tests with mock API
+  - [ ] E2E tests (VS Code extension testing API)
+
+- [ ] **Edge Cases**
+  - [ ] No workspace open
+  - [ ] Empty .env file
+  - [ ] Corrupted .env file
+  - [ ] Git remote changed
+  - [ ] Workspace renamed/moved
+  - [ ] Network disconnected mid-sync
+  - [ ] Multiple .env files with same name (subdirectories)
+
+### Code Quality
+- [ ] TypeScript strict mode enabled
+- [ ] All linter warnings fixed
+- [ ] No `any` types remaining
+- [ ] Proper error types (no `unknown` catches)
+- [ ] Code documentation (JSDoc)
+- [ ] Remove debug console.log statements
+- [ ] Remove commented-out code
 
 ---
 
-## 15. Nice-to-Haves (Future)
+## 🎨 Polish & Nice-to-Haves
 
-- [ ] Support multiple env files (`.env.local`, `.env.production`, etc.).
-- [ ] Show inline hints in the editor (e.g. “EnvVault: synced” in status bar when editing).
-- [ ] Command to show quick diff preview before overwriting `.env`.
-- [ ] Integration tests (using VS Code’s testing API).
-- [ ] Telemetry (opt-in) to measure usage (no secret content).
+- [ ] Extension icon design
+- [ ] Marketing materials (screenshots, GIFs)
+- [ ] VS Code theme integration (respect user's theme)
+- [ ] Accessibility improvements (screen reader support)
+- [ ] Localization (i18n) support
+- [ ] Telemetry (opt-in, privacy-respecting)
+- [ ] Performance metrics
+- [ ] Extension bundle size optimization
+- [ ] Startup performance optimization
 
 ---
+
+## ✅ COMPLETED ITEMS
+
+### Core Foundation
+- [x] Extension project scaffolding
+- [x] TypeScript build setup
+- [x] Debug launch configuration
+- [x] Package.json metadata (name, publisher, version)
+- [x] Activation events (`*`)
+- [x] Configuration schema (API URL, poll interval, logging)
+- [x] Config helper module
+
+### Authentication
+- [x] Device code OAuth flow (WebView)
+- [x] Token storage (SecretStorage API)
+- [x] Access token + refresh token handling
+- [x] Auto refresh on 401
+- [x] Logout flow
+- [x] Session state management
+
+### Encryption & Crypto
+- [x] Device key material handling
+- [x] AES-GCM encryption/decryption
+- [x] SHA-256 hashing
+- [x] Client-side only crypto (no plaintext to server)
+- [x] Key derivation from device key
+
+### Repo & Env Detection
+- [x] Workspace detection
+- [x] Git remote detection (origin, upstream, any)
+- [x] Submodule detection
+- [x] Worktree detection
+- [x] Content-based repo ID (fallback)
+- [x] Stable repo ID computation
+- [x] Env ID computation (hash of repoId + fileName)
+- [x] Monorepo detection
+- [x] Migration detection & prompts
+
+### Metadata & Storage
+- [x] Local metadata store (workspace state)
+- [x] `loadEnvMetadata()`, `saveEnvMetadata()`
+- [x] Track `lastSyncedHash`, `lastSyncedAt`
+- [x] Repo identity store
+- [x] Git remote history tracking
+
+### Sync Logic
+- [x] Environment initialization flow
+- [x] Init prompt UI (dialog)
+- [x] Empty file confirmation
+- [x] Initial sync when env exists remotely
+- [x] Restore prompt UI
+- [x] First-time sync conflict resolution
+- [x] Local change detection (file watcher)
+- [x] On-save sync (push)
+- [x] Background polling (pull)
+- [x] Auto-pull when safe (no local changes)
+- [x] Three-way reconciliation logic
+- [x] Zombie metadata detection & cleanup
+
+### UI Components
+- [x] Status bar item with states (🔴 🟡 🟢 🔁 ⚠️)
+- [x] Output channel for logging
+- [x] Login window (WebView)
+- [x] Tree view provider (tracked environments)
+- [x] Folder grouping in tree view
+- [x] Status icons (synced, modified, conflict, ignored)
+- [x] Context menus (Sync Now, Open File)
+- [x] Welcome views (sign in, no envs)
+- [x] Notification dialogs (info, warning, error)
+
+### Commands
+- [x] `envval.showQuickSyncAction`
+- [x] `envval.forceSync`
+- [x] `envval.showLogs`
+- [x] `envval.logout`
+- [x] `envval.viewRepoIdentity`
+- [x] `envval.setManualRepoIdentity`
+- [x] `envval.setSubProjectPath`
+- [x] `envval.resetRepoIdentity`
+- [x] `envval.migrateRepoIdentity`
+- [x] `envval.diagnoseRepoDetection`
+- [x] `envval.refreshTrackedEnvs`
+- [x] `envval.pushEnv`
+- [x] `envval.openFile`
+
+### API Integration
+- [x] API client wrapper with retry logic
+- [x] Exponential backoff (1s → 10s)
+- [x] Retryable error codes (408, 429, 500-504)
+- [x] Network error detection (ETIMEDOUT, ECONNREFUSED, etc.)
+- [x] Auth interceptor (attach bearer token)
+- [x] 401 detection & token refresh
+- [x] Structured API error types
+- [x] Type-safe API responses
+- [x] All endpoints implemented (repos, envs, auth)
+
+### Features
+- [x] Multiple .env file support
+- [x] Hover provider (show env var values in code)
+- [x] Sensitive value masking (KEY, SECRET, PASSWORD, TOKEN)
+- [x] Env cache service
+- [x] Status calculator (synced/modified/conflict/ignored)
+- [x] Debounced file watching
+
+---
+
+## 📋 Quick Reference: Implementation Priority
+
+**Week 1 - Critical Fixes:**
+1. ✅ Offline/network handling (connection monitor, queue, status)
+2. ✅ Workspace validation (unsafe paths, limits, single file)
+3. ✅ Enhanced tree view (control panel, repo info, statistics)
+
+**Week 2 - Important Features:**
+4. Rich context menus & inline actions
+5. Better error messages & handling
+6. Multi-root workspace support
+7. Performance optimizations
+
+**Week 3 - Marketplace Prep:**
+8. README, CHANGELOG, LICENSE
+9. Icon & marketing materials
+10. Testing & bug fixes
+11. Documentation
+
+**Week 4 - Final Polish:**
+12. Code cleanup & optimization
+13. Security review
+14. Final testing
+15. Publish to marketplace 🚀
+
+---
+
+## Research Documents
+
+- [Offline/Slow Internet Handling](../.gemini/antigravity/brain/86237dd7-559d-44ec-bd4f-772e91a5668f/offline-internet-research.md) ✅
+- [Workspace Context Handling](../.gemini/antigravity/brain/86237dd7-559d-44ec-bd4f-772e91a5668f/workspace-context-research.md) ✅
+- [Control Panel & View Enhancement](../.gemini/antigravity/brain/86237dd7-559d-44ec-bd4f-772e91a5668f/control-panel-research.md) ✅
+
+---
+
+**Next Actions:**
+1. Start with offline handling implementation
+2. Add workspace validation
+3. Enhance tree view with control panel
+4. Prepare marketplace assets
