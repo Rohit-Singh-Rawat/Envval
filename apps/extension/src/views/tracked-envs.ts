@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { EnvVaultMetadataStore, EnvMetadata } from '../services/metadata-store';
+import { EnvFileWatcher } from '../watchers/env-file-watcher';
+import { EnvStatusCalculator } from '../services/env-status-calculator';
 import * as path from 'path';
 import { Commands } from '../commands';
-
-import { hashEnv } from '../utils/crypto';
-import * as fs from 'fs';
+import { Logger } from '../utils/logger';
 
 /**
  * State of an environment file relative to the remote vault.
@@ -19,8 +19,38 @@ export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem | Fo
 	private _onDidChangeTreeData: vscode.EventEmitter<EnvItem | FolderItem | undefined | void> = new vscode.EventEmitter<EnvItem | FolderItem | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<EnvItem | FolderItem | undefined | void> = this._onDidChangeTreeData.event;
 
-	constructor(private readonly metadataStore: EnvVaultMetadataStore) {
+	constructor(
+		private readonly metadataStore: EnvVaultMetadataStore,
+		private readonly fileWatcher: EnvFileWatcher,
+		private readonly statusCalculator: EnvStatusCalculator,
+		private readonly logger: Logger
+	) {
+		// Refresh when metadata changes (after sync operations)
 		this.metadataStore.onDidChangeMetadata(() => {
+			this.logger.debug('Metadata changed, refreshing tree view');
+			this.refresh();
+		});
+		
+		/**
+		 * Critical: Also refresh when files change on disk.
+		 * Without this, local file edits won't update status icons in real-time.
+		 * The dual-listener pattern ensures the tree stays synchronized with both
+		 * vault state (metadata) and file system state (local changes).
+		 */
+		this.fileWatcher.onDidChange((event) => {
+			this.logger.debug(`File changed: ${event.fileName}, refreshing tree view`);
+			this.statusCalculator.invalidateCache(event.fileName);
+			this.refresh();
+		});
+		
+		this.fileWatcher.onDidCreate((event) => {
+			this.logger.debug(`File created: ${event.fileName}, refreshing tree view`);
+			this.refresh();
+		});
+		
+		this.fileWatcher.onDidDelete((event) => {
+			this.logger.debug(`File deleted: ${event.fileName}, refreshing tree view`);
+			this.statusCalculator.invalidateCache(event.fileName);
 			this.refresh();
 		});
 	}
@@ -52,10 +82,14 @@ export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem | Fo
 					const parts = meta.fileName.split(/[/\\]/);
 					if (parts.length > 1) {
 						const folderPath = parts.slice(0, -1).join('/');
-						if (!folders.has(folderPath)) folders.set(folderPath, []);
-						folders.get(folderPath)!.push(meta);
+						const existingEnvs = folders.get(folderPath);
+						if (existingEnvs) {
+							existingEnvs.push(meta);
+						} else {
+							folders.set(folderPath, [meta]);
+						}
 					} else {
-						rootItems.push(new EnvItem(meta));
+						rootItems.push(new EnvItem(meta, this.statusCalculator));
 					}
 				}
 				
@@ -76,11 +110,12 @@ export class TrackedEnvsProvider implements vscode.TreeDataProvider<EnvItem | Fo
 			}
 
 			if (element instanceof FolderItem) {
-				return element.envs.map(meta => new EnvItem(meta));
+				return element.envs.map(meta => new EnvItem(meta, this.statusCalculator));
 			}
 
 			return [];
 		} catch (error) {
+			this.logger.error('Failed to build tree view children:'+ error);
 			return [];
 		}
 	}
@@ -96,11 +131,14 @@ export class FolderItem extends vscode.TreeItem {
 }
 
 export class EnvItem extends vscode.TreeItem {
-	constructor(public readonly metadata: EnvMetadata) {
+	constructor(
+		public readonly metadata: EnvMetadata,
+		private readonly statusCalculator: EnvStatusCalculator
+	) {
 		const basename = path.basename(metadata.fileName);
 		super(basename, vscode.TreeItemCollapsibleState.None);
 
-		const status = this.calculateStatus();
+		const status = this.statusCalculator.calculateStatus(metadata);
 		const lastSynced = new Date(metadata.lastSyncedAt);
 		const relativeTime = this.getRelativeTime(lastSynced);
 
@@ -119,21 +157,6 @@ export class EnvItem extends vscode.TreeItem {
 			title: 'Open File',
 			arguments: [this],
 		};
-	}
-
-	private calculateStatus(): EnvSyncStatus {
-		if (this.metadata.ignoredAt) return 'ignored';
-		
-		const uri = this.getFileUri(this.metadata.fileName);
-		if (!fs.existsSync(uri.fsPath)) return 'synced'; // Or missing? Synced for now if it's not local
-
-		try {
-			const content = fs.readFileSync(uri.fsPath, 'utf8');
-			const localHash = hashEnv(content);
-			return localHash === this.metadata.lastSyncedHash ? 'synced' : 'modified';
-		} catch (error) {
-			return 'synced'; 
-		}
 	}
 
 	private getIcon(status: EnvSyncStatus): vscode.ThemeIcon {
@@ -168,14 +191,5 @@ export class EnvItem extends vscode.TreeItem {
 		if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
 		if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
 		return `${Math.floor(diffInSeconds / 86400)}d ago`;
-	}
-
-	private getFileUri(fileName: string): vscode.Uri {
-		const workspaceFolders = vscode.workspace.workspaceFolders;
-		if (workspaceFolders && workspaceFolders.length > 0) {
-			const rootPath = workspaceFolders[0].uri.fsPath;
-			return vscode.Uri.file(path.join(rootPath, fileName));
-		}
-		return vscode.Uri.file(fileName);
 	}
 }
