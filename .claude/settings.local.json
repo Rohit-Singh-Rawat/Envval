@@ -5,7 +5,11 @@
       "Bash(npm run check-types:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run lint:*)",
-      "Bash(npm run compile:*)"
+      "Bash(npm run compile:*)",
+      "Bash(powershell -Command \"Remove-Item -Path ''c:\\\\Users\\\\ROHIT SINGH RAWAT\\\\OneDrive\\\\Desktop\\\\rsrCrafts\\\\Env0\\\\apps\\\\web\\\\src\\\\routes\\\\_dashboard\\\\repos\\\\`$repoId.tsx'' -Force\")",
+      "Bash(pnpm build:*)",
+      "Bash(bun run build:*)",
+      "Bash(bun run:*)"
     ]
   }
 }
