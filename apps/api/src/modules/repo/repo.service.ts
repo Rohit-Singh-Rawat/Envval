@@ -105,16 +105,22 @@ export class RepoService {
 		return results[0];
 	}
 
-	async getEnvironments(userId: string, repoId: string) {
+	async getEnvironments(userId: string, repoId: string, includeContent = false) {
+		const selection: any = {
+			id: environment.id,
+			fileName: environment.fileName,
+			envCount: environment.envCount,
+			lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
+			createdAt: environment.createdAt,
+			updatedAt: environment.updatedAt,
+		};
+
+		if (includeContent) {
+			selection.content = environment.content;
+		}
+
 		const environments = await db
-			.select({
-				id: environment.id,
-				fileName: environment.fileName,
-				envCount: environment.envCount,
-				lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
-				createdAt: environment.createdAt,
-				updatedAt: environment.updatedAt,
-			})
+			.select(selection)
 			.from(environment)
 			.where(and(eq(environment.repoId, repoId), eq(environment.userId, userId)));
 		return environments;
@@ -204,6 +210,15 @@ export class RepoService {
 			.returning({ id: repo.id, name: repo.name, slug: repo.slug });
 
 		return updated || null;
+	}
+
+	async deleteRepository(userId: string, repoId: string) {
+		const [deleted] = await db
+			.delete(repo)
+			.where(and(eq(repo.id, repoId), eq(repo.userId, userId)))
+			.returning({ id: repo.id, name: repo.name });
+
+		return deleted || null;
 	}
 
 	async migrateRepository(

@@ -57,6 +57,10 @@ export const repoParamSchema = z.object({
 	repoId: z.string().min(1, 'Repository ID is required'),
 });
 
+export const envQuerySchema = z.object({
+	includeContent: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional(),
+});
+
 /**
  * Repository param schema for routes with :slug param.
  */

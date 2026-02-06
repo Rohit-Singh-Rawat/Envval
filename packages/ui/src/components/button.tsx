@@ -1,5 +1,7 @@
+"use client"
+
 import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
+import { Button as ButtonPrimitive } from '@base-ui/react/button';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -37,9 +39,8 @@ const buttonVariants = cva(
 	}
 );
 
-type ButtonProps = React.ComponentProps<'button'> &
+type ButtonProps = ButtonPrimitive.Props &
 	VariantProps<typeof buttonVariants> & {
-		asChild?: boolean;
 		pending?: boolean;
 		pendingText?: string;
 		hoverAnimate?: boolean;
@@ -47,9 +48,8 @@ type ButtonProps = React.ComponentProps<'button'> &
 
 function Button({
 	className,
-	variant,
-	size,
-	asChild = false,
+	variant = 'default',
+	size = 'default',
 	pending = false,
 	pendingText,
 	hoverAnimate = false,
@@ -57,7 +57,6 @@ function Button({
 	disabled,
 	...props
 }: ButtonProps) {
-	const Comp = asChild ? Slot : 'button';
 	const [hasAnimated, setHasAnimated] = React.useState(false);
 
 	React.useEffect(() => {
@@ -67,7 +66,7 @@ function Button({
 	}, [pending]);
 
 	return (
-		<Comp
+		<ButtonPrimitive
 			data-slot='button'
 			className={cn(
 				buttonVariants({ variant, size, className }),
@@ -112,7 +111,7 @@ function Button({
 					)}
 				</AnimatePresence>
 			)}
-		</Comp>
+		</ButtonPrimitive>
 	);
 }
 

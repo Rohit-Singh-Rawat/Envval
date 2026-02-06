@@ -6,8 +6,11 @@ import { getRepositoriesHandler } from '@/modules/repo/get-repositories-handler'
 import { getRepositoryHandler } from '@/modules/repo/get-repository-handler';
 import { getRepositoryBySlugHandler } from '@/modules/repo/get-repository-by-slug-handler';
 import { getRepositoryExistsHandler } from '@/modules/repo/get-repositories-exist-handler';
+import { getRepositoriesEnvHandler } from '@/modules/repo/get-repositories-env-handler';
+import { getRepoEnvByFilenameHandler } from '@/modules/repo/get-repo-env-by-filename-handler';
 import { postRepositoriesHandler } from '@/modules/repo/post-repositories-handler';
 import { postRepoMigrateHandler } from '@/modules/repo/post-repo-migrate-handler';
+import { deleteRepositoryHandler } from '@/modules/repo/delete-repository-handler';
 
 import { getEnvsHandler } from '@/modules/envs/get-envs-handler';
 import { getEnvHandler } from '@/modules/envs/get-env-handler';
@@ -36,7 +39,10 @@ export const v1Routes = honoFactory
 	.get('/repos/exists', ...getRepositoryExistsHandler)
 	.post('/repos/migrate', ...postRepoMigrateHandler)
 	.get('/repos/by-slug/:slug', ...getRepositoryBySlugHandler)
+	.delete('/repos/by-slug/:slug', ...deleteRepositoryHandler)
 	.get('/repos/:repoId', ...getRepositoryHandler)
+	.get('/repos/:repoId/environments', ...getRepositoriesEnvHandler)
+	.get('/repos/:repoId/environments/:fileName', ...getRepoEnvByFilenameHandler)
 
 	// Environments
 	.get('/envs', ...getEnvsHandler)

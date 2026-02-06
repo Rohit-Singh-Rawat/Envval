@@ -16,8 +16,8 @@ export const getEnvsHandler = honoFactory.createHandlers(
 			return ctx.json({ error: 'Unauthorized' }, HTTP_UNAUTHORIZED);
 		}
 
-		const { repoId } = ctx.req.valid('query');
-		const environments = await envService.getAllEnvironments(user.id, repoId);
+		const { repoId, includeContent } = ctx.req.valid('query');
+		const environments = await envService.getAllEnvironments(user.id, repoId, includeContent);
 
 		return ctx.json({
 			environments,

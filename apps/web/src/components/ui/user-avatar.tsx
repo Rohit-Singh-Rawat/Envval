@@ -1,17 +1,18 @@
 import { MarbleAvatar, type MarbleAvatarProps } from './marble-avatar';
+
 import { cn } from '@/lib/utils';
 
-export interface UserAvatarProps extends Omit<MarbleAvatarProps, 'name'> {
+type UserAvatarProps = Omit<MarbleAvatarProps, 'name'> & {
   name: string;
   imageUrl?: string | null;
   avatarSeed?: string;
-}
+};
 
 export function UserAvatar({
   name,
   imageUrl,
   avatarSeed,
-  size = 32,
+  size,
   className,
   ...props
 }: UserAvatarProps) {
@@ -20,8 +21,6 @@ export function UserAvatar({
       <img
         src={imageUrl}
         alt={name}
-        width={size}
-        height={size}
         className={cn('rounded-full object-cover', className)}
         style={{ width: size, height: size }}
       />

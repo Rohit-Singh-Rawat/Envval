@@ -5,23 +5,29 @@ import { CreateEnvBody, UpdateEnvBody } from './env.schemas';
 import { computeEnvId } from '@/shared/utils/id';
 
 export class EnvService {
-	async getAllEnvironments(userId: string, repoId?: string) {
+	async getAllEnvironments(userId: string, repoId?: string, includeContent = false) {
 		const conditions = [eq(environment.userId, userId)];
 		if (repoId) {
 			conditions.push(eq(environment.repoId, repoId));
 		}
 
+		const selection: any = {
+			id: environment.id,
+			repoId: environment.repoId,
+			fileName: environment.fileName,
+			envCount: environment.envCount,
+			latestHash: environment.latestHash,
+			lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
+			createdAt: environment.createdAt,
+			updatedAt: environment.updatedAt,
+		};
+
+		if (includeContent) {
+			selection.content = environment.content;
+		}
+
 		const result = await db
-			.select({
-				id: environment.id,
-				repoId: environment.repoId,
-				fileName: environment.fileName,
-				envCount: environment.envCount,
-				latestHash: environment.latestHash,
-				lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
-				createdAt: environment.createdAt,
-				updatedAt: environment.updatedAt,
-			})
+			.select(selection)
 			.from(environment)
 			.where(and(...conditions));
 		return result;

@@ -29,13 +29,16 @@ export function useRepoSummaryBySlug(slug: string) {
 	});
 }
 
-export function useRepoEnvs(repoId: string) {
+export function useRepoEnvs(repoId: string, includeContent = false) {
 	return useSuspenseQuery({
-		queryKey: ['repo-envs', repoId],
+		queryKey: ['repo-envs', repoId, includeContent],
 		queryFn: async () => {
 			const response = await client.api.v1.repos[':repoId'].environments.$get({
 				param: {
 					repoId,
+				},
+				query: {
+					includeContent: includeContent.toString(),
 				},
 			});
 			return response.json();

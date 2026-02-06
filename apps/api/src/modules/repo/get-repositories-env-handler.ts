@@ -1,14 +1,15 @@
 import { honoFactory } from '@/shared/utils/factory';
 import { customZValidator } from '@/shared/utils/zod-validator';
 import { authMiddleware } from '@/shared/middleware/auth.middleware';
-import { HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from '@/shared/constants/http-status';
+import { HTTP_UNAUTHORIZED } from '@/shared/constants/http-status';
 import { RepoService } from './repo.service';
-import { repoEnvParamSchema } from './repo.schemas';
+import { repoParamSchema, envQuerySchema } from './repo.schemas';
 
 const repoService = new RepoService();
 
 export const getRepositoriesEnvHandler = honoFactory.createHandlers(
-	customZValidator('param', repoEnvParamSchema),
+	customZValidator('param', repoParamSchema),
+	customZValidator('query', envQuerySchema),
 	authMiddleware,
 	async (ctx) => {
 		const user = ctx.get('user');
@@ -17,11 +18,8 @@ export const getRepositoriesEnvHandler = honoFactory.createHandlers(
 		}
 
 		const { repoId } = ctx.req.valid('param');
-		const environments = await repoService.getEnvironments(user.id, repoId);
-
-		if (environments.length === 0) {
-			return ctx.json({ error: 'No environments found' }, HTTP_NOT_FOUND);
-		}
+		const { includeContent } = ctx.req.valid('query');
+		const environments = await repoService.getEnvironments(user.id, repoId, includeContent);
 
 		return ctx.json({
 			environments,
