@@ -18,6 +18,13 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
 	if (err instanceof HTTPException) {
 		const cause = err.cause as ValidationError[] | undefined;
 
+		if (cause) {
+			logger.error(`Validation failed: ${err.message}`, {
+				status: err.status,
+				errors: cause,
+			});
+		}
+
 		return c.json(
 			{
 				success: false,

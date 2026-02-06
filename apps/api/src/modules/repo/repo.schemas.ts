@@ -19,6 +19,23 @@ export const repoIdHashSchema = z
 export const repoIdUuidSchema = z.string().uuid('Invalid repository ID format: expected UUID');
 
 /**
+ * Slug format: lowercase alphanumeric with hyphens, 1-100 characters.
+ */
+export const repoSlugSchema = z
+	.string()
+	.min(1, 'Slug is required')
+	.max(100, 'Slug must be 100 characters or less')
+	.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase alphanumeric with hyphens');
+
+/**
+ * Repository name: 1-100 characters.
+ */
+export const repoNameSchema = z
+	.string()
+	.min(1, 'Name is required')
+	.max(100, 'Name must be 100 characters or less');
+
+/**
  * Pagination query parameters with sensible defaults.
  */
 export const paginationSchema = z.object({
@@ -41,6 +58,13 @@ export const repoParamSchema = z.object({
 });
 
 /**
+ * Repository param schema for routes with :slug param.
+ */
+export const repoSlugParamSchema = z.object({
+	slug: repoSlugSchema,
+});
+
+/**
  * Environment param schema for routes with :repoId and :envId.
  */
 export const repoEnvParamSchema = z.object({
@@ -53,6 +77,15 @@ export const repoEnvParamSchema = z.object({
  */
 export const repoCreateBodySchema = z.object({
 	repoId: repoIdHashSchema,
-	gitRemoteUrl: z.string().url('Invalid git remote URL format').optional(),
+	name: repoNameSchema,
+	gitRemoteUrl: z.string().min(1, 'Git remote URL cannot be empty').optional(),
 	workspacePath: z.string().min(1, 'Workspace path is required'),
+});
+
+/**
+ * Repository update body schema.
+ */
+export const repoUpdateBodySchema = z.object({
+	name: repoNameSchema.optional(),
+	slug: repoSlugSchema.optional(),
 });
