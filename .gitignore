@@ -27,6 +27,14 @@ out/
 build
 dist
 
+.agent/*
+.agents/
+.claude/
+.gemini/
+.codex/
+.cursor/
+.claudecode/
+.claude/
 
 # Debug
 npm-debug.log*
