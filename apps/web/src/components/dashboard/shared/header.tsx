@@ -19,7 +19,7 @@ import { Spinner } from '@/components/icons/spinner';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { getOrCreateAvatarSeed } from '@/lib/avatar-utils';
 
-const AVATAR_SIZE = 24;
+const AVATAR_SIZE = 32;
 
 function UserDropdownSkeleton() {
 	return (
@@ -36,10 +36,9 @@ function UserDropdown() {
 	const navigate = useNavigate();
 	const { logout, isLoading } = useLogout();
 
-	const avatarSeed = useMemo(() => {
-		if (!session?.user) return '';
-		return getOrCreateAvatarSeed(session.user.id, session.user.email);
-	}, [session?.user]);
+	const avatarSeed = session?.user 
+		? getOrCreateAvatarSeed(session.user.id, session.user.email)
+		: '';
 
 	if (isPending) {
 		return <UserDropdownSkeleton />;
@@ -53,7 +52,7 @@ function UserDropdown() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger >
 				<Button
 					variant='ghost'
 					className='flex items-center hover:bg-muted/50 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/50 px-2 has-[>svg]:px-2'
@@ -108,11 +107,16 @@ function UserDropdown() {
 	);
 }
 
+import { SidebarTrigger } from '@envval/ui/components/sidebar';
+
 export function Header() {
 	return (
-		<header className='w-full bg-background'>
-			<div className='flex items-center justify-between p-4 w-full'>
-				<EnvvalLogo variant='full' className='h-6 w-auto' />
+		<header className='w-full bg-background '>
+			<div className='flex items-center justify-between p-4 px-6 w-full max-w-screen-2xl mx-auto'>
+				<div className='flex items-center gap-4'>
+					<SidebarTrigger className='md:hidden' />
+					<EnvvalLogo variant='full' className='h-6 w-auto' />
+				</div>
 				<UserDropdown />
 			</div>
 		</header>

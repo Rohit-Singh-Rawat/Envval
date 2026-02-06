@@ -19,11 +19,11 @@ function RouteComponent() {
 
 	return (
 		<SidebarProvider className='w-full'>
-			<div className='flex flex-col min-h-screen mx-auto w-full max-w-4xl'>
+			<div className='flex flex-col min-h-screen w-full max-w-4xl mx-auto'>
 				<Header />
-				<div className='flex flex-1 overflow-hidden w-full pt-10'>
-					<AppSidebar />
-					<main className='flex flex-1 flex-col gap-4 px-5 overflow-auto'>
+				<div className='flex flex-1 w-full max-w-screen-2x pt-5 md:pt-10 mx-auto'>
+					<AppSidebar className='hidden md:flex' />
+					<main className='flex-1 flex flex-col gap-6 px-2 md:px-4 overflow-y-auto'>
 						<Outlet />
 					</main>
 				</div>
