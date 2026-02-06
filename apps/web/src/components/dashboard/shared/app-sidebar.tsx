@@ -18,6 +18,11 @@ import {
 } from '@envval/ui/components/sidebar';
 import { Button } from '@envval/ui/components/button';
 import { useLocation } from '@tanstack/react-router';
+import { cn } from '@envval/ui/lib/utils';
+
+interface AppSidebarProps {
+	className?: string;
+}
 
 const menuItems = [
 	{
@@ -42,13 +47,13 @@ const menuItems = [
 	},
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ className }: AppSidebarProps) {
 	const location = useLocation();
 	const currentPath = location.pathname;
 
 	return (
 		<Sidebar
-			className='bg-background  w-56 shrink-0 h-full flex flex-col justify-center '
+			className={cn('bg-background w-56 shrink-0 h-full flex flex-col justify-center', className)}
 			collapsible='none'
 			variant='sidebar'
 		>

@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Layers01Icon, Clock01Icon, ArrowRight01Icon } from 'hugeicons-react';
+import { Clock01Icon, Key01Icon, Delete01Icon } from 'hugeicons-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@envval/ui/components/tooltip';
 import { Heading } from '@/components/dashboard/shared/heading';
 import { Suspense, useState } from 'react';
 import { EnvvalLoader } from '@/components/logo/envval';
-import { useGetRepos } from '@/hooks/repos/use-get-repos';
 import { GetStartedWizard } from '@/components/onboarding/get-started-wizard';
+import { DeleteRepoDialog } from '@/components/repos/delete-repo-dialog';
+import { formatRelativeTime } from '@/lib/utils';
+
+import { useGetRepos, type Project } from '@/hooks/repos/use-get-repos';
 
 export const Route = createFileRoute('/_dashboard/dashboard')({
 	component: RouteComponent,
@@ -16,9 +19,10 @@ function RouteComponent() {
 }
 
 function DashboardContent() {
+	const { data: repos = [] } = useGetRepos();
 	const [hideWizard, setHideWizard] = useState(false);
 
-	const showWizard = !hideWizard;
+	const showWizard = !hideWizard && repos.length === 0;
 
 	return (
 		<>
@@ -29,106 +33,115 @@ function DashboardContent() {
 
 			{showWizard && (
 				<GetStartedWizard
-					repos={[]}
+					repos={repos}
 					onHide={() => setHideWizard(true)}
 				/>
 			)}
 
-			<section>
+			<section className='mt-2 w-full'>
 				<Suspense
 					fallback={
-						<div className='flex items-center justify-center w-full h-[50vh]'>
-							<EnvvalLoader className='w-full h-10 rounded-md' />
+						<div className='flex items-center justify-center w-full h-[30vh] md:h-[50vh]'>
+							<EnvvalLoader className='w-full max-w-xs' />
 						</div>
 					}
 				>
-					<ProjectList />
+					<ProjectList repos={repos} />
 				</Suspense>
 			</section>
 		</>
 	);
 }
 
-interface Project {
-	id: string;
-	name: string;
-	slug: string;
-	gitRemoteUrl: string | null;
-	workspacePath: string | null;
-	environments: number;
-	lastSyncedAt: string | null;
-	createdAt: string;
-	updatedAt: string;
-}
+type ProjectItemProps = {
+	project: Project;
+	onDeleteClick: (project: Project) => void;
+};
 
-function formatRelativeTime(dateString: string | null): string {
-	if (!dateString) return 'Never';
-	const date = new Date(dateString);
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMins / 60);
-	const diffDays = Math.floor(diffHours / 24);
+/**
+ * Renders a single project item in the dashboard list.
+ * Adaptive layout: stacks on mobile, row on desktop.
+ */
+function ProjectItem({ project, onDeleteClick }: ProjectItemProps) {
+	const handleDeleteClick = (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		onDeleteClick(project);
+	};
 
-	if (diffMins < 1) return 'Just now';
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString();
-}
-
-function ProjectItem({ project }: { project: Project }) {
 	return (
 		<li>
 			<Link
 				to='/repos/$slug'
 				params={{ slug: project.slug }}
-				className='flex items-center justify-between p-4 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-all group'
+				className='flex flex-col sm:flex-row sm:items-center justify-between p-2 px-4 rounded-lg squircle border border-border/50 hover:bg-muted/50 transition-all group gap-4'
 				aria-label={`View ${project.name} project`}
 			>
-				<div className='flex flex-col gap-1 min-w-0'>
-					<span className='font-medium truncate'>{project.name}</span>
+				<div className='flex flex-col gap-1 min-w-0 flex-1'>
+					<span className='font-normal text-lg truncate tracking-tight'>{project.name}</span>
 					{project.gitRemoteUrl && (
-						<span className='text-sm text-muted-foreground truncate'>
+						<span className='text-sm text-muted-foreground truncate max-w-md'>
 							{project.gitRemoteUrl}
 						</span>
 					)}
 				</div>
-				<div className='flex items-center gap-4 text-sm text-muted-foreground shrink-0'>
+				
+				<div className='flex items-center justify-between sm:justify-end gap-6 text-sm text-muted-foreground shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/20'>
+					<div className='flex items-center gap-6'>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className='flex items-center gap-1.5 cursor-default' tabIndex={0}>
+									<Key01Icon className='size-4 text-primary/70' aria-hidden='true' />
+									<span className='font-medium'>{project.environments}</span>
+								</div>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>{project.environments} environment{project.environments !== 1 ? 's' : ''}</p>
+							</TooltipContent>
+						</Tooltip>
+
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className='flex items-center gap-1.5 cursor-default' tabIndex={0}>
+									<Clock01Icon className='size-4 text-muted-foreground/70' aria-hidden='true' />
+									<span>{formatRelativeTime(project.lastSyncedAt)}</span>
+								</div>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>Last synced: {project.lastSyncedAt ? new Date(project.lastSyncedAt).toLocaleString() : 'Never'}</p>
+							</TooltipContent>
+						</Tooltip>
+					</div>
+
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<span className='flex items-center gap-1.5'>
-								<Layers01Icon className='size-4' aria-hidden='true' />
-								<span>{project.environments}</span>
-							</span>
+							<button
+								type='button'
+								onClick={handleDeleteClick}
+								className='p-2 -m-2 rounded-lg opacity-100 sm:opacity-0 group-hover:opacity-100 hover:text-destructive transition-all focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50'
+								aria-label={`Delete ${project.name} repository`}
+							>
+								<Delete01Icon className='size-4' aria-hidden='true' />
+							</button>
 						</TooltipTrigger>
 						<TooltipContent>
-							<p>{project.environments} environment{project.environments !== 1 ? 's' : ''}</p>
+							<p>Delete repository</p>
 						</TooltipContent>
 					</Tooltip>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<span className='flex items-center gap-1.5'>
-								<Clock01Icon className='size-4' aria-hidden='true' />
-								<span>{formatRelativeTime(project.lastSyncedAt)}</span>
-							</span>
-						</TooltipTrigger>
-						<TooltipContent>
-							<p>Last synced: {project.lastSyncedAt ? new Date(project.lastSyncedAt).toLocaleString() : 'Never'}</p>
-						</TooltipContent>
-					</Tooltip>
-					<ArrowRight01Icon
-						className='size-4 opacity-0 group-hover:opacity-100 transition-opacity'
-						aria-hidden='true'
-					/>
 				</div>
 			</Link>
 		</li>
 	);
 }
 
-function ProjectList() {
-	const { data: repos } = useGetRepos();
+function ProjectList({ repos }: { repos: Project[] }) {
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [selectedRepo, setSelectedRepo] = useState<Project | null>(null);
+
+	const handleDeleteClick = (project: Project) => {
+		setSelectedRepo(project);
+		setDeleteDialogOpen(true);
+	};
 
 	if (repos.length === 0) {
 		return (
@@ -142,10 +155,24 @@ function ProjectList() {
 	}
 
 	return (
-		<ul className='flex flex-col gap-1' role='list' aria-label='Projects list'>
-			{repos.map((repo) => (
-				<ProjectItem key={repo.id} project={repo as Project} />
-			))}
-		</ul>
+		<>
+			<ul className='flex flex-col gap-1' role='list' aria-label='Projects list'>
+				{repos.map((repo) => (
+					<ProjectItem
+						key={repo.id}
+						project={repo}
+						onDeleteClick={handleDeleteClick}
+					/>
+				))}
+			</ul>
+
+			{selectedRepo && (
+				<DeleteRepoDialog
+					open={deleteDialogOpen}
+					onOpenChange={setDeleteDialogOpen}
+					repo={{ name: selectedRepo.name, slug: selectedRepo.slug }}
+				/>
+			)}
+		</>
 	);
 }

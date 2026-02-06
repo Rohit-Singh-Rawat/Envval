@@ -6,16 +6,7 @@ import { Button } from '@envval/ui/components/button';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@tanstack/react-router';
 
-type Repo = {
-	id?: string;
-	name: string | null;
-	gitRemoteUrl: string | null;
-	workspacePath: string | null;
-	environments: number;
-	lastSyncedAt: string | null;
-	createdAt: string;
-	updatedAt: string;
-};
+import { type Project as Repo } from '@/hooks/repos/use-get-repos';
 
 type GetStartedWizardProps = {
 	repos: Repo[];
