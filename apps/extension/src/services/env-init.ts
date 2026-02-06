@@ -13,15 +13,17 @@ import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from ".
 import { StatusBar } from "../ui/status-bar";
 import { Logger } from "../utils/logger";
 import { IGNORE_INTERVAL_MS } from "../lib/constants";
-import { 
-  showInitPrompt, 
-  showRestorePrompt, 
+import {
+  showInitPrompt,
+  showRestorePrompt,
   showFirstTimeSyncPrompt,
   showZombiePrompt,
   showRepoRegistrationPrompt,
+  showRepoNamePrompt,
   showEmptyFileConfirmation,
   showSuccess,
-  showError
+  showError,
+  extractFolderName
 } from "../ui/dialog/init-prompt";
 
 /**
@@ -113,17 +115,25 @@ export class EnvInitService {
 
       // Check if repo exists on server
       const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
-      
+
       if (!repoExistsResponse.exists) {
         const shouldRegister = await showRepoRegistrationPrompt();
         if (shouldRegister === "register") {
+          const nameResult = await showRepoNamePrompt(workspacePath);
+          if (nameResult.action === 'skip' || !nameResult.name) {
+            this.logger.info("User skipped repo name input, cancelling registration");
+            return;
+          }
+
           try {
-            await this.apiClient.createRepo({ 
-              repoId, 
-              workspacePath, 
-              gitRemoteUrl: workspace.gitRemoteUrl 
+            await this.apiClient.createRepo({
+              repoId,
+              name: nameResult.name,
+              workspacePath,
+              gitRemoteUrl: workspace.gitRemoteUrl
             });
-            this.logger.info(`Repo registered: ${repoId}`);
+            this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
+            showSuccess(`Project "${nameResult.name}" registered successfully.`);
           } catch (error) {
             this.logger.error(`Failed to register repo: ${error instanceof Error ? error.message : String(error)}`);
             showError("Failed to register repository. Please try again.");
@@ -263,18 +273,26 @@ export class EnvInitService {
       this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
       return;
     }
-      
+
     const { repoId, envId, workspacePath, gitRemote } = result;
 
     const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
     if (!repoExistsResponse.exists) {
+      const nameResult = await showRepoNamePrompt(workspacePath);
+      if (nameResult.action === 'skip' || !nameResult.name) {
+        this.logger.info("User skipped repo name input, cancelling registration");
+        return;
+      }
+
       try {
-        await this.apiClient.createRepo({ 
-          repoId, 
-          workspacePath, 
-          gitRemoteUrl: gitRemote 
+        await this.apiClient.createRepo({
+          repoId,
+          name: nameResult.name,
+          workspacePath,
+          gitRemoteUrl: gitRemote
         });
-        this.logger.info(`Auto-registered repo: ${repoId}`);
+        this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
+        showSuccess(`Project "${nameResult.name}" registered successfully.`);
       } catch (error) {
         this.logger.error(`Failed to register repo: ${(error as Error).message}`);
         return;

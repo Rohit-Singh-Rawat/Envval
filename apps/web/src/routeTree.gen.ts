@@ -18,7 +18,7 @@ import { Route as DashboardDeviceRouteImport } from './routes/_dashboard/device'
 import { Route as DashboardDashboardRouteImport } from './routes/_dashboard/dashboard'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as DashboardReposRepoIdRouteImport } from './routes/_dashboard/repos/$repoId'
+import { Route as DashboardReposSlugRouteImport } from './routes/_dashboard/repos/$slug'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
@@ -63,9 +63,9 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
-const DashboardReposRepoIdRoute = DashboardReposRepoIdRouteImport.update({
-  id: '/repos/$repoId',
-  path: '/repos/$repoId',
+const DashboardReposSlugRoute = DashboardReposSlugRouteImport.update({
+  id: '/repos/$slug',
+  path: '/repos/$slug',
   getParentRoute: () => DashboardRoute,
 } as any)
 
@@ -77,7 +77,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
   '/device': typeof DashboardDeviceRoute
-  '/repos/$repoId': typeof DashboardReposRepoIdRoute
+  '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -87,7 +87,7 @@ export interface FileRoutesByTo {
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
   '/device': typeof DashboardDeviceRoute
-  '/repos/$repoId': typeof DashboardReposRepoIdRoute
+  '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -100,7 +100,7 @@ export interface FileRoutesById {
   '/_auth/signup': typeof AuthSignupRoute
   '/_dashboard/dashboard': typeof DashboardDashboardRoute
   '/_dashboard/device': typeof DashboardDeviceRoute
-  '/_dashboard/repos/$repoId': typeof DashboardReposRepoIdRoute
+  '/_dashboard/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,7 +112,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/device'
-    | '/repos/$repoId'
+    | '/repos/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,7 +122,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/device'
-    | '/repos/$repoId'
+    | '/repos/$slug'
   id:
     | '__root__'
     | '/'
@@ -134,7 +134,7 @@ export interface FileRouteTypes {
     | '/_auth/signup'
     | '/_dashboard/dashboard'
     | '/_dashboard/device'
-    | '/_dashboard/repos/$repoId'
+    | '/_dashboard/repos/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,11 +210,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_dashboard/repos/$repoId': {
-      id: '/_dashboard/repos/$repoId'
-      path: '/repos/$repoId'
-      fullPath: '/repos/$repoId'
-      preLoaderRoute: typeof DashboardReposRepoIdRouteImport
+    '/_dashboard/repos/$slug': {
+      id: '/_dashboard/repos/$slug'
+      path: '/repos/$slug'
+      fullPath: '/repos/$slug'
+      preLoaderRoute: typeof DashboardReposSlugRouteImport
       parentRoute: typeof DashboardRoute
     }
   }
@@ -235,13 +235,13 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 interface DashboardRouteChildren {
   DashboardDashboardRoute: typeof DashboardDashboardRoute
   DashboardDeviceRoute: typeof DashboardDeviceRoute
-  DashboardReposRepoIdRoute: typeof DashboardReposRepoIdRoute
+  DashboardReposSlugRoute: typeof DashboardReposSlugRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDashboardRoute: DashboardDashboardRoute,
   DashboardDeviceRoute: DashboardDeviceRoute,
-  DashboardReposRepoIdRoute: DashboardReposRepoIdRoute,
+  DashboardReposSlugRoute: DashboardReposSlugRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(

@@ -46,7 +46,8 @@ export interface UpdateEnvData {
 export interface Repo {
 	readonly id: string;
 	readonly repoId: string;
-	readonly name?: string;
+	readonly name: string;
+	readonly slug: string;
 	readonly createdAt: string;
 	readonly updatedAt: string;
 }
@@ -58,7 +59,7 @@ export interface RepoExistsResponse {
 
 export interface CreateRepoData {
 	readonly repoId: string;
-	readonly name?: string;
+	readonly name: string;
 	readonly gitRemoteUrl?: string;
 	readonly workspacePath: string;
 }

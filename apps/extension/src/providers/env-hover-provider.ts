@@ -22,6 +22,10 @@ const LANGUAGE_PATTERNS: Record<string, LanguagePattern[]> = {
 			extractKey: (m) => m[1],
 		},
 		{
+			pattern: /env\.['"]([A-Za-z_][A-Za-z0-9_]*)['"]/g,
+			extractKey: (m) => m[1],
+		},
+		{
 			pattern: /process\.env\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/g,
 			extractKey: (m) => m[1],
 		},
@@ -33,6 +37,10 @@ const LANGUAGE_PATTERNS: Record<string, LanguagePattern[]> = {
 	typescript: [
 		{
 			pattern: /process\.env\.([A-Za-z_][A-Za-z0-9_]*)/g,
+			extractKey: (m) => m[1],
+		},
+		{
+			pattern: /env\.['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/g,
 			extractKey: (m) => m[1],
 		},
 		{

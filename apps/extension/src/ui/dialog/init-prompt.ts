@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import path from 'path';
 
 interface QuickPickOption {
 	label: string;
@@ -18,9 +19,17 @@ async function showModalQuickPick<T extends string>(
 	const result = await vscode.window.showQuickPick(options, {
 		title,
 		placeHolder: placeholder,
-		ignoreFocusOut: true, // Prevents accidental dismissal
+		ignoreFocusOut: true,
 	});
 	return result?.value as T | undefined;
+}
+
+/**
+ * Extracts the folder name from a workspace path for use as default repo name.
+ */
+export function extractFolderName(workspacePath: string): string {
+	const folderName = path.basename(workspacePath);
+	return folderName || 'Unnamed Project';
 }
 
 export async function showInitPrompt(fileName: string): Promise<'initialize' | 'cancel'> {
@@ -83,6 +92,59 @@ export async function showRepoRegistrationPrompt(): Promise<'register' | 'skip'>
 		]
 	);
 	return result ?? 'skip';
+}
+
+export interface RepoNameResult {
+	action: 'custom' | 'auto' | 'skip';
+	name?: string;
+}
+
+/**
+ * Prompts user to choose how to name their repository.
+ * Returns the chosen action and the name if custom was selected.
+ */
+export async function showRepoNamePrompt(workspacePath: string): Promise<RepoNameResult> {
+	const defaultName = extractFolderName(workspacePath);
+
+	const choice = await showModalQuickPick<'custom' | 'auto' | 'skip'>(
+		'EnvVault: Name Your Project',
+		'Choose how to identify this project',
+		[
+			{ label: `$(folder) Use "${defaultName}"`, description: 'Auto-generate from folder name', value: 'auto' },
+			{ label: '$(edit) Enter Custom Name', description: 'Choose your own project name', value: 'custom' },
+			{ label: '$(x) Skip', description: 'Cancel registration', value: 'skip' },
+		]
+	);
+
+	if (choice === 'skip' || !choice) {
+		return { action: 'skip' };
+	}
+
+	if (choice === 'auto') {
+		return { action: 'auto', name: defaultName };
+	}
+
+	const customName = await vscode.window.showInputBox({
+		title: 'EnvVault: Project Name',
+		prompt: 'Enter a name for this project',
+		value: defaultName,
+		validateInput: (value) => {
+			if (!value?.trim()) {
+				return 'Name cannot be empty';
+			}
+			if (value.length > 100) {
+				return 'Name must be 100 characters or less';
+			}
+			return null;
+		},
+		ignoreFocusOut: true,
+	});
+
+	if (!customName) {
+		return { action: 'skip' };
+	}
+
+	return { action: 'custom', name: customName.trim() };
 }
 
 export async function showEmptyFileConfirmation(fileName: string): Promise<'yes' | 'no'> {

@@ -15,6 +15,20 @@ export function useRepoSummary(repoId: string) {
 	});
 }
 
+export function useRepoSummaryBySlug(slug: string) {
+	return useSuspenseQuery({
+		queryKey: ['repo', 'by-slug', slug],
+		queryFn: async () => {
+			const response = await client.api.v1.repos['by-slug'][':slug'].$get({
+				param: {
+					slug,
+				},
+			});
+			return response.json();
+		},
+	});
+}
+
 export function useRepoEnvs(repoId: string) {
 	return useSuspenseQuery({
 		queryKey: ['repo-envs', repoId],
