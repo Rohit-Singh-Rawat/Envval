@@ -57,6 +57,13 @@
       "when": 1767706954667,
       "tag": "0007_many_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770381508110,
+      "tag": "0008_useful_vindicator",
+      "breakpoints": true
     }
   ]
 }

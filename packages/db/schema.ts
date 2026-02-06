@@ -123,7 +123,8 @@ export const repo = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		name: text('name'),
+		name: text('name').notNull(),
+		slug: text('slug').notNull(),
 		gitRemoteUrl: text('git_remote_url'),
 		workspacePath: text('workspace_path'),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -132,7 +133,11 @@ export const repo = pgTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 	},
-	(table) => [index('repo_userId_idx').on(table.userId), index('repo_id_idx').on(table.id)]
+	(table) => [
+		index('repo_userId_idx').on(table.userId),
+		index('repo_id_idx').on(table.id),
+		index('repo_slug_userId_idx').on(table.slug, table.userId),
+	]
 );
 
 export const environment = pgTable(

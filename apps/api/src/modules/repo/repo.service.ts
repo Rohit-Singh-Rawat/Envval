@@ -1,7 +1,20 @@
-import { and, count, eq, max, sum } from 'drizzle-orm';
+import { and, count, eq, like, max, sum } from 'drizzle-orm';
 import { db } from '@envval/db';
 import { auditLog, environment, repo } from '@envval/db/schema';
 import { computeEnvId } from '@/shared/utils/id';
+
+/**
+ * Generates a URL-safe slug from a name string.
+ * Handles unicode characters and ensures valid slug format.
+ */
+function generateSlug(name: string): string {
+	return name
+		.toLowerCase()
+		.trim()
+		.replace(/[^\w\s-]/g, '')
+		.replace(/[\s_-]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+}
 
 export class RepoService {
 	async getRepositories(userId: string, page: number, limit: number) {
@@ -9,6 +22,7 @@ export class RepoService {
 			.select({
 				id: repo.id,
 				name: repo.name,
+				slug: repo.slug,
 				gitRemoteUrl: repo.gitRemoteUrl,
 				workspacePath: repo.workspacePath,
 				totalEnvCount: sum(environment.envCount),
@@ -33,11 +47,20 @@ export class RepoService {
 		return repository || null;
 	}
 
+	async getRepositoryBySlug(userId: string, slug: string) {
+		const [repository] = await db
+			.select()
+			.from(repo)
+			.where(and(eq(repo.slug, slug), eq(repo.userId, userId)));
+		return repository || null;
+	}
+
 	async getRepositorySummary(userId: string, repoId: string) {
 		const results = await db
 			.select({
 				id: repo.id,
 				name: repo.name,
+				slug: repo.slug,
 				gitRemoteUrl: repo.gitRemoteUrl,
 				workspacePath: repo.workspacePath,
 				createdAt: repo.createdAt,
@@ -47,6 +70,31 @@ export class RepoService {
 			})
 			.from(repo)
 			.where(and(eq(repo.id, repoId), eq(repo.userId, userId)))
+			.leftJoin(environment, eq(repo.id, environment.repoId))
+			.groupBy(repo.id);
+
+		if (results.length === 0) {
+			return null;
+		}
+
+		return results[0];
+	}
+
+	async getRepositorySummaryBySlug(userId: string, slug: string) {
+		const results = await db
+			.select({
+				id: repo.id,
+				name: repo.name,
+				slug: repo.slug,
+				gitRemoteUrl: repo.gitRemoteUrl,
+				workspacePath: repo.workspacePath,
+				createdAt: repo.createdAt,
+				updatedAt: repo.updatedAt,
+				envCount: sum(environment.envCount),
+				lastSyncedAt: max(environment.updatedAt),
+			})
+			.from(repo)
+			.where(and(eq(repo.slug, slug), eq(repo.userId, userId)))
 			.leftJoin(environment, eq(repo.id, environment.repoId))
 			.groupBy(repo.id);
 
@@ -72,20 +120,90 @@ export class RepoService {
 		return environments;
 	}
 
+	/**
+	 * Generates a unique slug for a repository within a user's scope.
+	 * If the base slug already exists, appends an incrementing number.
+	 */
+	private async generateUniqueSlug(userId: string, baseName: string): Promise<string> {
+		const baseSlug = generateSlug(baseName);
+		if (!baseSlug) {
+			return `repo-${Date.now()}`;
+		}
+
+		const existingRepos = await db
+			.select({ slug: repo.slug })
+			.from(repo)
+			.where(and(eq(repo.userId, userId), like(repo.slug, `${baseSlug}%`)));
+
+		if (existingRepos.length === 0) {
+			return baseSlug;
+		}
+
+		const existingSlugs = new Set(existingRepos.map((r) => r.slug));
+		if (!existingSlugs.has(baseSlug)) {
+			return baseSlug;
+		}
+
+		let counter = 1;
+		let candidateSlug = `${baseSlug}-${counter}`;
+		while (existingSlugs.has(candidateSlug)) {
+			counter++;
+			candidateSlug = `${baseSlug}-${counter}`;
+		}
+
+		return candidateSlug;
+	}
+
 	async createRepository(
 		userId: string,
-		repoData: { id: string; gitRemoteUrl?: string; workspacePath: string }
+		repoData: { id: string; name: string; gitRemoteUrl?: string; workspacePath: string }
 	) {
+		const slug = await this.generateUniqueSlug(userId, repoData.name);
+
 		const [repository] = await db
 			.insert(repo)
 			.values({
 				id: repoData.id,
+				name: repoData.name,
+				slug,
 				gitRemoteUrl: repoData.gitRemoteUrl ?? null,
 				workspacePath: repoData.workspacePath,
 				userId,
 			})
-			.returning({ id: repo.id });
+			.returning({ id: repo.id, name: repo.name, slug: repo.slug });
 		return repository;
+	}
+
+	async updateRepository(
+		userId: string,
+		repoId: string,
+		updateData: { name?: string; slug?: string }
+	) {
+		const updates: Partial<{ name: string; slug: string }> = {};
+
+		if (updateData.name) {
+			updates.name = updateData.name;
+		}
+
+		if (updateData.slug) {
+			const existingWithSlug = await this.getRepositoryBySlug(userId, updateData.slug);
+			if (existingWithSlug && existingWithSlug.id !== repoId) {
+				throw new Error('Slug already in use');
+			}
+			updates.slug = updateData.slug;
+		}
+
+		if (Object.keys(updates).length === 0) {
+			return null;
+		}
+
+		const [updated] = await db
+			.update(repo)
+			.set(updates)
+			.where(and(eq(repo.id, repoId), eq(repo.userId, userId)))
+			.returning({ id: repo.id, name: repo.name, slug: repo.slug });
+
+		return updated || null;
 	}
 
 	async migrateRepository(

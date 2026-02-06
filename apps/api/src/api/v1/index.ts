@@ -4,6 +4,7 @@ import { postOnboardingHandler } from '@/modules/onboarding/post-onboarding-hand
 
 import { getRepositoriesHandler } from '@/modules/repo/get-repositories-handler';
 import { getRepositoryHandler } from '@/modules/repo/get-repository-handler';
+import { getRepositoryBySlugHandler } from '@/modules/repo/get-repository-by-slug-handler';
 import { getRepositoryExistsHandler } from '@/modules/repo/get-repositories-exist-handler';
 import { postRepositoriesHandler } from '@/modules/repo/post-repositories-handler';
 import { postRepoMigrateHandler } from '@/modules/repo/post-repo-migrate-handler';
@@ -23,6 +24,7 @@ import { deleteEnvHandler } from '@/modules/envs/delete-env-handler';
  * - Path params for resource identifiers: /repos/:repoId, /envs/:envId
  * - Query params for filtering: /envs?repoId=xxx
  * - Query params for existence checks: /repos/exists?repoId=xxx
+ * - Slug-based routes: /repos/by-slug/:slug for human-readable URLs
  */
 export const v1Routes = honoFactory
 	.createApp()
@@ -33,6 +35,7 @@ export const v1Routes = honoFactory
 	.post('/repos', ...postRepositoriesHandler)
 	.get('/repos/exists', ...getRepositoryExistsHandler)
 	.post('/repos/migrate', ...postRepoMigrateHandler)
+	.get('/repos/by-slug/:slug', ...getRepositoryBySlugHandler)
 	.get('/repos/:repoId', ...getRepositoryHandler)
 
 	// Environments
