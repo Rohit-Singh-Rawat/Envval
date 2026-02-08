@@ -20,6 +20,17 @@ import { postEnvsHandler } from '@/modules/envs/post-envs-handler';
 import { putEnvsHandler } from '@/modules/envs/put-envs-handler';
 import { deleteEnvHandler } from '@/modules/envs/delete-env-handler';
 
+import { getDevicesHandler } from '@/modules/devices/get-devices-handler';
+import { deleteDeviceHandler } from '@/modules/devices/delete-device-handler';
+import { postRevokeAllDevicesHandler } from '@/modules/devices/post-revoke-all-devices-handler';
+
+import { getUserProfileHandler } from '@/modules/user/get-user-profile-handler';
+import { patchUserProfileHandler } from '@/modules/user/patch-user-profile-handler';
+import { patchUserNotificationsHandler } from '@/modules/user/patch-user-notifications-handler';
+import { getUserStatsHandler } from '@/modules/user/get-user-stats-handler';
+import { deleteUserRepositoriesHandler } from '@/modules/user/delete-user-repositories-handler';
+import { deleteUserAccountHandler } from '@/modules/user/delete-user-account-handler';
+
 /**
  * API v1 Routes
  *
@@ -51,4 +62,17 @@ export const v1Routes = honoFactory
 	.get('/envs/:envId', ...getEnvHandler)
 	.get('/envs/:envId/metadata', ...getEnvMetadataHandler)
 	.put('/envs/:envId', ...putEnvsHandler)
-	.delete('/envs/:envId', ...deleteEnvHandler);
+	.delete('/envs/:envId', ...deleteEnvHandler)
+
+	// Devices
+	.get('/devices', ...getDevicesHandler)
+	.delete('/devices/:deviceId', ...deleteDeviceHandler)
+	.post('/devices/revoke-all', ...postRevokeAllDevicesHandler)
+
+	// User Settings
+	.get('/user/profile', ...getUserProfileHandler)
+	.patch('/user/profile', ...patchUserProfileHandler)
+	.patch('/user/notifications', ...patchUserNotificationsHandler)
+	.get('/user/stats', ...getUserStatsHandler)
+	.delete('/user/repositories', ...deleteUserRepositoriesHandler)
+	.delete('/user/account', ...deleteUserAccountHandler);
