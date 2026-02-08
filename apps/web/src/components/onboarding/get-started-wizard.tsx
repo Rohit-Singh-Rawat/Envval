@@ -1,382 +1,404 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { ComponentType, SVGProps } from 'react';
-import { Layers01Icon, LockKeyIcon, LaptopIcon } from 'hugeicons-react';
-import { StepProgress, type StepConfig } from './step-progress';
+'use client';
+
+import { type ReactNode, type SVGProps, useEffect, useState } from 'react';
 import { Button } from '@envval/ui/components/button';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@tanstack/react-router';
+import { motion, AnimatePresence } from 'motion/react';
+import type { Project as Repo } from '@/hooks/repos/use-get-repos';
+import {
+	VSCodeExtensionIllustration,
+	LockSecureIllustration,
+	DashboardViewIllustration,
+} from './illustrations';
 
-import { type Project as Repo } from '@/hooks/repos/use-get-repos';
-
-type GetStartedWizardProps = {
-	repos: Repo[];
-	userName?: string | null;
-	onHide?: () => void;
-};
+// ── Types ──────────────────────────────────────────────
 
 type StepId = 1 | 2 | 3;
 
-type CompletedState = {
-	1: boolean;
-	2: boolean;
-	3: boolean;
+type GetStartedWizardProps = {
+	repos: Repo[];
+	onHide?: () => void;
 };
 
-const VIEWED_ENV_STORAGE_KEY = 'envval_hasViewedEnv';
-const HIDE_WIZARD_STORAGE_KEY = 'envval_hideGetStartedWizard';
+type StepLayoutProps = {
+	illustration: ReactNode;
+	illustrationWidth?: string;
+	title: string;
+	description: string;
+	actions: ReactNode;
+};
 
+// ── Constants ──────────────────────────────────────────
+
+const STORAGE_KEYS = {
+	viewedEnv: 'envval_hasViewedEnv',
+	hideWizard: 'envval_hideGetStartedWizard',
+} as const;
+
+const EASE_OUT = [0.32, 0.72, 0, 1] as const;
+
+const STEP_TRANSITION_MS = 500;
+
+const TOTAL_STEPS = 3;
+
+const EXTERNAL_LINKS = {
+	extension: 'https://marketplace.visualstudio.com/items?itemName=envval.envval',
+} as const;
+
+// ── Storage helpers ────────────────────────────────────
+
+function getStorageFlag(key: string): boolean {
+	if (typeof window === 'undefined') return false;
+	return localStorage.getItem(key) === 'true';
+}
+
+function setStorageFlag(key: string): void {
+	if (typeof window === 'undefined') return;
+	localStorage.setItem(key, 'true');
+}
+
+// ── Exported utilities ─────────────────────────────────
+
+/** Determines if the onboarding wizard should render based on user preference and repo state. */
 export function shouldShowGetStartedWizard(repos: Repo[]): boolean {
-	// if user explicitly hid the wizard, respect that
-	if (typeof window !== 'undefined') {
-		const hide = window.localStorage.getItem(HIDE_WIZARD_STORAGE_KEY);
-		if (hide === 'true') return false;
-	}
-
-	// Show the Get Started wizard only as an empty state when there are no repos yet
+	if (getStorageFlag(STORAGE_KEYS.hideWizard)) return false;
 	return repos.length === 0;
 }
 
-export function markEnvViewedInBrowser() {
-	if (typeof window === 'undefined') return;
-	window.localStorage.setItem(VIEWED_ENV_STORAGE_KEY, 'true');
+/** Persist that the user has viewed env variables, completing the final onboarding step. */
+export function markEnvViewedInBrowser(): void {
+	setStorageFlag(STORAGE_KEYS.viewedEnv);
 }
 
-export function GetStartedWizard({ repos, userName, onHide }: GetStartedWizardProps) {
+// ── Icons ──────────────────────────────────────────────
+
+function SolarDownloadMinimalisticBoldDuotone(props: SVGProps<SVGSVGElement>) {
+	return (
+		<svg
+			xmlns='http://www.w3.org/2000/svg'
+			width='1em'
+			height='1em'
+			viewBox='0 0 24 24'
+			{...props}
+		>
+			<g
+				fill='currentColor'
+				fillRule='evenodd'
+				clipRule='evenodd'
+			>
+				<path
+					d='M3 14.25a.75.75 0 0 1 .75.75c0 1.435.002 2.436.103 3.192c.099.734.28 1.122.556 1.399c.277.277.665.457 1.4.556c.754.101 1.756.103 3.191.103h6c1.435 0 2.436-.002 3.192-.103c.734-.099 1.122-.28 1.399-.556c.277-.277.457-.665.556-1.4c.101-.755.103-1.756.103-3.191a.75.75 0 0 1 1.5 0v.055c0 1.367 0 2.47-.116 3.337c-.122.9-.38 1.658-.982 2.26s-1.36.86-2.26.982c-.867.116-1.97.116-3.337.116h-6.11c-1.367 0-2.47 0-3.337-.116c-.9-.122-1.658-.38-2.26-.982s-.86-1.36-.981-2.26c-.117-.867-.117-1.97-.117-3.337V15a.75.75 0 0 1 .75-.75'
+					opacity='.5'
+				/>
+				<path d='M12 16.75a.75.75 0 0 0 .553-.244l4-4.375a.75.75 0 1 0-1.107-1.012l-2.696 2.95V3a.75.75 0 0 0-1.5 0v11.068l-2.696-2.95a.75.75 0 0 0-1.108 1.013l4 4.375a.75.75 0 0 0 .554.244' />
+			</g>
+		</svg>
+	);
+}
+
+// ── Helpers ────────────────────────────────────────────
+
+function openExternal(url: string): void {
+	window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// ── Main Component ─────────────────────────────────────
+
+export function GetStartedWizard({ repos, onHide }: GetStartedWizardProps) {
 	const router = useRouter();
 
 	const hasRepos = repos.length > 0;
 	const hasSecuredRepo = repos.some((r) => r.environments > 0);
+	const hasViewedEnv = getStorageFlag(STORAGE_KEYS.viewedEnv);
 
 	const [activeStep, setActiveStep] = useState<StepId>(1);
-	const [completedSteps, setCompletedSteps] = useState<CompletedState>({
+	const [completed, setCompleted] = useState<Record<StepId, boolean>>({
 		1: false,
 		2: false,
 		3: false,
 	});
+	const [isTransitioning, setIsTransitioning] = useState(false);
 
-	const [isAnimating, setIsAnimating] = useState(false);
-
-	const hasViewedEnv =
-		typeof window !== 'undefined' && window.localStorage.getItem(VIEWED_ENV_STORAGE_KEY) === 'true';
-
+	// Sync external completion signals (repo creation, securing, env viewed) into step state
 	useEffect(() => {
-		setCompletedSteps((prev) => {
-			const next: CompletedState = { ...prev };
-			if (hasRepos) next[1] = true;
-			if (hasSecuredRepo) next[2] = true;
-			if (hasViewedEnv) next[3] = true;
-			return next;
-		});
+		setCompleted((prev) => ({
+			...prev,
+			1: prev[1] || hasRepos,
+			2: prev[2] || hasSecuredRepo,
+			3: prev[3] || hasViewedEnv,
+		}));
 	}, [hasRepos, hasSecuredRepo, hasViewedEnv]);
 
+	/**
+	 * Auto-advances to the next incomplete step when a prior step completes.
+	 * Delayed transition lets the exit animation finish before switching content.
+	 */
 	useEffect(() => {
-		if (isAnimating) return;
+		if (isTransitioning) return;
+		if (completed[1] && completed[2] && completed[3]) return;
 
-		const allDone = completedSteps[1] && completedSteps[2] && completedSteps[3];
-		if (allDone) {
-			return;
-		}
+		let nextStep: StepId | null = null;
+		if (completed[1] && !completed[2]) nextStep = 2;
+		else if (completed[1] && completed[2] && !completed[3]) nextStep = 3;
 
-		let target: StepId | null = null;
-		if (completedSteps[1] && !completedSteps[2]) target = 2;
-		else if (completedSteps[1] && completedSteps[2] && !completedSteps[3]) target = 3;
+		if (!nextStep || nextStep === activeStep) return;
 
-		if (target && target !== activeStep) {
-			setIsAnimating(true);
-			const timeout = setTimeout(() => {
-				setActiveStep(target as StepId);
-				setIsAnimating(false);
-			}, 700);
-			return () => clearTimeout(timeout);
-		}
-	}, [completedSteps, activeStep, isAnimating]);
+		setIsTransitioning(true);
+		const id = setTimeout(() => {
+			setActiveStep(nextStep);
+			setIsTransitioning(false);
+		}, STEP_TRANSITION_MS);
 
-	const steps: StepConfig[] = useMemo(
-		() => [
-			{
-				id: 1,
-				label: 'Connect editor',
-				icon: Layers01Icon as ComponentType<SVGProps<SVGSVGElement>>,
-			},
-			{
-				id: 2,
-				label: 'Secure repo',
-				icon: LockKeyIcon as ComponentType<SVGProps<SVGSVGElement>>,
-			},
-			{
-				id: 3,
-				label: 'View env',
-				icon: LaptopIcon as ComponentType<SVGProps<SVGSVGElement>>,
-			},
-		],
-		[]
-	);
+		return () => clearTimeout(id);
+	}, [completed, activeStep, isTransitioning]);
 
-	const handleHide = () => {
-		if (typeof window !== 'undefined') {
-			window.localStorage.setItem(HIDE_WIZARD_STORAGE_KEY, 'true');
-		}
-		onHide?.();
-	};
-
-	const handleManualAdvance = () => {
-		if (activeStep < 3) {
-			setCompletedSteps((prev) => ({
-				...prev,
-				[activeStep]: true,
-			}));
-			setIsAnimating(true);
-			const nextStep = (activeStep + 1) as StepId;
-			setTimeout(() => {
-				setActiveStep(nextStep);
-				setIsAnimating(false);
-			}, 700);
-		}
+	/** Mark step done and advance to next — used when "I've installed it" etc. is clicked. */
+	const markAndAdvance = (step: StepId, next: StepId) => {
+		setCompleted((prev) => ({ ...prev, [step]: true }));
+		setIsTransitioning(true);
+		setTimeout(() => {
+			setActiveStep(next);
+			setIsTransitioning(false);
+		}, STEP_TRANSITION_MS);
 	};
 
 	const firstSecuredRepo = repos.find((r) => r.environments > 0);
 
-	const openEnvs = () => {
+	const handleOpenDashboard = () => {
 		if (!firstSecuredRepo?.id) return;
 		markEnvViewedInBrowser();
-		router.navigate({
-			to: '/dashboard',
-			search: {
-				repoId: firstSecuredRepo.id,
-			},
-		});
+		router.navigate({ to: '/dashboard', search: { repoId: firstSecuredRepo.id } });
 	};
 
-	const greeting = userName ? `Hey ${userName}, let's get started` : "Let's get you set up";
-
 	return (
-		<section className='mb-6 rounded-2xl border border-border bg-muted/40 px-5 py-4 flex flex-col gap-4'>
-			<div className='flex items-start justify-between gap-4'>
-				<div className='flex flex-col gap-1'>
-					<h2 className='text-sm font-semibold tracking-tight'>{greeting}</h2>
-					<p className='text-xs text-muted-foreground'>
-						Follow these three quick steps to connect your editor, secure a repo, and verify your
-						.env in the dashboard.
-					</p>
-				</div>
-				<Button
-					variant='ghost'
-					size='icon'
-					className='h-7 w-7 text-muted-foreground'
-					onClick={handleHide}
+		<motion.section
+			aria-label='Get started with EnvVault'
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.4, ease: EASE_OUT }}
+			className='relative overflow-hidden'
+		>
+			<div className='flex items-center justify-end px-4 pt-3'>
+				<div
+					role='progressbar'
+					aria-valuenow={activeStep}
+					aria-valuemin={1}
+					aria-valuemax={TOTAL_STEPS}
+					aria-label={`Step ${activeStep} of ${TOTAL_STEPS}`}
 				>
-					<span className='sr-only'>Hide onboarding</span>
-					<span aria-hidden>✕</span>
-				</Button>
+					<StepIndicator
+						totalSteps={TOTAL_STEPS}
+						currentStep={activeStep}
+					/>
+				</div>
 			</div>
 
-			<StepProgress
-				steps={steps}
-				currentStep={activeStep}
-				className='mt-1'
-			/>
-
-			<div className='mt-4'>
-				{activeStep === 1 && (
-					<StepConnectEditor
-						hasRepos={hasRepos}
-						onManualAdvance={handleManualAdvance}
-					/>
-				)}
-				{activeStep === 2 && (
-					<StepSecureRepo
-						hasRepos={hasRepos}
-						hasSecuredRepo={hasSecuredRepo}
-						onManualAdvance={handleManualAdvance}
-					/>
-				)}
-				{activeStep === 3 && (
-					<StepViewEnv
-						hasSecuredRepo={hasSecuredRepo}
-						onOpenEnvs={openEnvs}
-					/>
-				)}
+			<div className='p-6 py-10'>
+				<AnimatePresence mode='wait'>
+					{activeStep === 1 && (
+						<StepTransition key='install'>
+							<StepInstallExtension onIveInstalledIt={() => markAndAdvance(1, 2)} />
+						</StepTransition>
+					)}
+					{activeStep === 2 && (
+						<StepTransition key='secure'>
+							<StepSecureRepo
+								isSecured={hasSecuredRepo}
+								onIveSecuredIt={() => markAndAdvance(2, 3)}
+							/>
+						</StepTransition>
+					)}
+					{activeStep === 3 && (
+						<StepTransition key='verify'>
+							<StepVerifyDashboard
+								isReady={hasSecuredRepo}
+								onOpen={handleOpenDashboard}
+							/>
+						</StepTransition>
+					)}
+				</AnimatePresence>
 			</div>
-		</section>
+		</motion.section>
 	);
 }
 
-type StepConnectEditorProps = {
-	hasRepos: boolean;
-	onManualAdvance: () => void;
-};
+// ── Shared Step Layout ─────────────────────────────────
 
-function StepConnectEditor({ hasRepos, onManualAdvance }: StepConnectEditorProps) {
+function StepLayout({
+	illustration,
+	illustrationWidth = 'max-w-lg',
+	title,
+	description,
+	actions,
+}: StepLayoutProps) {
 	return (
-		<div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
-			<div className='space-y-1.5'>
-				<h3 className='text-sm font-semibold'>Step 1 — Connect your editor</h3>
-				<p className='text-xs text-muted-foreground max-w-md'>
-					Install the EnvVault VS Code extension and sign in with this account. Once your editor is
-					connected and a repo shows up, we&apos;ll move you to the next step automatically.
-				</p>
-				<div className='flex items-center gap-2'>
+		<div className='flex flex-col items-center -space-y-10'>
+			<motion.div
+				className={cn('w-full overflow-hidden mask-b-from-60% mask-b-to-100%', illustrationWidth)}
+				initial={{ opacity: 0, scale: 0.95 }}
+				animate={{ opacity: 1, scale: 1 }}
+				transition={{ duration: 0.4, ease: EASE_OUT }}
+			>
+				{illustration}
+			</motion.div>
+
+			<motion.div
+				className='mt-6 max-w-md text-center'
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.15 }}
+			>
+				<h3 className='text-lg font-semibold tracking-tight'>{title}</h3>
+				<p className='mt-1.5 text-sm leading-relaxed text-muted-foreground'>{description}</p>
+				<div className='mt-5 flex flex-wrap items-center justify-center gap-3'>{actions}</div>
+			</motion.div>
+		</div>
+	);
+}
+
+function StepTransition({ children }: { children: ReactNode }) {
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 10 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: -10 }}
+			transition={{ duration: 0.3, ease: EASE_OUT }}
+		>
+			{children}
+		</motion.div>
+	);
+}
+
+// ── Step Components ────────────────────────────────────
+
+function StepInstallExtension({ onIveInstalledIt }: { onIveInstalledIt: () => void }) {
+	return (
+		<StepLayout
+			illustration={<VSCodeExtensionIllustration />}
+			title='Install the Extension'
+			description='Get EnvVault for VS Code to sync and secure your environment variables across devices.'
+			actions={
+				<>
 					<Button
 						size='sm'
-						onClick={() => {
-							window.open(
-								'https://marketplace.visualstudio.com/items?itemName=envval.envval',
-								'_blank',
-								'noopener,noreferrer'
-							);
-						}}
+						onClick={onIveInstalledIt}
 					>
-						Install VS Code extension
+						<CheckIcon />
+						I've installed it
 					</Button>
 					<Button
 						size='sm'
 						variant='outline'
-						onClick={onManualAdvance}
+						onClick={() => openExternal(EXTERNAL_LINKS.extension)}
 					>
-						I&apos;ve installed it
+						<SolarDownloadMinimalisticBoldDuotone className='mr-1.5 size-[14px] shrink-0' />
+						Install Extension
 					</Button>
-				</div>
-				{!hasRepos && (
-					<p className='text-[11px] text-muted-foreground'>
-						No projects detected yet. Open a project folder in VS Code with the extension enabled.
-					</p>
-				)}
-				{hasRepos && (
-					<p className='text-[11px] text-emerald-600'>
-						Editor connected. We can see at least one project from your machine.
-					</p>
-				)}
-			</div>
-			<div className={cn('mt-4 md:mt-0 w-full md:w-auto')}>
-				<div className='h-28 w-full md:w-64 rounded-xl border border-dashed border-border bg-background flex items-center justify-center text-[11px] text-muted-foreground'>
-					Editor illustration placeholder
-				</div>
-			</div>
-		</div>
+				</>
+			}
+		/>
 	);
 }
 
-type StepSecureRepoProps = {
-	hasRepos: boolean;
-	hasSecuredRepo: boolean;
-	onManualAdvance: () => void;
-};
-
-function StepSecureRepo({ hasRepos, hasSecuredRepo, onManualAdvance }: StepSecureRepoProps) {
-	const text = !hasRepos
-		? 'Open a project in VS Code. EnvVault will detect it automatically.'
-		: !hasSecuredRepo
-			? 'We see your repo. Initialize your .env from the extension prompt to secure it.'
-			: "Nice, you've secured at least one .env.";
-
+function StepSecureRepo({
+	isSecured,
+	onIveSecuredIt,
+}: {
+	isSecured: boolean;
+	onIveSecuredIt: () => void;
+}) {
 	return (
-		<div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
-			<div className='space-y-1.5'>
-				<h3 className='text-sm font-semibold'>Step 2 — Secure your first repo</h3>
-				<p className='text-xs text-muted-foreground max-w-md'>{text}</p>
-				<div className='flex items-center gap-2'>
-					{!hasRepos && (
-						<Button
-							size='sm'
-							variant='outline'
-							onClick={() => {
-								window.open(
-									'https://docs.envval.com/get-started/open-project',
-									'_blank',
-									'noopener,noreferrer'
-								);
-							}}
-						>
-							Open project in VS Code
-						</Button>
-					)}
-					{hasRepos && !hasSecuredRepo && (
-						<>
-							<Button
-								size='sm'
-								variant='outline'
-								onClick={() => {
-									window.open(
-										'https://docs.envval.com/get-started/secure-repo',
-										'_blank',
-										'noopener,noreferrer'
-									);
-								}}
-							>
-								See detected repos
-							</Button>
-							<Button
-								size='sm'
-								variant='outline'
-								onClick={onManualAdvance}
-							>
-								I&apos;ve secured it
-							</Button>
-						</>
-					)}
-					{hasSecuredRepo && (
-						<Button
-							size='sm'
-							variant='default'
-						>
-							You&apos;re good here
-						</Button>
-					)}
-				</div>
-				{hasRepos && !hasSecuredRepo && (
-					<p className='text-[11px] text-muted-foreground'>
-						Initialize your .env from the EnvVault extension banner to lock it down.
-					</p>
-				)}
-				{hasSecuredRepo && (
-					<p className='text-[11px] text-emerald-600'>
-						We can see at least one secured environment for your project.
-					</p>
-				)}
-			</div>
-			<div className='mt-4 md:mt-0 w-full md:w-auto'>
-				<div className='h-28 w-full md:w-64 rounded-xl border border-dashed border-border bg-background flex items-center justify-center text-[11px] text-muted-foreground'>
-					Repo lock illustration placeholder
-				</div>
-			</div>
-		</div>
-	);
-}
-
-type StepViewEnvProps = {
-	hasSecuredRepo: boolean;
-	onOpenEnvs: () => void;
-};
-
-function StepViewEnv({ hasSecuredRepo, onOpenEnvs }: StepViewEnvProps) {
-	return (
-		<div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
-			<div className='space-y-1.5'>
-				<h3 className='text-sm font-semibold'>Step 3 — View your env in the dashboard</h3>
-				<p className='text-xs text-muted-foreground max-w-md'>
-					Open your .env from the web to verify everything is wired correctly. We decrypt only in
-					your browser – the server never sees plaintext secrets.
-				</p>
-				<div className='flex items-center gap-2'>
+		<StepLayout
+			illustration={<LockSecureIllustration />}
+			title='Secure Your Repository'
+			description='Push your .env file with the extension to encrypt and sync it. Only you and your team can decrypt.'
+			actions={
+				isSecured ? (
 					<Button
 						size='sm'
-						onClick={onOpenEnvs}
-						disabled={!hasSecuredRepo}
+						variant='outline'
+						disabled
 					>
-						Open envs
+						<CheckIcon />
+						Completed
 					</Button>
-				</div>
-				{!hasSecuredRepo && (
-					<p className='text-[11px] text-muted-foreground'>
-						Secure at least one repo first to unlock env viewing in the dashboard.
-					</p>
-				)}
-			</div>
-			<div className='mt-4 md:mt-0 w-full md:w-auto'>
-				<div className='h-28 w-full md:w-64 rounded-xl border border-dashed border-border bg-background flex items-center justify-center text-[11px] text-muted-foreground'>
-					Dashboard env illustration placeholder
-				</div>
-			</div>
+				) : (
+					<Button
+						size='sm'
+						onClick={onIveSecuredIt}
+					>
+						<CheckIcon />
+						I've pushed it
+					</Button>
+				)
+			}
+		/>
+	);
+}
+
+function StepVerifyDashboard({ isReady, onOpen }: { isReady: boolean; onOpen: () => void }) {
+	return (
+		<StepLayout
+			illustration={<DashboardViewIllustration />}
+			title='View in Dashboard'
+			description='Access your environment variables from anywhere. Decryption happens in your browser — we never see your secrets.'
+			actions={
+				<Button
+					size='sm'
+					onClick={onOpen}
+					disabled={!isReady}
+				>
+					Open Dashboard
+				</Button>
+			}
+		/>
+	);
+}
+
+// ── UI Sub-components ──────────────────────────────────
+
+function StepIndicator({ totalSteps, currentStep }: { totalSteps: number; currentStep: number }) {
+	return (
+		<div className='flex items-center gap-3'>
+			{Array.from({ length: totalSteps }, (_, i) => {
+				const step = i + 1;
+				const isActive = currentStep === step;
+
+				return (
+					<motion.div
+						key={step}
+						className={cn(
+							'h-2 ring-1  ring-primary/50 ring-offset-1 rounded-full transition-colors',
+							isActive ? 'bg-primary' : 'bg-muted-foreground/30'
+						)}
+						initial={false}
+						animate={{ width: isActive ? 24 : 8 }}
+						transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+					/>
+				);
+			})}
 		</div>
+	);
+}
+
+function CheckIcon() {
+	return (
+		<svg
+			width='14'
+			height='14'
+			viewBox='0 0 14 14'
+			fill='none'
+			className='mr-1.5'
+			aria-hidden='true'
+		>
+			<path
+				d='M2 7L5.5 10.5L12 3.5'
+				stroke='currentColor'
+				strokeWidth='2'
+				strokeLinecap='round'
+				strokeLinejoin='round'
+			/>
+		</svg>
 	);
 }

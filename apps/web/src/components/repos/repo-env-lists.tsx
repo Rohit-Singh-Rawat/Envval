@@ -1,6 +1,6 @@
-import { FileEditIcon } from 'hugeicons-react';
 import { useRepoEnvs, useRepoSummaryBySlug } from '@/hooks/envs/use-repo-envs';
 import { EnvFileCard } from './env-file-card';
+import { EmptyEnvsState } from './empty-envs-state';
 
 interface RepoEnvListsProps {
 	slug: string;
@@ -42,7 +42,7 @@ function EnvListContent({ repoId }: { repoId: string }) {
 
 	return (
 		<section className="w-full" aria-labelledby="env-list-heading">
-			<div className="flex items-center justify-between my-4">
+			<div className="flex items-center justify-between mb-4">
 				<h2 id="env-list-heading" className="text-lg font-medium">
 					Environment Files
 				</h2>
@@ -52,7 +52,7 @@ function EnvListContent({ repoId }: { repoId: string }) {
 			</div>
 
 			{environments.length === 0 ? (
-				<EmptyState />
+				<EmptyEnvsState />
 			) : (
 				<ul className="space-y-3 mb-3" role="list" aria-label="Environment files">
 					{environments.map((env: Environment) => (
@@ -66,16 +66,3 @@ function EnvListContent({ repoId }: { repoId: string }) {
 	);
 }
 
-function EmptyState() {
-	return (
-		<div className="flex flex-col items-center justify-center py-16 text-center border rounded-lg bg-muted/10">
-			<div className="p-3 rounded-full bg-muted/50 mb-3">
-				<FileEditIcon className="size-6 text-muted-foreground" aria-hidden="true" />
-			</div>
-			<p className="font-medium text-foreground">No environment files yet</p>
-			<p className="text-sm text-muted-foreground mt-1 max-w-xs">
-				Create a .env file in your project and sync it using the VS Code extension
-			</p>
-		</div>
-	);
-}

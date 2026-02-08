@@ -11,7 +11,7 @@ function RouteComponent() {
 	const { slug } = Route.useParams();
 
 	return (
-		<div className="flex flex-col min-h-full">
+		<>
 			<Suspense fallback={<HeaderSkeleton />}>
 				<RepoHeader slug={slug} />
 			</Suspense>
@@ -21,7 +21,7 @@ function RouteComponent() {
 					<RepoEnvLists slug={slug} />
 				</Suspense>
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -45,7 +45,7 @@ function HeaderSkeleton() {
 function ContentSkeleton() {
 	return (
 		<section className="w-full">
-			<div className="flex items-center justify-between my-4">
+			<div className="flex items-center justify-between mb-4">
 				<div className="h-6 w-36 bg-muted animate-pulse rounded" />
 				<div className="h-4 w-14 bg-muted animate-pulse rounded" />
 			</div>

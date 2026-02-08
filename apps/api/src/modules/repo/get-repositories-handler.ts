@@ -16,8 +16,8 @@ export const getRepositoriesHandler = honoFactory.createHandlers(
 			return ctx.json({ error: 'Unauthorized' }, HTTP_UNAUTHORIZED);
 		}
 
-		const { page, limit } = ctx.req.valid('query');
-		const repositories = await repoService.getRepositories(user.id, page, limit);
+		const { page, limit, search } = ctx.req.valid('query');
+		const repositories = await repoService.getRepositories(user.id, page, limit, search);
 
 		return ctx.json(repositories);
 	}
