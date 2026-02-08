@@ -14,6 +14,9 @@ import { Route as HomeRouteImport } from './routes/home'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardSettingsRouteImport } from './routes/_dashboard/settings'
+import { Route as DashboardIntegrationsRouteImport } from './routes/_dashboard/integrations'
+import { Route as DashboardDevicesRouteImport } from './routes/_dashboard/devices'
 import { Route as DashboardDeviceRouteImport } from './routes/_dashboard/device'
 import { Route as DashboardDashboardRouteImport } from './routes/_dashboard/dashboard'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
@@ -42,6 +45,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardIntegrationsRoute = DashboardIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardDevicesRoute = DashboardDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardDeviceRoute = DashboardDeviceRouteImport.update({
   id: '/device',
@@ -77,6 +95,9 @@ export interface FileRoutesByFullPath {
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
   '/device': typeof DashboardDeviceRoute
+  '/devices': typeof DashboardDevicesRoute
+  '/integrations': typeof DashboardIntegrationsRoute
+  '/settings': typeof DashboardSettingsRoute
   '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesByTo {
@@ -87,6 +108,9 @@ export interface FileRoutesByTo {
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
   '/device': typeof DashboardDeviceRoute
+  '/devices': typeof DashboardDevicesRoute
+  '/integrations': typeof DashboardIntegrationsRoute
+  '/settings': typeof DashboardSettingsRoute
   '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesById {
@@ -100,6 +124,9 @@ export interface FileRoutesById {
   '/_auth/signup': typeof AuthSignupRoute
   '/_dashboard/dashboard': typeof DashboardDashboardRoute
   '/_dashboard/device': typeof DashboardDeviceRoute
+  '/_dashboard/devices': typeof DashboardDevicesRoute
+  '/_dashboard/integrations': typeof DashboardIntegrationsRoute
+  '/_dashboard/settings': typeof DashboardSettingsRoute
   '/_dashboard/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRouteTypes {
@@ -112,6 +139,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/device'
+    | '/devices'
+    | '/integrations'
+    | '/settings'
     | '/repos/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -122,6 +152,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/device'
+    | '/devices'
+    | '/integrations'
+    | '/settings'
     | '/repos/$slug'
   id:
     | '__root__'
@@ -134,6 +167,9 @@ export interface FileRouteTypes {
     | '/_auth/signup'
     | '/_dashboard/dashboard'
     | '/_dashboard/device'
+    | '/_dashboard/devices'
+    | '/_dashboard/integrations'
+    | '/_dashboard/settings'
     | '/_dashboard/repos/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -181,6 +217,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_dashboard/settings': {
+      id: '/_dashboard/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/integrations': {
+      id: '/_dashboard/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof DashboardIntegrationsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/devices': {
+      id: '/_dashboard/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DashboardDevicesRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/_dashboard/device': {
       id: '/_dashboard/device'
@@ -235,12 +292,18 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 interface DashboardRouteChildren {
   DashboardDashboardRoute: typeof DashboardDashboardRoute
   DashboardDeviceRoute: typeof DashboardDeviceRoute
+  DashboardDevicesRoute: typeof DashboardDevicesRoute
+  DashboardIntegrationsRoute: typeof DashboardIntegrationsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardReposSlugRoute: typeof DashboardReposSlugRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDashboardRoute: DashboardDashboardRoute,
   DashboardDeviceRoute: DashboardDeviceRoute,
+  DashboardDevicesRoute: DashboardDevicesRoute,
+  DashboardIntegrationsRoute: DashboardIntegrationsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardReposSlugRoute: DashboardReposSlugRoute,
 }
 

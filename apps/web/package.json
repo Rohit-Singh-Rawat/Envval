@@ -26,6 +26,7 @@
 		"@tanstack/react-router-devtools": "^1.132.0",
 		"@tanstack/react-router-ssr-query": "^1.131.7",
 		"@tanstack/react-start": "^1.132.0",
+		"@tanstack/react-table": "^8.21.3",
 		"@tanstack/router-plugin": "^1.132.0",
 		"@toolwind/corner-shape": "^0.0.8-3",
 		"better-auth": "^1.4.6",

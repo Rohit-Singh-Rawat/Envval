@@ -64,6 +64,13 @@
       "when": 1770381508110,
       "tag": "0008_useful_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770461810731,
+      "tag": "0009_last_callisto",
+      "breakpoints": true
     }
   ]
 }

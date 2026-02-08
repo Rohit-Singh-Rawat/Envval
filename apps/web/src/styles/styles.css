@@ -33,6 +33,18 @@ body {
 code {
 	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+/* Orbit animation for integrations page */
+@keyframes orbit {
+	0% {
+		transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * -1))
+			rotate(calc(var(--angle) * -1deg));
+	}
+	100% {
+		transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * -1))
+			rotate(calc(var(--angle) * -1deg - 360deg));
+	}
+}
 /* 
 :root {
 	--background: oklch(0.9965 0.013 115.03);
@@ -156,3 +168,62 @@ code {
 		@apply bg-background text-foreground;
 	}
 } */
+
+/* Devices Table Styling */
+.devices-table {
+	width: 100%;
+	border-spacing: 0;
+	border-collapse: separate;
+	border-radius: 12px;
+	overflow: hidden;
+}
+
+
+
+.devices-table td {
+	padding: 12px 16px;
+	border-top: 1px solid var(--border);
+}
+
+.devices-table tr td:first-child {
+	border-left: 1px solid var(--border);
+}
+
+.devices-table tr td:last-child {
+	border-right: 1px solid var(--border);
+}
+
+.devices-table tbody tr:first-child td {
+	border-top: 1px solid var(--border);
+}
+
+.devices-table tbody tr:first-child td:first-child {
+	border-top-left-radius: 12px;
+}
+
+.devices-table tbody tr:first-child td:last-child {
+	border-top-right-radius: 12px;
+}
+
+.devices-table tbody tr:last-child td {
+	border-bottom: 1px solid var(--border);
+}
+
+.devices-table tbody tr:last-child td:first-child {
+	border-bottom-left-radius: 12px;
+}
+
+.devices-table tbody tr:last-child td:last-child {
+	border-bottom-right-radius: 12px;
+}
+
+.devices-table tbody tr {
+	transition: background-color 0.15s ease;
+}
+
+.devices-table tbody tr:hover {
+	background-color: oklch(0.94 0.01 106 / 0.1);
+}
+.devices-table tbody {
+	overflow: hidden;
+}

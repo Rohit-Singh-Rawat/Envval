@@ -1,4 +1,4 @@
-import { and, count, eq, like, max, sum } from 'drizzle-orm';
+import { and, count, eq, like, max, or, sum } from 'drizzle-orm';
 import { db } from '@envval/db';
 import { auditLog, environment, repo } from '@envval/db/schema';
 import { computeEnvId } from '@/shared/utils/id';
@@ -17,7 +17,12 @@ function generateSlug(name: string): string {
 }
 
 export class RepoService {
-	async getRepositories(userId: string, page: number, limit: number) {
+	async getRepositories(userId: string, page: number, limit: number, search?: string) {
+		const whereClause = and(
+			eq(repo.userId, userId),
+			search ? or(like(repo.name, `%${search}%`), like(repo.slug, `%${search}%`)) : undefined
+		);
+
 		const repositories = await db
 			.select({
 				id: repo.id,
@@ -32,7 +37,7 @@ export class RepoService {
 				updatedAt: repo.updatedAt,
 			})
 			.from(repo)
-			.where(eq(repo.userId, userId))
+			.where(whereClause)
 			.leftJoin(environment, eq(repo.id, environment.repoId))
 			.offset((page - 1) * limit)
 			.limit(limit)

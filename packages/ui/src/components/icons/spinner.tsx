@@ -9,7 +9,6 @@ export function Spinner(props: SVGProps<SVGSVGElement>) {
 			viewBox='0 0 24 24'
 			{...props}
 		>
-			{/* Icon from SVG Spinners by Utkarsh Verma - https://github.com/n3r4zzurr0/svg-spinners/blob/main/LICENSE */}
 			<path
 				fill='currentColor'
 				d='M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z'

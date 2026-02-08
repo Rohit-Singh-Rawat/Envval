@@ -1,4 +1,11 @@
-import type { SendEmailPayload, TemplateName, OtpEmailData, WelcomeEmailData } from './schema';
+import type {
+	SendEmailPayload,
+	TemplateName,
+	OtpEmailData,
+	WelcomeEmailData,
+	NewRepoEmailData,
+	NewDeviceEmailData,
+} from './schema';
 import type { EmailSendResult } from './provider';
 
 export interface RenderedEmail {
@@ -12,4 +19,11 @@ export interface SendEmailResult extends EmailSendResult {
 	to: SendEmailPayload['to'];
 }
 
-export type { SendEmailPayload, TemplateName, OtpEmailData, WelcomeEmailData };
+export type {
+	SendEmailPayload,
+	TemplateName,
+	OtpEmailData,
+	WelcomeEmailData,
+	NewRepoEmailData,
+	NewDeviceEmailData,
+};

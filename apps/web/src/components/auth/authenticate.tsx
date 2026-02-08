@@ -8,7 +8,7 @@ import { useTimer } from '@/hooks/use-timer';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@envval/ui/components/input-otp';
 import EnvvalLogo from '../logo/envval';
 import AuthForm from './auth-form';
-import { Button } from '../ui/button';
+import { Button } from '@envval/ui/components/button';
 import { authClient } from '@/lib/auth-client';
 import { useDeviceKeyMaterialRegistration } from '@/hooks/auth/use-device-key-material-registration';
 import { toastKeyMaterialSync } from '@/lib/toast';

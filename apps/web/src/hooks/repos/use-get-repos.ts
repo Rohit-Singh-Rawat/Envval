@@ -1,5 +1,5 @@
 import client from '@/lib/api';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 export interface Project {
 	id: string;
@@ -13,18 +13,25 @@ export interface Project {
 	updatedAt: string;
 }
 
-export const useGetRepos = () => {
-	return useSuspenseQuery({
-		queryKey: ['repos'],
+export const useGetRepos = ({ search }: { search?: string } = {}) => {
+	return useQuery({
+		queryKey: ['repos', search],
 		queryFn: async () => {
+			const query: Record<string, string> = {
+				page: '1',
+				limit: '10',
+			};
+
+			if (search) {
+				query.search = search;
+			}
+
 			const response = await client.api.v1.repos.$get({
-				query: {
-					page: '1',
-					limit: '10',
-				},
+				query,
 			});
 			const data = await response.json();
 			return data as Project[];
 		},
+		placeholderData: keepPreviousData,
 	});
 };

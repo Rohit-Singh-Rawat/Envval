@@ -20,7 +20,7 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 		<CommandPrimitive
 			data-slot='command'
 			className={cn(
-				'bg-popover text-popover-foreground flex size-full flex-col overflow-hidden rounded-[22px] p-1',
+				'bg-popover text-popover-foreground flex size-full flex-col overflow-hidden rounded-[22px] ',
 				className
 			)}
 			{...props}
@@ -69,7 +69,7 @@ function CommandInput({
 	return (
 		<div
 			data-slot='command-input-wrapper'
-			className='p-1'
+			className='p-2'
 		>
 			<InputGroup className='border-input bg-input/30 h-10 rounded-lg shadow-none *:data-[slot=input-group-addon]:pl-2.5'>
 				<CommandPrimitive.Input
@@ -181,7 +181,7 @@ function CommandFooter({ className, ref, children, ...props }: React.ComponentPr
 			ref={ref}
 			data-slot='command-footer'
 			className={cn(
-				'flex items-center gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground',
+				'flex items-center gap-3 border-t bg-input/30 border-border px-3 py-2 text-xs text-muted-foreground',
 				className
 			)}
 			{...props}

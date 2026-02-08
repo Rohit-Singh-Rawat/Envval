@@ -1,4 +1,4 @@
-import { UnfoldMoreIcon, Settings02Icon, Home01Icon, Logout01Icon } from 'hugeicons-react';
+import { UnfoldMoreIcon, Home01Icon, Logout01Icon } from 'hugeicons-react';
 import { EnvvalLogo } from '@/components/logo/envval';
 import {
 	DropdownMenu,
@@ -18,15 +18,18 @@ import { useLogout } from '@/hooks/auth/use-logout';
 import { Spinner } from '@/components/icons/spinner';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { getOrCreateAvatarSeed } from '@/lib/avatar-utils';
+import { useUserProfile } from '@/hooks/user/use-user';
+import { getAvatarById } from '@/lib/avatars';
+import { CommandMenuTrigger } from './command-menu';
 
 const AVATAR_SIZE = 32;
 
 function UserDropdownSkeleton() {
 	return (
-		<div className='flex items-center gap-2 px-2 py-1'>
+		<div className='flex items-center gap-3 px-2 py-1.5 h-9 rounded-full bg-muted/20 animate-pulse'>
 			<Skeleton className='size-6 rounded-full' />
-			<Skeleton className='h-4 w-20' />
-			<Skeleton className='size-4' />
+			<Skeleton className='h-3.5 w-20 rounded-md' />
+			<Skeleton className='size-3.5 rounded-sm' />
 		</div>
 	);
 }
@@ -36,16 +39,30 @@ function UserDropdown() {
 	const navigate = useNavigate();
 	const { logout, isLoading } = useLogout();
 
-	const avatarSeed = session?.user 
-		? getOrCreateAvatarSeed(session.user.id, session.user.email)
-		: '';
+	// Fetch user profile to get selected avatar
+	const { data: profile } = useUserProfile();
+
+	// Priority: 1) user image, 2) selected avatar pattern, 3) localStorage seed
+	const avatarSeed = useMemo(() => {
+		if (profile?.avatar) {
+			// Use the selected avatar pattern
+			const avatar = getAvatarById(profile.avatar);
+			if (avatar) {
+				return `pattern-${avatar.pattern}`;
+			}
+		}
+		// Fallback to localStorage-based seed
+		return session?.user 
+			? getOrCreateAvatarSeed(session.user.id, session.user.email)
+			: '';
+	}, [profile?.avatar, session?.user]);
 
 	if (isPending) {
 		return <UserDropdownSkeleton />;
 	}
 
 	const user = {
-		name: session?.user?.name ?? 'User',
+		name: (profile?.displayName || session?.user?.name) ?? 'User',
 		email: session?.user?.email ?? '',
 		imageUrl: session?.user?.image ?? null,
 	};
@@ -77,18 +94,14 @@ function UserDropdown() {
 							avatarSeed={avatarSeed}
 							size={AVATAR_SIZE}
 						/>
-						<div className='flex flex-col'>
-							<p className='text-sm font-medium'>{user.name}</p>
-							<p className='text-xs text-muted-foreground font-normal'>{user.email}</p>
+						<div className='flex flex-col text-left'>
+							<p className='text-sm font-medium leading-none'>{user.name}</p>
+							<p className='text-xs text-muted-foreground font-normal mt-1 leading-none truncate max-w-[180px]'>{user.email}</p>
 						</div>
 					</DropdownMenuLabel>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-					<DropdownMenuItem>
-						<Settings02Icon className='size-4' aria-hidden='true' />
-						<span>Account Settings</span>
-					</DropdownMenuItem>
 					<DropdownMenuItem onClick={() => navigate({ to: '/' })}>
 						<Home01Icon className='size-4' aria-hidden='true' />
 						<span>Homepage</span>
@@ -111,13 +124,15 @@ import { SidebarTrigger } from '@envval/ui/components/sidebar';
 
 export function Header() {
 	return (
-		<header className='w-full bg-background '>
-			<div className='flex items-center justify-between p-4 px-6 w-full max-w-screen-2xl mx-auto'>
+		<header className='w-full bg-background'>
+			<div className='flex items-center justify-between p-4 px-2 md:px-4 w-full max-w-screen-2xl mx-auto'>
 				<div className='flex items-center gap-4'>
 					<SidebarTrigger className='md:hidden' />
 					<EnvvalLogo variant='full' className='h-6 w-auto' />
 				</div>
-				<UserDropdown />
+				<div className="flex items-center gap-4">
+					<UserDropdown />
+				</div>
 			</div>
 		</header>
 	);
