@@ -34,4 +34,46 @@ export class AuthEmailService {
 
 		return { success: true };
 	}
+	async sendNewRepoEmail(email: string, userName: string, repoName: string, repoUrl?: string) {
+		await rateLimit({ actionType: 'email', identifier: email });
+
+		await enqueueEmail({
+			to: email,
+			from: env.EMAIL_FROM,
+			template: 'new-repo' as const,
+			data: {
+				userName,
+				repoName,
+				repoUrl,
+				productName: 'EnvVal',
+			},
+		});
+
+		return { success: true };
+	}
+
+	async sendNewDeviceLoginEmail(
+		email: string,
+		userName: string,
+		deviceName: string,
+		timestamp: string,
+		location?: string
+	) {
+		await rateLimit({ actionType: 'email', identifier: email });
+
+		await enqueueEmail({
+			to: email,
+			from: env.EMAIL_FROM,
+			template: 'new-device' as const,
+			data: {
+				userName,
+				deviceName,
+				timestamp,
+				location,
+				productName: 'EnvVal',
+			},
+		});
+
+		return { success: true };
+	}
 }

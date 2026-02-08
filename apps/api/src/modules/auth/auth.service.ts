@@ -4,6 +4,7 @@ import { bearer, customSession, deviceAuthorization, emailOTP } from 'better-aut
 import { nanoid } from 'nanoid';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
+import { eq } from 'drizzle-orm';
 import { AuthEmailService } from './auth-email.service';
 import { DeviceService } from './device.service';
 import { env } from '@/config/env';
@@ -49,6 +50,10 @@ export const auth = betterAuth({
 			onboarded: {
 				type: 'boolean',
 			},
+			notificationPreferences: {
+				type: 'string', // Stored as JSON string or object, better-auth might serialize it
+				required: false,
+			},
 		},
 	},
 
@@ -86,6 +91,45 @@ export const auth = betterAuth({
 	databaseHooks: {
 		session: {
 			create: {
+				after: async (session) => {
+					try {
+						// Check if this is a new device login and user wants notifications
+						const [user] = await db
+							.select()
+							.from(schema.user)
+							.where(eq(schema.user.id, session.userId))
+							.limit(1);
+
+						if (!user) return;
+
+						// Parse preferences safely
+						let preferences = user.notificationPreferences as any;
+						if (typeof preferences === 'string') {
+							try {
+								preferences = JSON.parse(preferences);
+							} catch {
+								preferences = { newRepoAdded: true, newDeviceLogin: true };
+							}
+						}
+
+						if (preferences?.newDeviceLogin) {
+							// Check if device info is available
+							const deviceName = session.userAgent || 'Unknown Device';
+							const location = session.ipAddress ? `IP: ${session.ipAddress}` : undefined;
+							
+							// Send email asynchronously
+							emailService.sendNewDeviceLoginEmail(
+								user.email,
+								user.displayName || user.name,
+								deviceName,
+								new Date().toLocaleString(),
+								location
+							).catch(console.error);
+						}
+					} catch (error) {
+						console.error('Error in session create hook:', error);
+					}
+				},
 				before: async (data) => {
 					console.log('session create before', data);
 					const isExtension = isExtensionOrCli(data.userAgent);
