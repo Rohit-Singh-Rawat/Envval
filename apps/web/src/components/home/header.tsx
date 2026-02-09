@@ -6,7 +6,7 @@ import { Menu01Icon, Cancel01Icon } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-	{ label: 'Features', href: '/' },
+	{ label: 'Features', href: '#features' },
 	{ label: 'Pricing', href: '/' },
 	{ label: 'Blog', href: '/' },
 ];
