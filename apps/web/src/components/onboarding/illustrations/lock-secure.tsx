@@ -394,21 +394,10 @@ export function LockSecureIllustration() {
 				</div>
 
 				{/* Cursor */}
-				<div className='cursor pointer-events-none absolute left-0 top-0 z-30'>
+				<div className='cursor pointer-events-none absolute left-0 top-0 z-30' aria-hidden='true'>
 					<div className='cursor-ring absolute -left-2.5 -top-2.5 size-6 rounded-full border-2 border-primary/60' />
-					<svg
-						width='16'
-						height='16'
-						viewBox='0 0 24 24'
-						fill='none'
-						className='drop-shadow-md'
-					>
-						<path
-							d='M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.86a.5.5 0 0 0-.85.35Z'
-							className='fill-foreground'
-							stroke='white'
-							strokeWidth='1.5'
-						/>
+					<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 28 28' className='drop-shadow-md'>
+						<path fill='currentColor' d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z' />
 					</svg>
 				</div>
 			</div>
