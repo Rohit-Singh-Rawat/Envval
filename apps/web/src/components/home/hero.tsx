@@ -64,12 +64,14 @@ const HeroImage = () => (
 					opacity='0.25'
 				/>
 			</svg>
-			<div className='relative aspect-[3/4] md:aspect-video flex items-center justify-center rounded-2xl w-[80%] overflow-hidden shadow-2xs'>
-				<img
-					src='/images/home/hero/hero-image.png'
-					alt='Hero image'
-					className='w-full h-full object-cover'
-				/>
+			<div className='p-2 rounded-3xl bg-black/5 backdrop-blur-sm w-[80%] mx-auto'>
+				<div className='relative aspect-[3/4] md:aspect-video flex items-center justify-center rounded-2xl overflow-hidden shadow-2xs '>
+					<img
+						src='/images/home/hero/hero-image.png'
+						alt='Hero image'
+						className='w-full h-full object-cover brightness-105'
+					/>
+				</div>
 			</div>
 		</div>
 	</div>
