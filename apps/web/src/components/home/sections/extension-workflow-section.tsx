@@ -3,7 +3,7 @@
 import { type ReactNode, useRef } from 'react';
 import { motion } from 'motion/react';
 import SectionHeading from '../section-heading';
-import ExtensionIllustration from './extension-illustration';
+import ExtensionPreview from './extension-preview';
 import { EDITOR_LOGOS } from './marquee-logos';
 
 const EASE_OUT = [0.32, 0.72, 0, 1] as const;
@@ -101,47 +101,53 @@ const IllustrationPanel = ({
 /* ─── Section ─── */
 
 const ExtensionWorkflowSection = () => {
-    const containerRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
-    return (
-	<section className='relative overflow-hidden container max-w-7xl mx-auto p-4 bg-muted rounded-3xl my-32'>
-		<div className='flex flex-col gap-5'>
-			{/* Top: Heading + Marquee */}
-			<motion.div
-				initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
-				whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-				viewport={{ once: true, margin: '-40px' }}
-				transition={{ duration: 0.6, ease: EASE_OUT }}
-				className='grid grid-cols-1 md:grid-cols-2 gap-6 items-center px-4 pt-8'
-			>
-				<SectionHeading
-					label='Editor Extensions'
-					heading='Never leave your editor'
-					text='Pull, push, and rotate secrets without switching tabs. End-to-end encrypted sync built right into your workflow.'
-					align='left'
-					className='md:mb-10'
-				/>
-				<EditorMarquee />
-			</motion.div>
-
-			{/* Bottom: Full-width illustration */}
-			<motion.div
-				initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-				whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-				viewport={{ once: true, margin: '-40px' }}
-				transition={{ duration: 0.8, delay: 0.15, ease: EASE_OUT }}
-			>
-				<IllustrationPanel
-					filterId='noise-workflow'
-					className='aspect-video'
+	return (
+		<section className='relative overflow-hidden container max-w-7xl mx-auto p-4 bg-muted rounded-3xl my-32'>
+			<div className='flex flex-col gap-5'>
+				{/* Top: Heading + Marquee */}
+				<motion.div
+					initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+					whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+					viewport={{ once: true, margin: '-40px' }}
+					transition={{ duration: 0.6, ease: EASE_OUT }}
+					className='grid grid-cols-1 md:grid-cols-2 gap-6 items-center px-4 pt-8'
 				>
-					<div ref={containerRef} className="w-full h-full p-4 md:p-8 flex items-center justify-center">
-						<ExtensionIllustration containerRef={containerRef} />
-					</div>
-				</IllustrationPanel>
-			</motion.div>
-		</div>
-	</section>
-)};
+					<SectionHeading
+						label='Editor Extensions'
+						heading='Never leave your editor'
+						text='Pull, push, and rotate secrets without switching tabs. End-to-end encrypted sync built right into your workflow.'
+						align='left'
+						className='md:mb-10'
+					/>
+					<EditorMarquee />
+				</motion.div>
+
+				{/* Bottom: Full-width illustration */}
+				<motion.div
+					initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+					whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+					viewport={{ once: true, margin: '-40px' }}
+					transition={{ duration: 0.8, delay: 0.15, ease: EASE_OUT }}
+				>
+					<IllustrationPanel
+						filterId='noise-workflow'
+						className='aspect-video'
+					>
+						<div className='w-full h-full p-4 md:p-5 flex items-center justify-center'>
+							<div
+								className='w-full h-full items-center justify-center flex'
+								ref={containerRef}
+							>
+								<ExtensionPreview containerRef={containerRef} />
+							</div>
+						</div>
+					</IllustrationPanel>
+				</motion.div>
+			</div>
+		</section>
+	);
+};
 
 export default ExtensionWorkflowSection;

@@ -26,7 +26,9 @@
       "WebFetch(domain:autosend.com)",
       "WebFetch(domain:openai.com)",
       "Bash(npx turbo run build:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(del \"c:\\\\Users\\\\ROHIT SINGH RAWAT\\\\OneDrive\\\\Desktop\\\\rsrCrafts\\\\Env0\\\\apps\\\\web\\\\src\\\\components\\\\home\\\\sections\\\\extension-illustration.tsx\")",
+      "Bash(npx vite build:*)"
     ]
   }
 }
