@@ -18,7 +18,15 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(del \"c:\\\\Users\\\\ROHIT SINGH RAWAT\\\\OneDrive\\\\Desktop\\\\rsrCrafts\\\\Env0\\\\apps\\\\web\\\\src\\\\components\\\\onboarding\\\\get-started-illustration\\\\step-install.tsx\")",
       "Bash(del \"c:\\\\Users\\\\ROHIT SINGH RAWAT\\\\OneDrive\\\\Desktop\\\\rsrCrafts\\\\Env0\\\\apps\\\\web\\\\src\\\\components\\\\onboarding\\\\get-started-illustration\\\\step-secure.tsx\")",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "WebFetch(domain:cursor.com)",
+      "WebFetch(domain:codex.openai.com)",
+      "Bash(cd:*)",
+      "WebFetch(domain:www.hume.ai)",
+      "WebFetch(domain:autosend.com)",
+      "WebFetch(domain:openai.com)",
+      "Bash(npx turbo run build:*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }
