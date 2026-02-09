@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as AnimationRouteImport } from './routes/animation'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +32,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnimationRoute = AnimationRouteImport.update({
+  id: '/animation',
+  path: '/animation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -89,6 +95,7 @@ const DashboardReposSlugRoute = DashboardReposSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/animation': typeof AnimationRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/animation': typeof AnimationRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
+  '/animation': typeof AnimationRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/_auth/login': typeof AuthLoginRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/animation'
     | '/home'
     | '/welcome'
     | '/login'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/animation'
     | '/home'
     | '/welcome'
     | '/login'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/_dashboard'
+    | '/animation'
     | '/home'
     | '/welcome'
     | '/_auth/login'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  AnimationRoute: typeof AnimationRoute
   HomeRoute: typeof HomeRoute
   WelcomeRoute: typeof WelcomeRoute
 }
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/animation': {
+      id: '/animation'
+      path: '/animation'
+      fullPath: '/animation'
+      preLoaderRoute: typeof AnimationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard': {
@@ -315,6 +335,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  AnimationRoute: AnimationRoute,
   HomeRoute: HomeRoute,
   WelcomeRoute: WelcomeRoute,
 }
