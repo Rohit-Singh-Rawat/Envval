@@ -2,28 +2,29 @@
 	"name": "@envval/api",
 	"type": "module",
 	"scripts": {
-		"dev": "tsx watch src/server.ts",
-		"build": "rimraf dist && tsc && tsc-alias",
-		"start": "tsx src/server.ts",
+		"dev": "bun --watch src/server.ts",
+		"build": "rimraf dist && bun esbuild.config.js",
+		"start": "bun src/server.ts",
+		"start:prod": "bun dist/server.js",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "tsx scripts/migrate.ts"
+		"db:migrate": "bun scripts/migrate.ts"
 	},
 	"exports": {
 		".": {
 			"types": "./dist/app.d.ts",
-			"default": "./src/app.ts"
+			"default": "./dist/app.js"
 		},
 		"./hc": {
 			"types": "./dist/hc.d.ts",
-			"default": "./src/hc.ts"
+			"default": "./dist/hc.js"
 		},
 		"./auth": {
 			"types": "./dist/modules/auth/auth.service.d.ts",
-			"default": "./src/modules/auth/auth.service.ts"
+			"default": "./dist/modules/auth/auth.service.js"
 		},
 		"./routes": {
-			"default": "./src/api/v1/index.ts"
+			"default": "./dist/api/v1/index.js"
 		}
 	},
 	"typesVersions": {
@@ -37,7 +38,6 @@
 		"@envval/db": "workspace:*",
 		"@envval/email": "workspace:*",
 		"@envval/queue": "workspace:*",
-		"@hono/node-server": "^1.19.6",
 		"@hono/zod-validator": "^0.7.5",
 		"@t3-oss/env-core": "^0.13.8",
 		"@upstash/ratelimit": "^1.2.0",
@@ -49,7 +49,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.17",
-		"tsc-alias": "^1.8.16",
+		"esbuild": "^0.27.2",
 		"tsx": "^4.7.1",
 		"typescript": "^5.8.3",
 		"rimraf": "^6.0.1"
