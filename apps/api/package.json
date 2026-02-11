@@ -3,9 +3,6 @@
 	"type": "module",
 	"scripts": {
 		"dev": "bun --watch src/server.ts",
-		"build": "rimraf dist && bun esbuild.config.js",
-		"start": "bun src/server.ts",
-		"start:prod": "bun dist/server.js",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bun scripts/migrate.ts"
@@ -49,7 +46,6 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.11.17",
-		"esbuild": "^0.27.2",
 		"tsx": "^4.7.1",
 		"typescript": "^5.8.3",
 		"rimraf": "^6.0.1"
