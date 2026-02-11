@@ -3,8 +3,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
-		"build": "rm -rf dist && tsc && tsc-alias",
-		"start": "rm -rf dist && tsc && tsc-alias && node dist/server.js",
+		"build": "rimraf dist && tsc && tsc-alias",
+		"start": "tsx src/server.ts",
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/migrate.ts"
@@ -51,6 +51,7 @@
 		"@types/node": "^20.11.17",
 		"tsc-alias": "^1.8.16",
 		"tsx": "^4.7.1",
-		"typescript": "^5.8.3"
+		"typescript": "^5.8.3",
+		"rimraf": "^6.0.1"
 	}
 }
