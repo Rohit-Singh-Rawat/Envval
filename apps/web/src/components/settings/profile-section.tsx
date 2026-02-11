@@ -5,7 +5,7 @@ import { Label } from '@envval/ui/components/label';
 import { Avatar } from './avatar-display';
 import { AvatarPicker } from './avatar-picker';
 import { useUpdateProfile, type UserProfile } from '@/hooks/user/use-user';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Edit02Icon } from 'hugeicons-react';
 
 interface ProfileSectionProps {
@@ -108,8 +108,7 @@ export function ProfileSection({ profile }: ProfileSectionProps) {
 									onClick={handleUpdateName}
 									disabled={!hasChanges || updateProfile.isPending}
 									pending={updateProfile.isPending}
-									size="sm"
-								>
+	>
 									Save
 								</Button>
 							</div>

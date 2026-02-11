@@ -71,6 +71,13 @@
       "when": 1770461810731,
       "tag": "0009_last_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770751794277,
+      "tag": "0010_nebulous_beast",
+      "breakpoints": true
     }
   ]
 }

@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@envval/ui/components/button';
 import { object, string } from 'zod';
-import { toast } from 'sonner';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 const DeviceSearchSchema = object({
 	user_code: string().optional(),

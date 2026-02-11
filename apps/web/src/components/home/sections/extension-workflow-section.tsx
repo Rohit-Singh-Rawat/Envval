@@ -1,14 +1,9 @@
-'use client';
-
 import { type ReactNode, useRef } from 'react';
 import { motion } from 'motion/react';
 import SectionHeading from '../section-heading';
 import ExtensionPreview from './extension-preview';
 import { EDITOR_LOGOS } from './marquee-logos';
-
-const EASE_OUT = [0.32, 0.72, 0, 1] as const;
-
-/* ─── Reusable: Infinite editor marquee ─── */
+import { EASE_OUT } from '@/lib/animation';
 
 const EditorMarquee = ({ className }: { className?: string }) => (
 	<div
@@ -31,9 +26,9 @@ const EditorMarquee = ({ className }: { className?: string }) => (
 					key={`${editor.name}-${i}`}
 					className='flex items-center gap-2 shrink-0 px-4'
 				>
-					<editor.Logo className='h-8 w-auto' />
+					<editor.Logo className='h-6 sm:h-8 w-auto' />
 					{editor.showLabel && (
-						<span className='text-xl font-semibold text-foreground whitespace-nowrap'>
+						<span className='text-lg sm:text-xl font-semibold text-foreground whitespace-nowrap'>
 							{editor.name}
 						</span>
 					)}
@@ -42,8 +37,6 @@ const EditorMarquee = ({ className }: { className?: string }) => (
 		</motion.div>
 	</div>
 );
-
-/* ─── Reusable: Illustration panel with noise bg ─── */
 
 type IllustrationPanelProps = {
 	filterId?: string;
@@ -98,21 +91,18 @@ const IllustrationPanel = ({
 	</div>
 );
 
-/* ─── Section ─── */
-
 const ExtensionWorkflowSection = () => {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	return (
-		<section className='relative overflow-hidden container max-w-7xl mx-auto p-4 bg-muted rounded-3xl my-32'>
-			<div className='flex flex-col gap-5'>
-				{/* Top: Heading + Marquee */}
+		<section className='relative overflow-hidden container max-w-7xl mx-auto p-3 sm:p-4 bg-muted rounded-2xl sm:rounded-3xl my-16 sm:my-24 md:my-32'>
+			<div className='flex flex-col gap-4 sm:gap-5'>
 				<motion.div
 					initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
 					whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
 					viewport={{ once: true, margin: '-40px' }}
 					transition={{ duration: 0.6, ease: EASE_OUT }}
-					className='grid grid-cols-1 md:grid-cols-2 gap-6 items-center px-4 pt-8'
+					className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center px-2 sm:px-4 pt-6 sm:pt-8'
 				>
 					<SectionHeading
 						label='Editor Extensions'
@@ -124,7 +114,6 @@ const ExtensionWorkflowSection = () => {
 					<EditorMarquee />
 				</motion.div>
 
-				{/* Bottom: Full-width illustration */}
 				<motion.div
 					initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
 					whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
@@ -133,9 +122,9 @@ const ExtensionWorkflowSection = () => {
 				>
 					<IllustrationPanel
 						filterId='noise-workflow'
-						className='aspect-video'
+						className='md:aspect-video'
 					>
-						<div className='w-full h-full p-4 md:p-5 flex items-center justify-center'>
+						<div className='w-full h-full p-2 sm:p-3 md:p-5 flex items-center justify-center'>
 							<div
 								className='w-full h-full items-center justify-center flex'
 								ref={containerRef}

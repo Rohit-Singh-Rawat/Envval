@@ -1,6 +1,27 @@
 import { authClient } from '@/lib/auth-client';
 import { redirect } from '@tanstack/react-router';
 import { createMiddleware } from '@tanstack/react-start';
+import type { AuthType } from '@envval/api/hc';
+
+// Session shape as inferred from the Better Auth server instance
+type Session = AuthType['$Infer']['Session'];
+
+function isUserOnboarded(session: Session | null | undefined): boolean {
+	return session?.user?.onboarded ?? false;
+}
+
+// Shared guards so we don't duplicate redirect logic everywhere
+export function redirectIfAuthenticatedGuard(session: Session | null | undefined): void {
+	if (session) {
+		throw redirect({ to: '/dashboard' });
+	}
+}
+
+export function redirectIfOnboardedGuard(session: Session | null | undefined): void {
+	if (isUserOnboarded(session)) {
+		throw redirect({ to: '/dashboard' });
+	}
+}
 
 export const authMiddleware = createMiddleware().server(async ({ next, request }) => {
 	const { data: session } = await authClient.getSession({
@@ -11,13 +32,13 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 	const currentPath = url.pathname + url.search;
 
 	if (!session) {
-		return redirect({ to: '/login', search: { redirectUrl: currentPath } });
+		throw redirect({ to: '/login', search: { redirectUrl: currentPath } });
 	}
-	if (!session.user.onboarded) {
-		return redirect({ to: '/welcome' });
+	if (!isUserOnboarded(session)) {
+		throw redirect({ to: '/welcome' });
 	}
 
-	return await next();
+	return next();
 });
 
 export const redirectIfAuthenticatedMiddleware = createMiddleware().server(
@@ -25,11 +46,10 @@ export const redirectIfAuthenticatedMiddleware = createMiddleware().server(
 		const { data: session } = await authClient.getSession({
 			fetchOptions: { headers: request.headers },
 		});
-		if (session) {
-			throw redirect({ to: '/dashboard' });
-		}
 
-		return await next();
+		redirectIfAuthenticatedGuard(session);
+
+		return next();
 	}
 );
 
@@ -43,11 +63,10 @@ export const redirectIfOnboardedMiddleware = createMiddleware().server(
 			const currentPath = url.pathname + url.search;
 			throw redirect({ to: '/login', search: { redirectUrl: currentPath } });
 		}
-		if (session?.user.onboarded) {
-			throw redirect({ to: '/dashboard' });
-		}
 
-		return await next();
+		redirectIfOnboardedGuard(session);
+
+		return next();
 	}
 );
 
@@ -55,9 +74,9 @@ export const homePageMiddleware = createMiddleware().server(async ({ next, reque
 	const { data: session } = await authClient.getSession({
 		fetchOptions: { headers: request.headers },
 	});
-	if(session) {
-		return redirect({ to: '/dashboard' });
+	if (session) {
+		throw redirect({ to: '/dashboard' });
 	}
 
-	return await next();
+	return next();
 });

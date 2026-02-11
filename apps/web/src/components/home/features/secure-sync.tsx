@@ -1,10 +1,7 @@
-'use client';
-
 import { useCallback, useEffect, useRef } from 'react';
 import { motion, useAnimate, useInView } from 'motion/react';
 import { EnvVaultIcon } from '@/components/onboarding/get-started-illustration/shared';
-
-const EASE_OUT = [0.32, 0.72, 0, 1] as const;
+import { EASE_OUT } from '@/lib/animation';
 
 const SHARED_ENVS = [
 	{ key: 'DB_URL', value: 'pg://admin:s3cret@db.io' },
@@ -26,7 +23,6 @@ function sleep(ms: number) {
 	return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Types text into a target element character-by-character */
 async function typeText(
 	el: HTMLElement,
 	text: string,
@@ -85,7 +81,7 @@ async function scrambleEncrypt(
 	});
 }
 
-/** Sweeps a linearGradient's x1/x2 across a line for a traveling signal effect */
+/** Sweeps a linearGradient across a line for a traveling signal effect */
 async function sweepGradient(
 	gradient: SVGLinearGradientElement,
 	from: number,
@@ -122,7 +118,6 @@ async function sweepGradient(
 	});
 }
 
-/** Sends signal from right→left through both connection lines */
 async function signalRightToLeft(
 	gradientRight: SVGLinearGradientElement,
 	gradientLeft: SVGLinearGradientElement,
@@ -133,7 +128,6 @@ async function signalRightToLeft(
 	await sweepGradient(gradientLeft, 60, 0, 400, cancelled);
 }
 
-/** Sends signal from left→right through both connection lines */
 async function signalLeftToRight(
 	gradientLeft: SVGLinearGradientElement,
 	gradientRight: SVGLinearGradientElement,
@@ -145,7 +139,7 @@ async function signalLeftToRight(
 }
 
 /**
- * Animation timeline:
+ * Sync animation timeline:
  * 1. Type 4th env on right → encrypt → signal right→left → type 4th on left
  * 2. Type 5th env on left → encrypt → signal left→right → type 5th on right
  * 3. Remove 4th+5th on right → signal right→left → remove 4th+5th on left
@@ -189,7 +183,7 @@ async function runSyncSequence(
 	const valCls = 'text-[11px] font-mono leading-[22px] text-foreground/80 truncate';
 	const keyCls = 'text-[11px] font-mono leading-[22px] text-emerald-500 shrink-0';
 
-	// Reset all new lines
+	// Reset all animated lines
 	await animate(
 		'[data-right-line-0]',
 		{ opacity: 0, height: 0, filter: 'blur(0px)', y: 0 },
@@ -226,7 +220,7 @@ async function runSyncSequence(
 	await sleep(800);
 	if (cancelled()) return;
 
-	// ── Phase 1: Write 4th env on right → signal → write on left ──
+	// Phase 1: Write 4th env on right → signal → write on left
 	await animate(
 		'[data-right-line-0]',
 		{ opacity: 1, height: 'auto' },
@@ -260,11 +254,10 @@ async function runSyncSequence(
 	await sleep(60);
 	await typeText(leftVal0, NEW_ENVS[0].value, 25, cancelled, valCls);
 	if (cancelled()) return;
-
 	await sleep(800);
 	if (cancelled()) return;
 
-	// ── Phase 2: Write 5th env on left → signal → write on right ──
+	// Phase 2: Write 5th env on left → signal → write on right
 	await animate(
 		'[data-left-line-1]',
 		{ opacity: 1, height: 'auto' },
@@ -298,11 +291,10 @@ async function runSyncSequence(
 	await sleep(60);
 	await typeText(rightVal1, NEW_ENVS[1].value, 25, cancelled, valCls);
 	if (cancelled()) return;
-
 	await sleep(1500);
 	if (cancelled()) return;
 
-	// ── Phase 3: Remove 4th+5th on right → signal → remove on left ──
+	// Phase 3: Remove lines on right → signal → remove on left
 	await Promise.all([
 		animate(
 			'[data-right-line-0]',
@@ -348,7 +340,6 @@ async function runSyncSequence(
 	await sleep(800);
 }
 
-/** Env key=value row for the editor */
 function EnvFileLine({
 	lineNumber,
 	envKey,
@@ -374,7 +365,6 @@ function EnvFileLine({
 	);
 }
 
-/** Dynamic new env line slot with data attributes for imperative animation */
 function NewEnvSlot({
 	lineNumber,
 	side,
@@ -384,13 +374,9 @@ function NewEnvSlot({
 	side: 'left' | 'right';
 	index: number;
 }) {
-	const lineAttr = `${side}-line-${index}` as const;
-	const keyAttr = `${side}-key-${index}` as const;
-	const valAttr = `${side}-val-${index}` as const;
-
 	return (
 		<div
-			{...{ [`data-${lineAttr}`]: true }}
+			{...{ [`data-${side}-line-${index}`]: true }}
 			style={{ opacity: 0, height: 0, overflow: 'hidden' }}
 		>
 			<div className='h-[22px] flex items-center'>
@@ -398,12 +384,12 @@ function NewEnvSlot({
 					{lineNumber}
 				</span>
 				<span
-					{...{ [`data-${keyAttr}`]: true }}
+					{...{ [`data-${side}-key-${index}`]: true }}
 					className='text-emerald-500 shrink-0 text-[11px] font-mono leading-[22px]'
 				/>
 				<span className='text-[11px] font-mono text-muted-foreground/60 leading-[22px]'>=</span>
 				<span
-					{...{ [`data-${valAttr}`]: true }}
+					{...{ [`data-${side}-val-${index}`]: true }}
 					className='text-foreground/80 truncate text-[11px] font-mono leading-[22px]'
 				/>
 			</div>
@@ -411,7 +397,6 @@ function NewEnvSlot({
 	);
 }
 
-/** VS Code-style editor window for env files with stacking effect */
 function EnvEditorWindow({
 	fileName,
 	side,
@@ -422,22 +407,20 @@ function EnvEditorWindow({
 	children: React.ReactNode;
 }) {
 	const isLeft = side === 'left';
-	const cornerClass = isLeft ? 'rounded-tr-lg rounded-bl-2xl' : 'rounded-tl-lg rounded-br-2xl';
+	const cornerClass = isLeft
+		? 'rounded-tr-lg rounded-bl-2xl '
+		: 'rounded-tl-lg rounded-br-2xl ';
 
 	return (
 		<div className='flex-1 min-w-0 self-stretch relative pt-4 flex flex-col'>
-			{/* Stacked window tab - back (furthest) */}
+			{/* Stacked tab — back */}
 			<motion.div
 				className={`absolute inset-x-3 top-0 h-6 ${cornerClass} border border-border bg-card`}
 				style={{ zIndex: 1, opacity: 0.35 }}
 				initial={{ y: 14, opacity: 0 }}
 				whileInView={{ y: 0, opacity: 0.35 }}
 				viewport={{ once: true, amount: 0.3 }}
-				transition={{
-					duration: 0.5,
-					delay: 0.4,
-					ease: [0.32, 0.72, 0, 1],
-				}}
+				transition={{ duration: 0.5, delay: 0.4, ease: [0.32, 0.72, 0, 1] }}
 				aria-hidden='true'
 			>
 				<div className={`flex items-center h-full bg-muted/40 px-3 ${cornerClass}`}>
@@ -449,18 +432,14 @@ function EnvEditorWindow({
 				</div>
 			</motion.div>
 
-			{/* Stacked window tab - middle */}
+			{/* Stacked tab — middle */}
 			<motion.div
 				className={`absolute inset-x-1.5 top-2 h-6 ${cornerClass} border border-border bg-card`}
 				style={{ zIndex: 2, opacity: 0.6 }}
 				initial={{ y: 10, opacity: 0 }}
 				whileInView={{ y: 0, opacity: 0.6 }}
 				viewport={{ once: true, amount: 0.3 }}
-				transition={{
-					duration: 0.45,
-					delay: 0.25,
-					ease: [0.32, 0.72, 0, 1],
-				}}
+				transition={{ duration: 0.45, delay: 0.25, ease: [0.32, 0.72, 0, 1] }}
 				aria-hidden='true'
 			>
 				<div className={`flex items-center h-full bg-muted/40 px-3 ${cornerClass}`}>
@@ -472,18 +451,14 @@ function EnvEditorWindow({
 				</div>
 			</motion.div>
 
-			{/* Main window */}
+			{/* Main editor window */}
 			<motion.div
-				className={`relative overflow-hidden border-t bg-card ${cornerClass} ${isLeft ? 'border-r ' : 'border-l'} border-border flex-1 flex flex-col`}
+				className={`relative overflow-hidden border-t bg-card ${cornerClass} ${isLeft ? 'border-r' : 'border-l'} border-border flex-1 flex flex-col`}
 				style={{ zIndex: 3 }}
 				initial={{ y: 6, opacity: 0 }}
 				whileInView={{ y: 0, opacity: 1 }}
 				viewport={{ once: true, amount: 0.3 }}
-				transition={{
-					duration: 0.4,
-					delay: 0.1,
-					ease: [0.32, 0.72, 0, 1],
-				}}
+				transition={{ duration: 0.4, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
 				role='img'
 				aria-label={`${fileName} environment file`}
 			>
@@ -496,14 +471,12 @@ function EnvEditorWindow({
 					<span className='text-[9px] text-muted-foreground/40'>{fileName}</span>
 					<div className='w-10' />
 				</div>
-
 				<div className='p-3 pb-3 bg-background flex-1'>{children}</div>
 			</motion.div>
 		</div>
 	);
 }
 
-/** Horizontal gradient line with animated signal sweep */
 function ConnectionLine({ direction }: { direction: 'left' | 'right' }) {
 	const gradientId = `h-line-gradient-${direction}`;
 	return (
@@ -512,7 +485,7 @@ function ConnectionLine({ direction }: { direction: 'left' | 'right' }) {
 			height='2'
 			viewBox='0 0 60 2'
 			fill='none'
-			className='shrink-0 self-center'
+			className='shrink-0 self-center block max-sm:w-[20px] '
 			aria-hidden='true'
 		>
 			<line
@@ -605,12 +578,11 @@ const SecureSyncIllustration = () => {
 		<div className='flex flex-col flex-1 h-full border-x border-b border-muted rounded-b-2xl overflow-hidden'>
 			<div
 				ref={scope}
-				className='relative overflow-hidden flex-1 min-h-[212px]'
+				className='relative overflow-hidden flex-1 min-h-[180px] sm:min-h-[212px]'
 				role='img'
 				aria-label='Secure sync: environment variables sync between devices through encrypted EnvVault relay'
 			>
 				<div className='absolute inset-0 flex items-stretch'>
-					{/* Left env file */}
 					<EnvEditorWindow
 						fileName='.env.local'
 						side='left'
@@ -637,9 +609,9 @@ const SecureSyncIllustration = () => {
 
 					<ConnectionLine direction='left' />
 
-					{/* Center — EnvVault icon with spinning conic gradient border */}
+					{/* EnvVault icon with spinning conic gradient border */}
 					<div className='relative flex flex-col items-center justify-center shrink-0 z-10 self-center'>
-						<div className='relative size-12 shrink-0 overflow-hidden rounded-sm bg-gray-200 p-px shadow-xl dark:bg-neutral-700'>
+						<div className='relative size-10 sm:size-12 shrink-0 overflow-hidden rounded-sm bg-gray-200 p-px shadow-xl dark:bg-neutral-700'>
 							<div
 								className='absolute inset-0 scale-[1.4] animate-spin rounded-full'
 								style={{
@@ -665,7 +637,6 @@ const SecureSyncIllustration = () => {
 
 					<ConnectionLine direction='right' />
 
-					{/* Right env file */}
 					<EnvEditorWindow
 						fileName='.env.local'
 						side='right'

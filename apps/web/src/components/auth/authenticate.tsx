@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { toast } from 'sonner';
 import { ArrowLeft01Icon } from 'hugeicons-react';
 import { useMutation } from '@tanstack/react-query';
 
@@ -10,8 +9,9 @@ import EnvvalLogo from '../logo/envval';
 import AuthForm from './auth-form';
 import { Button } from '@envval/ui/components/button';
 import { authClient } from '@/lib/auth-client';
+import { Spinner } from '@envval/ui/components/icons/spinner';
 import { useDeviceKeyMaterialRegistration } from '@/hooks/auth/use-device-key-material-registration';
-import { toastKeyMaterialSync } from '@/lib/toast';
+import { toastKeyMaterialSync, toast } from '@/lib/toast';
 
 type AuthenticateProps = {
 	mode?: 'login' | 'signup';
@@ -77,7 +77,7 @@ function OtpStep({
 				</p>
 			</div>
 
-			<div className='flex justify-center'>
+			<div className='flex justify-center items-center gap-4'>
 				<InputOTP
 					maxLength={OTP_LENGTH}
 					value={otpValue}
@@ -99,6 +99,7 @@ function OtpStep({
 						))}
 					</InputOTPGroup>
 				</InputOTP>
+				{isVerifying && <Spinner className='absolute right-0 size-5 text-muted-foreground' />}
 			</div>
 
 			{otpError ? <p className='text-center text-sm text-destructive'>{otpError}</p> : null}

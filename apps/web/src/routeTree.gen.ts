@@ -11,10 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as AnimationRouteImport } from './routes/animation'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogIntroducingEnvvalRouteImport } from './routes/blog/introducing-envval'
+import { Route as MarketingTermsRouteImport } from './routes/_marketing/terms'
+import { Route as MarketingSecurityRouteImport } from './routes/_marketing/security'
+import { Route as MarketingPrivacyRouteImport } from './routes/_marketing/privacy'
+import { Route as MarketingCookiePolicyRouteImport } from './routes/_marketing/cookie-policy'
+import { Route as MarketingContactRouteImport } from './routes/_marketing/contact'
+import { Route as MarketingChangelogRouteImport } from './routes/_marketing/changelog'
+import { Route as MarketingAboutRouteImport } from './routes/_marketing/about'
 import { Route as DashboardSettingsRouteImport } from './routes/_dashboard/settings'
 import { Route as DashboardIntegrationsRouteImport } from './routes/_dashboard/integrations'
 import { Route as DashboardDevicesRouteImport } from './routes/_dashboard/devices'
@@ -34,6 +44,11 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExtensionRoute = ExtensionRouteImport.update({
+  id: '/extension',
+  path: '/extension',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnimationRoute = AnimationRouteImport.update({
   id: '/animation',
   path: '/animation',
@@ -50,6 +65,51 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIntroducingEnvvalRoute = BlogIntroducingEnvvalRouteImport.update({
+  id: '/blog/introducing-envval',
+  path: '/blog/introducing-envval',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingTermsRoute = MarketingTermsRouteImport.update({
+  id: '/_marketing/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingSecurityRoute = MarketingSecurityRouteImport.update({
+  id: '/_marketing/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingPrivacyRoute = MarketingPrivacyRouteImport.update({
+  id: '/_marketing/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCookiePolicyRoute = MarketingCookiePolicyRouteImport.update({
+  id: '/_marketing/cookie-policy',
+  path: '/cookie-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingContactRoute = MarketingContactRouteImport.update({
+  id: '/_marketing/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingChangelogRoute = MarketingChangelogRouteImport.update({
+  id: '/_marketing/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingAboutRoute = MarketingAboutRouteImport.update({
+  id: '/_marketing/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -96,6 +156,7 @@ const DashboardReposSlugRoute = DashboardReposSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/animation': typeof AnimationRoute
+  '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
@@ -105,11 +166,21 @@ export interface FileRoutesByFullPath {
   '/devices': typeof DashboardDevicesRoute
   '/integrations': typeof DashboardIntegrationsRoute
   '/settings': typeof DashboardSettingsRoute
+  '/about': typeof MarketingAboutRoute
+  '/changelog': typeof MarketingChangelogRoute
+  '/contact': typeof MarketingContactRoute
+  '/cookie-policy': typeof MarketingCookiePolicyRoute
+  '/privacy': typeof MarketingPrivacyRoute
+  '/security': typeof MarketingSecurityRoute
+  '/terms': typeof MarketingTermsRoute
+  '/blog/introducing-envval': typeof BlogIntroducingEnvvalRoute
+  '/blog': typeof BlogIndexRoute
   '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/animation': typeof AnimationRoute
+  '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/login': typeof AuthLoginRoute
@@ -119,6 +190,15 @@ export interface FileRoutesByTo {
   '/devices': typeof DashboardDevicesRoute
   '/integrations': typeof DashboardIntegrationsRoute
   '/settings': typeof DashboardSettingsRoute
+  '/about': typeof MarketingAboutRoute
+  '/changelog': typeof MarketingChangelogRoute
+  '/contact': typeof MarketingContactRoute
+  '/cookie-policy': typeof MarketingCookiePolicyRoute
+  '/privacy': typeof MarketingPrivacyRoute
+  '/security': typeof MarketingSecurityRoute
+  '/terms': typeof MarketingTermsRoute
+  '/blog/introducing-envval': typeof BlogIntroducingEnvvalRoute
+  '/blog': typeof BlogIndexRoute
   '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesById {
@@ -127,6 +207,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
   '/animation': typeof AnimationRoute
+  '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
   '/welcome': typeof WelcomeRoute
   '/_auth/login': typeof AuthLoginRoute
@@ -136,6 +217,15 @@ export interface FileRoutesById {
   '/_dashboard/devices': typeof DashboardDevicesRoute
   '/_dashboard/integrations': typeof DashboardIntegrationsRoute
   '/_dashboard/settings': typeof DashboardSettingsRoute
+  '/_marketing/about': typeof MarketingAboutRoute
+  '/_marketing/changelog': typeof MarketingChangelogRoute
+  '/_marketing/contact': typeof MarketingContactRoute
+  '/_marketing/cookie-policy': typeof MarketingCookiePolicyRoute
+  '/_marketing/privacy': typeof MarketingPrivacyRoute
+  '/_marketing/security': typeof MarketingSecurityRoute
+  '/_marketing/terms': typeof MarketingTermsRoute
+  '/blog/introducing-envval': typeof BlogIntroducingEnvvalRoute
+  '/blog/': typeof BlogIndexRoute
   '/_dashboard/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRouteTypes {
@@ -143,6 +233,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/animation'
+    | '/extension'
     | '/home'
     | '/welcome'
     | '/login'
@@ -152,11 +243,21 @@ export interface FileRouteTypes {
     | '/devices'
     | '/integrations'
     | '/settings'
+    | '/about'
+    | '/changelog'
+    | '/contact'
+    | '/cookie-policy'
+    | '/privacy'
+    | '/security'
+    | '/terms'
+    | '/blog/introducing-envval'
+    | '/blog'
     | '/repos/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/animation'
+    | '/extension'
     | '/home'
     | '/welcome'
     | '/login'
@@ -166,6 +267,15 @@ export interface FileRouteTypes {
     | '/devices'
     | '/integrations'
     | '/settings'
+    | '/about'
+    | '/changelog'
+    | '/contact'
+    | '/cookie-policy'
+    | '/privacy'
+    | '/security'
+    | '/terms'
+    | '/blog/introducing-envval'
+    | '/blog'
     | '/repos/$slug'
   id:
     | '__root__'
@@ -173,6 +283,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_dashboard'
     | '/animation'
+    | '/extension'
     | '/home'
     | '/welcome'
     | '/_auth/login'
@@ -182,6 +293,15 @@ export interface FileRouteTypes {
     | '/_dashboard/devices'
     | '/_dashboard/integrations'
     | '/_dashboard/settings'
+    | '/_marketing/about'
+    | '/_marketing/changelog'
+    | '/_marketing/contact'
+    | '/_marketing/cookie-policy'
+    | '/_marketing/privacy'
+    | '/_marketing/security'
+    | '/_marketing/terms'
+    | '/blog/introducing-envval'
+    | '/blog/'
     | '/_dashboard/repos/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -190,8 +310,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
   AnimationRoute: typeof AnimationRoute
+  ExtensionRoute: typeof ExtensionRoute
   HomeRoute: typeof HomeRoute
   WelcomeRoute: typeof WelcomeRoute
+  MarketingAboutRoute: typeof MarketingAboutRoute
+  MarketingChangelogRoute: typeof MarketingChangelogRoute
+  MarketingContactRoute: typeof MarketingContactRoute
+  MarketingCookiePolicyRoute: typeof MarketingCookiePolicyRoute
+  MarketingPrivacyRoute: typeof MarketingPrivacyRoute
+  MarketingSecurityRoute: typeof MarketingSecurityRoute
+  MarketingTermsRoute: typeof MarketingTermsRoute
+  BlogIntroducingEnvvalRoute: typeof BlogIntroducingEnvvalRoute
+  BlogIndexRoute: typeof BlogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/extension': {
+      id: '/extension'
+      path: '/extension'
+      fullPath: '/extension'
+      preLoaderRoute: typeof ExtensionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/animation': {
@@ -236,6 +373,69 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/introducing-envval': {
+      id: '/blog/introducing-envval'
+      path: '/blog/introducing-envval'
+      fullPath: '/blog/introducing-envval'
+      preLoaderRoute: typeof BlogIntroducingEnvvalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/terms': {
+      id: '/_marketing/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof MarketingTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/security': {
+      id: '/_marketing/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof MarketingSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/privacy': {
+      id: '/_marketing/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof MarketingPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/cookie-policy': {
+      id: '/_marketing/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof MarketingCookiePolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/contact': {
+      id: '/_marketing/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof MarketingContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/changelog': {
+      id: '/_marketing/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof MarketingChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/about': {
+      id: '/_marketing/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof MarketingAboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_dashboard/settings': {
@@ -336,8 +536,18 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
   AnimationRoute: AnimationRoute,
+  ExtensionRoute: ExtensionRoute,
   HomeRoute: HomeRoute,
   WelcomeRoute: WelcomeRoute,
+  MarketingAboutRoute: MarketingAboutRoute,
+  MarketingChangelogRoute: MarketingChangelogRoute,
+  MarketingContactRoute: MarketingContactRoute,
+  MarketingCookiePolicyRoute: MarketingCookiePolicyRoute,
+  MarketingPrivacyRoute: MarketingPrivacyRoute,
+  MarketingSecurityRoute: MarketingSecurityRoute,
+  MarketingTermsRoute: MarketingTermsRoute,
+  BlogIntroducingEnvvalRoute: BlogIntroducingEnvvalRoute,
+  BlogIndexRoute: BlogIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

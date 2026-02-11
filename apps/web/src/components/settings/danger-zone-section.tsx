@@ -10,8 +10,9 @@ import {
 import { Input } from '@envval/ui/components/input';
 import { useDeleteAllRepos, useDeleteAccount } from '@/hooks/user/use-user';
 import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Alert02Icon, ArrowTurnBackwardIcon, Delete02Icon } from 'hugeicons-react';
+import { InlineCopyButton } from '../repos/delete-repo-dialog';
 
 function Kbd({ children }: { children: React.ReactNode }) {
 	return (
@@ -187,7 +188,7 @@ export function DangerZoneSection() {
 
 						<div className="space-y-2">
 							<p className="text-sm text-muted-foreground">
-								Type <strong className="font-semibold text-foreground">DELETE</strong> to confirm.
+								Type <InlineCopyButton text="DELETE" /> to confirm.
 							</p>
 							<Input
 								value={confirmText}

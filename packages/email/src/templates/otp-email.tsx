@@ -1,83 +1,84 @@
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { OtpEmailData } from '../schema';
+import { EmailLayout, Muted } from './shared/email-layout';
 
-const OtpEmailTemplate = ({
-	otp,
-	productName = 'Envval',
-}: OtpEmailData): React.ReactElement => {
-	const title = 'Your sign-in code';
-	const description = 'Use this one-time code to sign in. It expires soon, so enter it promptly.';
+const OtpEmailTemplate = (props: OtpEmailData): React.ReactElement => {
+	const {
+		otp,
+		logoUrl,
+		supportEmail = 'support@envval.dev',
+		productName = 'Envval',
+	} = props;
 
 	return (
-		<div
-			style={{
-				fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-				maxWidth: '480px',
-				margin: '0 auto',
-				padding: '32px',
-			}}
-		>
-			<div style={{ marginBottom: '24px' }}>
-				<strong style={{ fontSize: '16px' }}>{productName}</strong>
-			</div>
+		<EmailLayout productName={productName} logoUrl={logoUrl}>
+			<h1 style={{ fontSize: '24px', margin: '0 0 12px 0', fontWeight: 700 }}>
+				Your sign-in code
+			</h1>
 
-			<h1 style={{ fontSize: '20px', margin: '0 0 8px 0', fontWeight: 600 }}>{title}</h1>
-			<p style={{ margin: '0 0 24px 0', color: '#666', lineHeight: 1.5 }}>{description}</p>
+			<p style={{ margin: '0 0 24px 0', color: '#444', fontSize: '15px', lineHeight: 1.6 }}>
+				Use this one-time code to sign in to your <strong>{productName}</strong> account.
+				It expires soon, so enter it promptly.
+			</p>
 
 			<div
 				style={{
-					fontSize: '28px',
+					fontSize: '32px',
 					fontFamily: 'monospace',
 					letterSpacing: '0.3em',
-					padding: '16px',
-					backgroundColor: '#f5f5f5',
+					padding: '20px',
+					backgroundColor: '#f6f6f6',
 					borderRadius: '8px',
 					textAlign: 'center',
-					marginBottom: '16px',
+					marginBottom: '20px',
+					fontWeight: 700,
+					color: '#1a1a1a',
 				}}
 			>
 				{otp}
 			</div>
 
-			<p style={{ margin: '0', color: '#888', fontSize: '13px' }}>
-				Expires in 10 minutes. Do not share this code.
-			</p>
+			<Muted>Expires in 10 minutes. Do not share this code with anyone.</Muted>
 
-			<p style={{ margin: '24px 0 0 0', color: '#999', fontSize: '12px' }}>
-				If you didn't request this, you can ignore this email.
-			</p>
-		</div>
+			<Muted size={12}>
+				If you didn&apos;t request this code, you can safely ignore this email.
+				If you&apos;re concerned about your account security, reach out to{' '}
+				<a href={`mailto:${supportEmail}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+					{supportEmail}
+				</a>
+				.
+			</Muted>
+		</EmailLayout>
 	);
 };
 
 export const render = (data: OtpEmailData) => {
-	const { otp, productName = 'Envval' } = data;
+	const { otp, productName = 'Envval', supportEmail = 'support@envval.dev' } = data;
 
 	const subject = `${otp} is your ${productName} sign-in code`;
-
-	const title = 'Your sign-in code';
-	const description = 'Use this one-time code to sign in. It expires soon, so enter it promptly.';
-
-	const text = `${productName}
-
-${title}
-
-${description}
-
-${otp}
-
-Expires in 10 minutes. Do not share this code.
-
-If you didn't request this, you can ignore this email.`;
-
 	const html = renderToStaticMarkup(<OtpEmailTemplate {...data} />);
+
+	const text = [
+		productName,
+		'',
+		'Your sign-in code',
+		'',
+		`Use this one-time code to sign in to your ${productName} account. It expires soon, so enter it promptly.`,
+		'',
+		otp,
+		'',
+		'Expires in 10 minutes. Do not share this code with anyone.',
+		'',
+		`If you didn't request this code, you can safely ignore this email. If you're concerned about your account security, reach out to ${supportEmail}.`,
+	].join('\n');
 
 	return { subject, text, html };
 };
 
 export const previewData: OtpEmailData = {
-	otp: '123456',
+	otp: '847 293',
+	logoUrl: '',
+	supportEmail: 'support@envval.dev',
 	productName: 'Envval',
 };
-

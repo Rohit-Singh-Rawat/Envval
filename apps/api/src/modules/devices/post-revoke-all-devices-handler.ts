@@ -3,6 +3,7 @@ import { DeviceService } from './device.service';
 import { HTTPException } from 'hono/http-exception';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
 
 const revokeAllBodySchema = z.object({
 	exceptDeviceId: z.string().min(1),
@@ -14,6 +15,7 @@ const revokeAllBodySchema = z.object({
  * Critical security action for compromised accounts.
  */
 export const postRevokeAllDevicesHandler = honoFactory.createHandlers(
+	rateLimitMiddleware({ tier: 'sensitive' }),
 	zValidator('json', revokeAllBodySchema),
 	async (c) => {
 		const user = c.get('user');
@@ -31,10 +33,7 @@ export const postRevokeAllDevicesHandler = honoFactory.createHandlers(
 			});
 		}
 
-		const deletedDevices = await DeviceService.deleteAllDevicesExcept(
-			user.id,
-			exceptDeviceId
-		);
+		const deletedDevices = await DeviceService.deleteAllDevicesExcept(user.id, exceptDeviceId);
 
 		return c.json({
 			success: true,

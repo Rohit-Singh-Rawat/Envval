@@ -1,8 +1,9 @@
 import { Switch } from '@envval/ui/components/switch';
 import { Label } from '@envval/ui/components/label';
 import { useUpdateNotifications, type NotificationPreferences, type UserProfile } from '@/hooks/user/use-user';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import { toast } from '@/lib/toast';
+import { playUiSound } from '@/lib/sound';
 
 interface NotificationsSectionProps {
 	profile: UserProfile;
@@ -60,6 +61,9 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 							id="new-repo"
 							checked={profile.notificationPreferences.newRepoAdded}
 							onCheckedChange={(checked) => handleToggle('newRepoAdded', checked)}
+							onToggleSound={(checked) => {
+								playUiSound(checked ? 'toggle-on' : 'toggle-off');
+							}}
 							disabled={loadingKey !== null}
 							loading={loadingKey === 'newRepoAdded'}
 							aria-label="Toggle new repository notifications"
@@ -80,6 +84,9 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 							id="new-device"
 							checked={profile.notificationPreferences.newDeviceLogin}
 							onCheckedChange={(checked) => handleToggle('newDeviceLogin', checked)}
+							onToggleSound={(checked) => {
+								playUiSound(checked ? 'toggle-on' : 'toggle-off');
+							}}
 							disabled={loadingKey !== null}
 							loading={loadingKey === 'newDeviceLogin'}
 							aria-label="Toggle new device notifications"

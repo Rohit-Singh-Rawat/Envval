@@ -12,29 +12,10 @@ import {
 	FieldLabel,
 } from '@envval/ui/components/field';
 import type { OnboardingFormValues } from './types';
-
-const SOURCE_OPTIONS = [
-	{ value: 'google', label: 'Google Search' },
-	{ value: 'twitter', label: 'Twitter / X' },
-	{ value: 'linkedin', label: 'LinkedIn' },
-	{ value: 'youtube', label: 'YouTube' },
-	{ value: 'producthunt', label: 'Product Hunt' },
-	{ value: 'hackernews', label: 'Hacker News' },
-	{ value: 'reddit', label: 'Reddit' },
-	{ value: 'friend', label: 'Friend / Colleague' },
-	{ value: 'blog', label: 'Blog / Article' },
-	{ value: 'podcast', label: 'Podcast' },
-	{ value: 'other', label: 'Other' },
-];
-
-const MEDIUM_OPTIONS = [
-	{ value: 'organic', label: 'Organic search' },
-	{ value: 'social', label: 'Social media' },
-	{ value: 'referral', label: 'Referral' },
-	{ value: 'ad', label: 'Advertisement' },
-	{ value: 'direct', label: 'Direct link' },
-	{ value: 'other', label: 'Other' },
-];
+import {
+	ATTRIBUTION_SOURCE_OPTIONS,
+	ATTRIBUTION_MEDIUM_OPTIONS,
+} from '@/config/attribution';
 
 export function AttributionStep() {
 	const form = useFormContext<OnboardingFormValues>();
@@ -49,13 +30,13 @@ export function AttributionStep() {
 						<FieldLabel htmlFor='attribution-source'>Where did you hear about us?</FieldLabel>
 						<Select
 							onValueChange={field.onChange}
-							value={field.value}
+							value={field.value || undefined}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue>Select where you heard about us</SelectValue>
+								<SelectValue placeholder='Select where you heard about us' />
 							</SelectTrigger>
-							<SelectContent >
-								{SOURCE_OPTIONS.map((opt) => (
+							<SelectContent>
+								{ATTRIBUTION_SOURCE_OPTIONS.map((opt) => (
 									<SelectItem
 										key={opt.value}
 										value={opt.value}
@@ -77,13 +58,13 @@ export function AttributionStep() {
 						<FieldLabel htmlFor='attribution-medium'>How did you find us?</FieldLabel>
 						<Select
 							onValueChange={field.onChange}
-							value={field.value}
+							value={field.value || undefined}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue>Select how you found us </SelectValue>
+								<SelectValue placeholder='Select how you found us' />
 							</SelectTrigger>
 							<SelectContent>
-								{MEDIUM_OPTIONS.map((opt) => (
+								{ATTRIBUTION_MEDIUM_OPTIONS.map((opt) => (
 									<SelectItem
 										key={opt.value}
 										value={opt.value}

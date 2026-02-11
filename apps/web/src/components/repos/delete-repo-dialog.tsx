@@ -11,6 +11,7 @@ import { useDeleteRepo } from '@/hooks/repos/use-delete-repo';
 import { Input } from '@envval/ui/components/input';
 import { Copy01Icon, Tick01Icon, ArrowTurnBackwardIcon } from 'hugeicons-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@envval/ui/components/tooltip';
+import { AnimatePresence, motion } from 'motion/react';
 
 type DeleteRepoDialogProps = {
 	open: boolean;
@@ -21,7 +22,7 @@ type DeleteRepoDialogProps = {
 	};
 };
 
-function InlineCopyButton({ text }: { text: string }) {
+export function InlineCopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = React.useState(false);
 
 	const handleCopy = async (e: React.MouseEvent) => {
@@ -35,17 +36,44 @@ function InlineCopyButton({ text }: { text: string }) {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<button
-					type="button"
+					type='button'
 					onClick={handleCopy}
-					className="inline-flex items-center gap-1.5 rounded border bg-muted/50 px-2 py-0.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+					className='inline-flex items-center gap-1.5 rounded border bg-muted/50 px-2 py-0.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
 					aria-label={copied ? 'Copied!' : 'Copy repository name'}
 				>
 					<span>{text}</span>
-					{copied ? (
-						<Tick01Icon className="size-3.5 text-green-500" aria-hidden="true" />
-					) : (
-						<Copy01Icon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-					)}
+					<AnimatePresence
+						mode='popLayout'
+						initial={false}
+					>
+						{copied ? (
+							<motion.span
+								key='copied'
+								initial={{ opacity: 0, filter: 'blur(2px)' }}
+								animate={{ opacity: 1, filter: 'blur(0px)' }}
+								exit={{ opacity: 0, filter: 'blur(2px)' }}
+								transition={{ duration: 0.3, ease: 'easeInOut' }}
+							>
+								<Tick01Icon
+									className='size-3.5 text-green-500'
+									aria-hidden='true'
+								/>
+							</motion.span>
+						) : (
+							<motion.span
+								key='copy'
+								initial={{ opacity: 0, filter: 'blur(2px)' }}
+								animate={{ opacity: 1, filter: 'blur(0px)' }}
+								exit={{ opacity: 0, filter: 'blur(2px)' }}
+								transition={{ duration: 0.3, ease: 'easeInOut' }}
+							>
+								<Copy01Icon
+									className='size-3.5 text-muted-foreground'
+									aria-hidden='true'
+								/>
+							</motion.span>
+						)}
+					</AnimatePresence>
 				</button>
 			</TooltipTrigger>
 			<TooltipContent>
@@ -57,7 +85,7 @@ function InlineCopyButton({ text }: { text: string }) {
 
 function Kbd({ children }: { children: React.ReactNode }) {
 	return (
-		<kbd className="pointer-events-none ml-1.5 inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+		<kbd className='pointer-events-none ml-1.5 inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground'>
 			{children}
 		</kbd>
 	);
@@ -97,51 +125,55 @@ export function DeleteRepoDialog({ open, onOpenChange, repo }: DeleteRepoDialogP
 	};
 
 	return (
-		<ResponsiveAlert open={open} onOpenChange={handleOpenChange}>
+		<ResponsiveAlert
+			open={open}
+			onOpenChange={handleOpenChange}
+		>
 			<ResponsiveAlertContent>
 				<ResponsiveAlertHeader>
 					<ResponsiveAlertTitle>Delete Repository</ResponsiveAlertTitle>
 				</ResponsiveAlertHeader>
 
-				<div className="mt-1 space-y-4">
-					<div className="space-y-1">
-						<p className="text-sm text-muted-foreground">
+				<div className='mt-1 space-y-4'>
+					<div className='space-y-1'>
+						<p className='text-sm text-muted-foreground'>
 							Are you sure you want to delete this repository?
 						</p>
-						<p className="text-sm font-medium text-destructive">
-							This can not be undone.
-						</p>
+						<p className='text-sm font-medium text-destructive'>This can not be undone.</p>
 					</div>
 
-					<div className="space-y-2">
-						<p className="text-sm text-muted-foreground">
+					<div className='space-y-2'>
+						<p className='text-sm text-muted-foreground'>
 							Type <InlineCopyButton text={repo.name} /> to confirm.
 						</p>
 						<Input
 							value={confirmText}
 							onChange={(e) => setConfirmText(e.target.value)}
 							onKeyDown={handleKeyDown}
-							placeholder="Enter repository name"
-							autoComplete="off"
+							placeholder='Enter repository name'
+							autoComplete='off'
 							autoFocus
 						/>
 					</div>
 				</div>
 
-				<ResponsiveAlertFooter className="mt-6">
+				<ResponsiveAlertFooter className='mt-6'>
 					<Button
-						variant="destructive"
+						variant='destructive'
 						onClick={handleDelete}
 						disabled={!isConfirmed}
 						pending={deleteRepo.isPending}
-						pendingText="Deleting..."
+						pendingText='Deleting...'
 					>
 						Delete Repository
-						<ArrowTurnBackwardIcon className="size-3.5 rotate-180" aria-hidden="true" />
+						<ArrowTurnBackwardIcon
+							className='size-3.5 rotate-180'
+							aria-hidden='true'
+						/>
 					</Button>
 					<Button
-						variant="outline"
-						type="button"
+						variant='outline'
+						type='button'
 						onClick={() => onOpenChange(false)}
 					>
 						Cancel

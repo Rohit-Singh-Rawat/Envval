@@ -8,7 +8,11 @@ export const env = createEnv({
 		UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
 		QUEUE_REDIS_URL: z.string().url(),
 		RESEND_API_KEY: z.string().min(1),
-		EMAIL_FROM: z.string().email(),
+		/** Supports both plain email and display name format: "Envval <noreply@envval.dev>" */
+		EMAIL_FROM: z.string().min(1),
+		EMAIL_LOGO_URL: z.string().url().optional(),
+		WELCOME_IMAGE_URL: z.string().url().optional(),
+		SUPPORT_EMAIL: z.string().email().optional(),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GITHUB_CLIENT_ID: z.string().min(1),

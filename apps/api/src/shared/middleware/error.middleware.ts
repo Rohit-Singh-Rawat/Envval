@@ -2,10 +2,7 @@ import type { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '@/shared/types/context';
 import { logger } from '@/shared/utils/logger';
-import {
-	HTTP_TOO_MANY_REQUESTS,
-	HTTP_INTERNAL_SERVER_ERROR,
-} from '@/shared/constants/http-status';
+import { HTTP_INTERNAL_SERVER_ERROR } from '@/shared/constants/http-status';
 
 interface ValidationError {
 	path: string;
@@ -35,23 +32,10 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
 		);
 	}
 
-	if (err.message.includes('Too many requests')) {
-		return c.json(
-			{
-				success: false,
-				error: err.message,
-			},
-			HTTP_TOO_MANY_REQUESTS
-		);
-	}
-
 	return c.json(
 		{
 			success: false,
-			error:
-				process.env.NODE_ENV === 'production'
-					? 'Internal server error'
-					: err.message,
+			error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
 		},
 		HTTP_INTERNAL_SERVER_ERROR
 	);

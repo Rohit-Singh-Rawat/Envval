@@ -10,8 +10,10 @@ import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';
 import { StepProgress, type StepConfig } from '@/components/onboarding/step-progress';
 import { useOnboarding } from '@/hooks/onboarding/use-onboarding';
-import { redirectIfOnboardedMiddleware } from '@/middleware/auth';
+import { redirectIfOnboardedMiddleware, redirectIfOnboardedGuard } from '@/middleware/auth';
 import { useKeyMaterialSync } from '@/hooks/auth/use-key-material-sync';
+import { authClient } from '@/lib/auth-client';
+import { playUiSound } from '@/lib/sound';
 
 const searchSchema = z.object({
 	step: z.enum(['1', '2', 'complete']).optional(),
@@ -23,6 +25,12 @@ export const Route = createFileRoute('/welcome')({
 	validateSearch: searchSchema,
 	server: {
 		middleware: [redirectIfOnboardedMiddleware],
+	},
+	beforeLoad: async () => {
+		// Client-side guard (server already protected by middleware)
+		if (typeof window === 'undefined') return;
+		const { data: session } = await authClient.getSession();
+		redirectIfOnboardedGuard(session);
 	},
 });
 
@@ -38,7 +46,16 @@ function RouteComponent() {
 	// Auto-fetch key material if not already present (e.g., after OAuth signup)
 	useKeyMaterialSync();
 
-	const { step, isComplete, form, goNext, goBack, onSubmit, isSubmitting } = useOnboarding({
+	const {
+		step,
+		isComplete,
+		form,
+		goNext,
+		goBack,
+		onSubmit,
+		onInvalid,
+		isSubmitting,
+	} = useOnboarding({
 		initialStep: stepParam === '1' ? 1 : stepParam === '2' ? 2 : 1,
 		initialComplete: stepParam === 'complete',
 		totalSteps: steps.length,
@@ -73,7 +90,7 @@ function RouteComponent() {
 						</div>
 						<FormProvider {...form}>
 							<form
-								onSubmit={form.handleSubmit(onSubmit)}
+								onSubmit={form.handleSubmit(onSubmit, onInvalid)}
 								className='space-y-6'
 							>
 								<div className=''>
@@ -85,7 +102,10 @@ function RouteComponent() {
 									<Button
 										type='button'
 										variant='muted'
-										onClick={goBack}
+										onClick={() => {
+											playUiSound('button');
+											goBack();
+										}}
 										disabled={step === 1 || isSubmitting}
 									>
 										Back
@@ -93,7 +113,10 @@ function RouteComponent() {
 									{step < steps.length ? (
 										<Button
 											type='button'
-											onClick={goNext}
+											onClick={() => {
+												playUiSound('button');
+												void goNext();
+											}}
 											disabled={isSubmitting}
 										>
 											Next
@@ -101,6 +124,9 @@ function RouteComponent() {
 									) : (
 										<Button
 											type='submit'
+											onClick={() => {
+												playUiSound('button');
+											}}
 											pending={isSubmitting}
 											disabled={isSubmitting}
 										>

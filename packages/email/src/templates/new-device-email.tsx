@@ -1,113 +1,119 @@
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { NewDeviceEmailData } from '../schema';
+import { EmailLayout, InfoBox, PrimaryButton, Muted } from './shared/email-layout';
 
-const NewDeviceEmailTemplate = ({
-	userName,
-	deviceName,
-	location,
-	timestamp,
-	productName = 'Envval',
-}: NewDeviceEmailData): React.ReactElement => {
-	const title = 'New Device Login';
-	const description = 'A new device has logged into your account.';
+const NewDeviceEmailTemplate = (props: NewDeviceEmailData): React.ReactElement => {
+	const {
+		userName,
+		deviceName,
+		signInType,
+		location,
+		ipAddress,
+		timestamp,
+		revokeUrl,
+		supportEmail = 'support@envval.dev',
+		logoUrl,
+		productName = 'Envval',
+	} = props;
+
+	const infoRows: Array<{ label: string; value: string }> = [
+		...(signInType ? [{ label: 'Sign in type', value: signInType }] : []),
+		{ label: 'Device type', value: deviceName },
+		...(location
+			? [{ label: 'Location', value: ipAddress ? `${location} (${ipAddress})` : location }]
+			: []),
+		{ label: 'Time', value: timestamp },
+	];
 
 	return (
-		<div
-			style={{
-				fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-				maxWidth: '480px',
-				margin: '0 auto',
-				padding: '32px',
-			}}
-		>
-			<div style={{ marginBottom: '24px' }}>
-				<strong style={{ fontSize: '16px' }}>{productName}</strong>
-			</div>
+		<EmailLayout productName={productName} logoUrl={logoUrl}>
+			<h1 style={{ fontSize: '24px', margin: '0 0 12px 0', fontWeight: 700 }}>
+				New sign in to your account
+			</h1>
 
-			<h1 style={{ fontSize: '20px', margin: '0 0 8px 0', fontWeight: 600 }}>{title}</h1>
-			<p style={{ margin: '0 0 24px 0', color: '#666', lineHeight: 1.5 }}>
+			<p style={{ margin: '0 0 8px 0', color: '#444', fontSize: '15px', lineHeight: 1.6 }}>
 				Hi {userName},
 			</p>
-			<p style={{ margin: '0 0 24px 0', color: '#666', lineHeight: 1.5 }}>
-				{description}
+
+			<p style={{ margin: '0 0 24px 0', color: '#444', fontSize: '15px', lineHeight: 1.6 }}>
+				A new device just signed in to your <strong>{productName}</strong> account.
+				If you don&apos;t recognize this device, please check your account for any
+				unauthorized activity, and also make sure that the sign in type used is secure.
 			</p>
 
-			<div
-				style={{
-					backgroundColor: '#f5f5f5',
-					padding: '16px',
-					borderRadius: '8px',
-					marginBottom: '24px',
-				}}
-			>
-				<table width="100%" style={{ borderCollapse: 'collapse' }}>
-					<tbody>
-						<tr>
-							<td style={{ padding: '4px 0', color: '#888', fontSize: '14px', width: '80px' }}>
-								Device:
-							</td>
-							<td style={{ padding: '4px 0', color: '#333', fontSize: '14px', fontWeight: 500 }}>
-								{deviceName}
-							</td>
-						</tr>
-						{location && (
-							<tr>
-								<td style={{ padding: '4px 0', color: '#888', fontSize: '14px' }}>
-									Location:
-								</td>
-								<td style={{ padding: '4px 0', color: '#333', fontSize: '14px', fontWeight: 500 }}>
-									{location}
-								</td>
-							</tr>
-						)}
-						<tr>
-							<td style={{ padding: '4px 0', color: '#888', fontSize: '14px' }}>
-								Time:
-							</td>
-							<td style={{ padding: '4px 0', color: '#333', fontSize: '14px', fontWeight: 500 }}>
-								{timestamp}
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+			<InfoBox rows={infoRows} />
 
-			<p style={{ margin: '0', color: '#888', fontSize: '13px' }}>
-				If this was you, you can safely ignore this email. If you don't recognize this activity, please check your account settings immediately.
-			</p>
-		</div>
+			{revokeUrl && (
+				<>
+					<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '14px', lineHeight: 1.5 }}>
+						To immediately sign out of this device click the button below.
+					</p>
+
+					<PrimaryButton href={revokeUrl} label="Sign out of this device" />
+
+					<Muted size={12}>
+						If you&apos;re having trouble with the above button,{' '}
+						<a href={revokeUrl} style={{ color: '#2563eb', textDecoration: 'underline' }}>
+							click here
+						</a>
+						.
+					</Muted>
+				</>
+			)}
+
+			<Muted>
+				If you have any questions or need any help, please reach out to{' '}
+				<a href={`mailto:${supportEmail}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+					{supportEmail}
+				</a>{' '}
+				as soon as possible.
+			</Muted>
+		</EmailLayout>
 	);
 };
 
 export const render = (data: NewDeviceEmailData) => {
-	const { deviceName, productName = 'Envval' } = data;
+	const { deviceName, productName = 'Envval', supportEmail = 'support@envval.dev' } = data;
 
 	const subject = `New device login: ${deviceName}`;
-
 	const html = renderToStaticMarkup(<NewDeviceEmailTemplate {...data} />);
 
-	const text = `${productName}
+	const locationLine = data.location
+		? `Location: ${data.location}${data.ipAddress ? ` (${data.ipAddress})` : ''}`
+		: '';
 
-New Device Login
-
-Hi ${data.userName},
-
-A new device has logged into your account.
-
-Device: ${deviceName}
-${data.location ? `Location: ${data.location}` : ''}
-Time: ${data.timestamp}
-
-If this was you, you can safely ignore this email. If you don't recognize this activity, please check your account settings immediately.`;
+	const text = [
+		productName,
+		'',
+		'New sign in to your account',
+		'',
+		`Hi ${data.userName},`,
+		'',
+		`A new device just signed in to your ${productName} account. If you don't recognize this device, please check your account for any unauthorized activity.`,
+		'',
+		...(data.signInType ? [`Sign in type: ${data.signInType}`] : []),
+		`Device type: ${deviceName}`,
+		...(locationLine ? [locationLine] : []),
+		`Time: ${data.timestamp}`,
+		'',
+		...(data.revokeUrl
+			? [`To sign out of this device: ${data.revokeUrl}`, '']
+			: []),
+		`If you have any questions, reach out to ${supportEmail}.`,
+	].join('\n');
 
 	return { subject, text, html };
 };
 
 export const previewData: NewDeviceEmailData = {
 	userName: 'Jane Smith',
-	deviceName: 'Chrome on Windows',
+	deviceName: 'Windows Chrome for Windows',
+	signInType: 'OAuth',
 	location: 'Mumbai, India',
-	timestamp: 'Feb 14, 2026, 10:30 AM',
+	ipAddress: '2405:201:4022:20f1:a1dd:1154:23f4:e8d4',
+	timestamp: 'Feb 14, 2026, 10:30 AM +0530',
+	revokeUrl: 'https://envval.dev/devices/revoke?token=example',
+	supportEmail: 'support@envval.dev',
 	productName: 'Envval',
 };

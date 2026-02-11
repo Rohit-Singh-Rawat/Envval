@@ -1,3 +1,5 @@
+export const EXTENSION_URL = '/extension';
+
 export const DEVICE_KEYS_DB = {
 	name: 'device-auth-db',
 	version: 1,

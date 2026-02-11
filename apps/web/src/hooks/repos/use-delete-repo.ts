@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import client from '@/lib/api';
+import { toast } from '@/lib/toast';
 
 type DeleteRepoParams = {
 	slug: string;

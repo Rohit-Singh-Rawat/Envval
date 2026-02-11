@@ -4,14 +4,18 @@ import { bearer, customSession, deviceAuthorization, emailOTP } from 'better-aut
 import { nanoid } from 'nanoid';
 import { db } from '@envval/db';
 import * as schema from '@envval/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { AuthEmailService } from './auth-email.service';
 import { DeviceService } from './device.service';
 import { env } from '@/config/env';
 import { encryptKeyMaterialWithMaster, generateKeyMaterial } from '@/shared/utils/crypto';
+import { parseDeviceName, formatEmailTimestamp } from '@/shared/utils/user-agent';
 
 const emailService = new AuthEmailService();
 const deviceService = new DeviceService();
+
+type DbUser = typeof schema.user.$inferSelect;
+type DbSession = typeof schema.session.$inferSelect;
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -49,6 +53,9 @@ export const auth = betterAuth({
 			},
 			onboarded: {
 				type: 'boolean',
+			},
+			avatar: {
+				type: 'string',
 			},
 			notificationPreferences: {
 				type: 'string', // Stored as JSON string or object, better-auth might serialize it
@@ -93,7 +100,6 @@ export const auth = betterAuth({
 			create: {
 				after: async (session) => {
 					try {
-						// Check if this is a new device login and user wants notifications
 						const [user] = await db
 							.select()
 							.from(schema.user)
@@ -102,30 +108,27 @@ export const auth = betterAuth({
 
 						if (!user) return;
 
-						// Parse preferences safely
-						let preferences = user.notificationPreferences as any;
-						if (typeof preferences === 'string') {
-							try {
-								preferences = JSON.parse(preferences);
-							} catch {
-								preferences = { newRepoAdded: true, newDeviceLogin: true };
-							}
-						}
+						const preferences = parseNotificationPreferences(user.notificationPreferences);
+						if (!preferences.newDeviceLogin) return;
 
-						if (preferences?.newDeviceLogin) {
-							// Check if device info is available
-							const deviceName = session.userAgent || 'Unknown Device';
-							const location = session.ipAddress ? `IP: ${session.ipAddress}` : undefined;
-							
-							// Send email asynchronously
-							emailService.sendNewDeviceLoginEmail(
-								user.email,
-								user.displayName || user.name,
-								deviceName,
-								new Date().toLocaleString(),
-								location
-							).catch(console.error);
-						}
+						// Resolve the auth provider used for this sign-in (e.g. "google", "github", "email-otp")
+						const [latestAccount] = await db
+							.select({ providerId: schema.account.providerId })
+							.from(schema.account)
+							.where(eq(schema.account.userId, session.userId))
+							.orderBy(desc(schema.account.updatedAt))
+							.limit(1);
+
+						emailService
+							.sendNewDeviceLoginEmail(user.email, {
+								userName: user.displayName || user.name,
+								deviceName: parseDeviceName(session.userAgent),
+								signInType: resolveSignInLabel(latestAccount?.providerId),
+								timestamp: formatEmailTimestamp(new Date()),
+								ipAddress: session.ipAddress ?? undefined,
+								revokeUrl: `${env.APP_URL}/devices`,
+							})
+							.catch(console.error);
 					} catch (error) {
 						console.error('Error in session create hook:', error);
 					}
@@ -232,8 +235,8 @@ export const auth = betterAuth({
 		}),
 		customSession(async ({ user, session }) => {
 			return {
-				user: sanitizeUser(user),
-				session: sanitizeSession(session),
+				user: sanitizeUser(user as DbUser),
+				session: sanitizeSession(session as DbSession),
 			};
 		}),
 		bearer(),
@@ -261,11 +264,42 @@ function sanitizeSession<T extends Record<string, unknown>>(
 	return rest as Omit<T, 'publicKey' | 'keyMaterialDeliveredAt'>;
 }
 
-/**
- * Check if user agent is from extension or CLI
- */
 function isExtensionOrCli(userAgent: string | null | undefined): boolean {
 	if (!userAgent) return false;
 	const ua = userAgent.toLowerCase();
 	return ua.includes('envval-extension') || ua.includes('envval-cli');
+}
+
+type NotificationPreferences = { newRepoAdded: boolean; newDeviceLogin: boolean };
+
+const DEFAULT_PREFERENCES: NotificationPreferences = { newRepoAdded: true, newDeviceLogin: false };
+
+/**
+ * Safely resolves notification preferences from the DB value.
+ * Handles both pre-parsed objects and legacy JSON strings.
+ */
+function parseNotificationPreferences(raw: unknown): NotificationPreferences {
+	if (typeof raw === 'object' && raw !== null && 'newDeviceLogin' in raw) {
+		return raw as NotificationPreferences;
+	}
+	if (typeof raw === 'string') {
+		try {
+			return JSON.parse(raw) as NotificationPreferences;
+		} catch {
+			return DEFAULT_PREFERENCES;
+		}
+	}
+	return DEFAULT_PREFERENCES;
+}
+
+const SIGN_IN_TYPE_LABELS: Record<string, string> = {
+	google: 'Google OAuth',
+	github: 'GitHub OAuth',
+	'email-otp': 'Email OTP',
+	credential: 'Email & Password',
+};
+
+function resolveSignInLabel(providerId: string | undefined): string {
+	if (!providerId) return 'Unknown';
+	return SIGN_IN_TYPE_LABELS[providerId] ?? providerId;
 }

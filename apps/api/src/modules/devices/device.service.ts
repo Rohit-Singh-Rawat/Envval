@@ -20,12 +20,8 @@ export class DeviceService {
 	 * Returns null if device doesn't exist.
 	 */
 	static async getDeviceById(deviceId: string) {
-		const [result] = await db
-			.select()
-			.from(device)
-			.where(eq(device.id, deviceId))
-			.limit(1);
-		
+		const [result] = await db.select().from(device).where(eq(device.id, deviceId)).limit(1);
+
 		return result || null;
 	}
 
@@ -38,10 +34,7 @@ export class DeviceService {
 		await db.delete(session).where(eq(session.deviceId, deviceId));
 
 		// Delete the device
-		const [deleted] = await db
-			.delete(device)
-			.where(eq(device.id, deviceId))
-			.returning();
+		const [deleted] = await db.delete(device).where(eq(device.id, deviceId)).returning();
 
 		return deleted;
 	}
@@ -56,24 +49,16 @@ export class DeviceService {
 		const devicesToDelete = await db
 			.select({ id: device.id })
 			.from(device)
-			.where(
-				and(
-					eq(device.userId, userId),
-					ne(device.id, exceptDeviceId)
-				)
-			);
+			.where(and(eq(device.userId, userId), ne(device.id, exceptDeviceId)));
 
-		const deviceIds = devicesToDelete.map(d => d.id);
+		const deviceIds = devicesToDelete.map((d) => d.id);
 
 		if (deviceIds.length > 0) {
 			// Delete all sessions for these devices
 			await db.delete(session).where(inArray(session.deviceId, deviceIds));
 
 			// Delete the devices
-			const deleted = await db
-				.delete(device)
-				.where(inArray(device.id, deviceIds))
-				.returning();
+			const deleted = await db.delete(device).where(inArray(device.id, deviceIds)).returning();
 
 			return deleted;
 		}
@@ -85,11 +70,7 @@ export class DeviceService {
 	 * Updates device metadata (last seen timestamp, IP, user agent).
 	 * Called during authentication refresh to track device activity.
 	 */
-	static async updateDeviceActivity(
-		deviceId: string,
-		ipAddress?: string,
-		userAgent?: string
-	) {
+	static async updateDeviceActivity(deviceId: string, ipAddress?: string, userAgent?: string) {
 		const [updated] = await db
 			.update(device)
 			.set({

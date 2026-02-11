@@ -1,4 +1,5 @@
 import { honoFactory } from '@/shared/utils/factory';
+import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
 
 import { postOnboardingHandler } from '@/modules/onboarding/post-onboarding-handler';
 
@@ -34,6 +35,11 @@ import { deleteUserAccountHandler } from '@/modules/user/delete-user-account-han
 /**
  * API v1 Routes
  *
+ * Rate limiting layers (applied cumulatively):
+ * 1. Global IP limit (100 req/10s) — applied in app.ts
+ * 2. API user limit (60 req/min) — applied here via .use()
+ * 3. Sensitive tier (5 req/hr) — applied per-handler on destructive operations
+ *
  * RESTful conventions:
  * - Path params for resource identifiers: /repos/:repoId, /envs/:envId
  * - Query params for filtering: /envs?repoId=xxx
@@ -42,6 +48,7 @@ import { deleteUserAccountHandler } from '@/modules/user/delete-user-account-han
  */
 export const v1Routes = honoFactory
 	.createApp()
+	.use('*', rateLimitMiddleware({ tier: 'api' }))
 	.post('/onboarding', ...postOnboardingHandler)
 
 	// Repositories

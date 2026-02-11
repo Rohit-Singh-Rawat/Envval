@@ -11,6 +11,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html {
+	scroll-behavior: smooth;
+}
+
 body {
 	@apply m-0;
 	font-family:
@@ -177,8 +181,6 @@ code {
 	border-radius: 12px;
 	overflow: hidden;
 }
-
-
 
 .devices-table td {
 	padding: 12px 16px;

@@ -1,5 +1,3 @@
-'use client';
-
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, useAnimate, useInView, AnimatePresence } from 'motion/react';
 import type { HugeiconsProps } from 'hugeicons-react';
@@ -10,9 +8,7 @@ import {
 	LaptopIcon,
 	Tablet01Icon,
 } from 'hugeicons-react';
-
-const EASE_OUT = [0.32, 0.72, 0, 1] as const;
-const EASE_IN_OUT = [0.4, 0, 0.2, 1] as const;
+import { EASE_OUT, EASE_IN_OUT } from '@/lib/animation';
 
 type IconComponent = React.FC<Omit<HugeiconsProps, 'ref'>>;
 
@@ -59,63 +55,15 @@ const ENV_FILES: EnvFileData[] = [
 ];
 
 const FOREGROUND_DEVICES: DeviceData[] = [
-	{
-		name: 'MacBook Pro',
-		type: 'VS Code',
-		icon: ComputerIcon,
-		active: true,
-		color: 'bg-violet-500',
-		colorLight: 'bg-violet-500/10',
-		textColor: 'text-violet-600',
-	},
-	{
-		name: 'iPhone 15',
-		type: 'Safari',
-		icon: SmartPhone01Icon,
-		active: true,
-		color: 'bg-blue-500',
-		colorLight: 'bg-blue-500/10',
-		textColor: 'text-blue-600',
-	},
-	{
-		name: 'Work Desktop',
-		type: 'Chrome',
-		icon: Globe02Icon,
-		active: false,
-		color: 'bg-amber-500',
-		colorLight: 'bg-amber-500/10',
-		textColor: 'text-amber-600',
-	},
-	{
-		name: 'iPad Pro',
-		type: 'App',
-		icon: Tablet01Icon,
-		active: true,
-		color: 'bg-emerald-500',
-		colorLight: 'bg-emerald-500/10',
-		textColor: 'text-emerald-600',
-	},
+	{ name: 'MacBook Pro', type: 'VS Code', icon: ComputerIcon, active: true, color: 'bg-violet-500', colorLight: 'bg-violet-500/10', textColor: 'text-violet-600' },
+	{ name: 'iPhone 15', type: 'Safari', icon: SmartPhone01Icon, active: true, color: 'bg-blue-500', colorLight: 'bg-blue-500/10', textColor: 'text-blue-600' },
+	{ name: 'Work Desktop', type: 'Chrome', icon: Globe02Icon, active: false, color: 'bg-amber-500', colorLight: 'bg-amber-500/10', textColor: 'text-amber-600' },
+	{ name: 'iPad Pro', type: 'App', icon: Tablet01Icon, active: true, color: 'bg-emerald-500', colorLight: 'bg-emerald-500/10', textColor: 'text-emerald-600' },
 ];
 
 const BACKGROUND_DEVICES: DeviceData[] = [
-	{
-		name: 'Linux Server',
-		type: 'SSH',
-		icon: LaptopIcon,
-		active: true,
-		color: 'bg-rose-500',
-		colorLight: 'bg-rose-500/10',
-		textColor: 'text-rose-600',
-	},
-	{
-		name: 'Staging VM',
-		type: 'Docker',
-		icon: Globe02Icon,
-		active: true,
-		color: 'bg-cyan-500',
-		colorLight: 'bg-cyan-500/10',
-		textColor: 'text-cyan-600',
-	},
+	{ name: 'Linux Server', type: 'SSH', icon: LaptopIcon, active: true, color: 'bg-rose-500', colorLight: 'bg-rose-500/10', textColor: 'text-rose-600' },
+	{ name: 'Staging VM', type: 'Docker', icon: Globe02Icon, active: true, color: 'bg-cyan-500', colorLight: 'bg-cyan-500/10', textColor: 'text-cyan-600' },
 ];
 
 const DEVICE_POSITIONS: React.CSSProperties[] = [
@@ -189,12 +137,12 @@ function EnvFileCard({ file, variables }: { file: EnvFileData; variables: EnvVar
 			<div className='flex items-center justify-between p-2 px-3'>
 				<div className='flex items-center gap-2'>
 					<span className='text-[11px] font-medium text-foreground/85'>{file.name}</span>
-					<span className='text-[8px] font-mono text-muted-foreground/45 bg-background/50 border border-border/50 px-1.5 py-px rounded'>
+					<span className='text-[8px] font-mono text-muted-foreground/45 bg-background/50 border border-border/50 px-1.5 py-px rounded hidden sm:inline'>
 						{file.id}
 					</span>
 				</div>
 				<span className='text-[8px] text-muted-foreground/40'>
-					{file.vars} variables &middot; {file.updated}
+					{file.vars} vars &middot; {file.updated}
 				</span>
 			</div>
 			<div className='rounded-lg bg-background border border-border overflow-hidden'>
@@ -260,11 +208,7 @@ async function runSequence(
 		if (cancelled()) return;
 
 		setDeviceOverrides((prev) => ({ ...prev, 1: false }));
-		await animate(
-			'.fg-device-1',
-			{ opacity: 0, scale: 0.96, filter: 'blur(6px)' },
-			{ duration: 0.85, ease: EASE_IN_OUT },
-		);
+		await animate('.fg-device-1', { opacity: 0, scale: 0.96, filter: 'blur(6px)' }, { duration: 0.85, ease: EASE_IN_OUT });
 		await sleep(1000);
 		if (cancelled()) return;
 
@@ -342,10 +286,11 @@ const CommandCenterIllustration = () => {
 			onMouseEnter={() => setHovered(true)}
 			onMouseLeave={() => setHovered(false)}
 		>
+			{/* Background devices — hidden on small screens to prevent overflow */}
 			{BACKGROUND_DEVICES.map((device, i) => (
 				<motion.div
 					key={device.name}
-					className='absolute'
+					className='absolute hidden sm:block'
 					style={{ ...BG_DEVICE_POSITIONS[i], width: 155, filter: 'blur(1.5px)', zIndex: 0 }}
 					initial={{ opacity: 0, y: 10 }}
 					animate={isInView ? { opacity: 0.4, y: 0 } : {}}
@@ -355,9 +300,10 @@ const CommandCenterIllustration = () => {
 				</motion.div>
 			))}
 
+			{/* Center window — uses percentage positioning to stay centered */}
 			<motion.div
-				className='absolute rounded-xl border border-border bg-card overflow-hidden'
-				style={{ left: '50%', top: 8, width: 400, marginLeft: -200, zIndex: 1 }}
+				className='absolute rounded-xl border border-border bg-card overflow-hidden left-1/2 -translate-x-1/2'
+				style={{ top: 8, width: 'min(400px, calc(100% - 16px))', zIndex: 1 }}
 				initial={{ opacity: 0, y: 14 }}
 				animate={isInView ? { opacity: 1, y: 0 } : {}}
 				transition={{ duration: 0.65, ease: EASE_OUT }}
@@ -383,12 +329,13 @@ const CommandCenterIllustration = () => {
 				</div>
 			</motion.div>
 
+			{/* Foreground device cards — hidden on small screens */}
 			{FOREGROUND_DEVICES.map((device, i) => {
 				const h = FG_HOVER_TRANSFORMS[i];
 				return (
 					<motion.div
 						key={device.name}
-						className={`absolute fg-device-${i}`}
+						className={`absolute fg-device-${i} hidden sm:block`}
 						style={{ ...DEVICE_POSITIONS[i], width: 155, zIndex: 2, transformStyle: 'preserve-3d' }}
 						initial={{ opacity: 0, y: 16, x: i < 2 ? -10 : 10 }}
 						animate={

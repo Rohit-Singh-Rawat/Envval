@@ -3,6 +3,7 @@ import { UserService } from './user.service';
 import { HTTPException } from 'hono/http-exception';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
 
 const deleteAccountSchema = z.object({
 	confirmation: z.string().min(1),
@@ -14,6 +15,7 @@ const deleteAccountSchema = z.object({
  * Critical destructive action - requires confirmation string.
  */
 export const deleteUserAccountHandler = honoFactory.createHandlers(
+	rateLimitMiddleware({ tier: 'sensitive' }),
 	zValidator('json', deleteAccountSchema),
 	async (c) => {
 		const user = c.get('user');

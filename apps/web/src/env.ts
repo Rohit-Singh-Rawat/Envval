@@ -13,6 +13,9 @@ export const env = createEnv({
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
 		VITE_API_BASE_URL: z.string().url(),
+		VITE_APP_URL: z.string().url().default('https://envval.com'),
+		VITE_APP_DESCRIPTION: z.string().min(1).default('Securely manage and sync your environment variables across your team and devices.'),
+		VITE_OG_IMAGE: z.string().url().default('https://envval.com/og-image.png'),
 	},
 
 	/**

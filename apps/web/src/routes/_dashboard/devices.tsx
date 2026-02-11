@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { ComputerIcon } from 'hugeicons-react';
-import { toast } from 'sonner';
 import { useDevices, useDeleteDevice, useDeleteAllDevices } from '@/hooks/devices/use-devices';
+import { toast } from '@/lib/toast';
 import { DevicesTable } from '@/components/devices/device-card';
 import { DangerZone } from '@/components/devices/danger-zone';
 import { Heading } from '@/components/dashboard/shared/heading';

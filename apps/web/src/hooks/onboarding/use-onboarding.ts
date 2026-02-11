@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
 import client from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
 import { useSession } from '@/lib/auth-client';
 
@@ -130,6 +130,38 @@ export function useOnboarding({
 		[step, totalSteps, onboardingMutation]
 	);
 
+	const onInvalid = useCallback(
+		(errors: FieldErrors<OnboardingFormValues>) => {
+			// Only react to validation errors relevant to the current step.
+			// This prevents "Next" on step 1 from showing step 2 errors, even if
+			// the entire form was validated (e.g. due to an implicit submit).
+			if (step === 1) {
+				if (errors.firstName) {
+					setStep(1);
+					navigate({
+						to: '/welcome',
+						search: { step: '1' },
+					});
+					toast.error('Please fill in your first name before continuing.');
+				}
+				return;
+			}
+
+			if (step === 2) {
+				if (errors.source || errors.medium) {
+					setStep(2);
+					navigate({
+						to: '/welcome',
+						search: { step: '2' },
+					});
+					toast.error('Please fill in how you heard about us before finishing.');
+				}
+				return;
+			}
+		},
+		[step, navigate]
+	);
+
 	return {
 		step,
 		isComplete,
@@ -137,6 +169,7 @@ export function useOnboarding({
 		goNext,
 		goBack,
 		onSubmit,
+		onInvalid,
 		isSubmitting: onboardingMutation.isPending,
 	};
 }

@@ -1,5 +1,14 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, boolean, index, pgEnum, integer, jsonb } from 'drizzle-orm/pg-core';
+import {
+	pgTable,
+	text,
+	timestamp,
+	boolean,
+	index,
+	pgEnum,
+	integer,
+	jsonb,
+} from 'drizzle-orm/pg-core';
 
 export const sessionType = pgEnum('session_type', ['SESSION_EXTENSION', 'SESSION_WEB']);
 export const deviceType = pgEnum('device_type', ['DEVICE_EXTENSION', 'DEVICE_WEB']);
@@ -24,10 +33,13 @@ export const user = pgTable('user', {
 	image: text('image'),
 	displayName: text('display_name'),
 	avatar: avatarType('avatar').default('avatar-1').notNull(),
-	notificationPreferences: jsonb('notification_preferences').$type<{
-		newRepoAdded: boolean;
-		newDeviceLogin: boolean;
-	}>().default({ newRepoAdded: true, newDeviceLogin: true }).notNull(),
+	notificationPreferences: jsonb('notification_preferences')
+		.$type<{
+			newRepoAdded: boolean;
+			newDeviceLogin: boolean;
+		}>()
+		.default({ newRepoAdded: true, newDeviceLogin: false })
+		.notNull(),
 	onboarded: boolean('onboarded').default(false).notNull(),
 	// Encrypted user key material (envelope encrypted with server master key)
 	// This is the master keyMaterial that all devices of this user share

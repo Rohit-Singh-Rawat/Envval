@@ -11,5 +11,5 @@ function RouteComponent() {
 		<main className='flex min-h-screen items-center justify-center bg-background px-4'>
 			<Authenticate mode='signup' />
 		</main>
-	)
+	);
 }

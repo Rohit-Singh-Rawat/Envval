@@ -1,5 +1,3 @@
-'use client';
-
 import {
 	Accordion,
 	AccordionContent,
@@ -8,7 +6,7 @@ import {
 } from '@envval/ui/components/accordion';
 import SectionHeading from '../section-heading';
 import { AnimatePresence, motion } from 'motion/react';
-import { EASE_OUT } from '@/components/onboarding/get-started-illustration/shared';
+import { EASE_OUT } from '@/lib/animation';
 
 const FAQS = [
 	{
@@ -19,7 +17,7 @@ const FAQS = [
 	{
 		question: 'How secure is my data?',
 		answer:
-			'We’re built with security in mind. Sync is designed to be end-to-end encrypted so your secrets stay private. We don’t store or read your raw environment variables.',
+			'We\u2019re built with security in mind. Sync is designed to be end-to-end encrypted so your secrets stay private. We don\u2019t store or read your raw environment variables.',
 	},
 	{
 		question: 'Does it work with my existing .env files?',
@@ -34,49 +32,50 @@ const FAQS = [
 	{
 		question: 'Is there a free tier?',
 		answer:
-			'Yes. We support it and it’s free for now. Use Envval at no cost while we’re in this phase.',
+			'Yes. We support it and it\u2019s free for now. Use Envval at no cost while we\u2019re in this phase.',
 	},
 ];
 
-const FAQSection = () => {
-	return (
-		<section className='container max-w-3xl mx-auto px-6 py-24 md:py-32'>
-			<SectionHeading
-				label='FAQ'
-				heading='Your doubts answered'
-				text='Quick answers to common questions.'
-				align='center'
-			/>
+const FAQSection = () => (
+	<section
+		id='faq'
+		className='container max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32'
+	>
+		<SectionHeading
+			label='FAQ'
+			heading='Your doubts answered'
+			text='Quick answers to common questions.'
+			align='center'
+		/>
 
-			<Accordion className='w-full space-y-4 group/list'>
-				{FAQS.map((faq, i) => (
-					<AccordionItem
-						key={i}
-						value={`item-${i}`}
-						className='border-none bg-accent/60 px-6 rounded-2xl  transition-all duration-300 
-                        group-has-[*[data-open]]/list:opacity-50 group-has-[*[data-open]]/list:data-open:opacity-100 hover:!opacity-100'
-					>
-						<AccordionTrigger className='py-6 hover:no-underline  text-base md:text-lg font-medium text-foreground/90 data-[state=open]:text-primary/90'>
-							<span className='flex-1 text-left'>{faq.question}</span>
-						</AccordionTrigger>
-						<AccordionContent className='text-base text-muted-foreground pb-6 leading-relaxed'>
-							<AnimatePresence mode='wait'>
-								<motion.div
-									key={i}
-									initial={{ opacity: 0, y: 5, filter: 'blur(5px)' }}
-									animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-									exit={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
-									transition={{ duration: 0.9, ease: EASE_OUT }}
-								>
-									{faq.answer}
-								</motion.div>
-							</AnimatePresence>
-						</AccordionContent>
-					</AccordionItem>
-				))}
-			</Accordion>
-		</section>
-	);
-};
+		<Accordion className='w-full space-y-3 sm:space-y-4 group/list'>
+			{FAQS.map((faq, i) => (
+				<AccordionItem
+					key={i}
+					value={`item-${i}`}
+					className='border-none bg-accent/60 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-all duration-300
+						group-has-[*[data-open]]/list:opacity-50 group-has-[*[data-open]]/list:data-open:opacity-100 hover:!opacity-100'
+				>
+					<AccordionTrigger className='py-5 sm:py-6 hover:no-underline text-sm sm:text-base md:text-lg font-medium text-foreground/90 data-[state=open]:text-primary/90'>
+						<span className='flex-1 text-left'>{faq.question}</span>
+					</AccordionTrigger>
+					<AccordionContent className='text-sm sm:text-base text-muted-foreground pb-5 sm:pb-6 leading-relaxed'>
+						<AnimatePresence mode='wait'>
+							<motion.div
+								key={i}
+								initial={{ opacity: 0, y: 5, filter: 'blur(5px)' }}
+								animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+								exit={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
+								transition={{ duration: 0.9, ease: EASE_OUT }}
+							>
+								{faq.answer}
+							</motion.div>
+						</AnimatePresence>
+					</AccordionContent>
+				</AccordionItem>
+			))}
+		</Accordion>
+	</section>
+);
 
 export default FAQSection;

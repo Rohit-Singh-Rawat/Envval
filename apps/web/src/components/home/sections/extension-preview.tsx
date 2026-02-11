@@ -1,5 +1,3 @@
-'use client';
-
 import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useDragControls, useInView } from 'motion/react';
 import {
@@ -15,19 +13,16 @@ import {
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { cn } from '@/lib/utils';
+import { EXTENSION_URL } from '@/lib/constants';
 import {
 	useExtensionPreview,
 	type FileKey,
 	type EnvFileKey,
 	type SyncStatus,
 } from '@/hooks/use-extension-preview';
-
 import type { SVGProps } from 'react';
 import EnvvalLogo from '@/components/logo/envval';
-
-/* ─── Easing (Emil: custom cubic-bezier over built-in CSS) ─── */
-
-const EASE_OUT = [0.32, 0.72, 0, 1] as const;
+import { EASE_OUT } from '@/lib/animation';
 
 /* ─── Icons ─── */
 
@@ -615,14 +610,14 @@ function DownloadCTA() {
 		>
 			<div className='flex items-center justify-between px-4 py-1.5'>
 				<span className='text-[11px] text-muted-foreground'>Want the full experience?</span>
-				<button
-					type='button'
+				<a
+					href={EXTENSION_URL}
 					className='flex items-center gap-1.5 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer'
 					aria-label='Download the extension'
 				>
 					<DownloadIcon className='size-3.5' />
 					<span>Download Extension</span>
-				</button>
+				</a>
 			</div>
 		</motion.div>
 	);
@@ -700,7 +695,7 @@ function ExtensionPreview({
 			dragConstraints={containerRef}
 			dragElastic={0}
 			dragTransition={{ power: 0.3, timeConstant: 120 }}
-			className='w-full max-w-4xl mx-auto h-[460px] md:h-[540px] rounded-md overflow-hidden shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.1),-4px_-4px_12px_-4px_rgba(255,255,255,0.08),0_8px_32px_-8px_rgba(0,0,0,0.3)] border border-input bg-card flex flex-col text-sm font-sans select-none'
+			className='w-full max-w-4xl mx-auto h-[400px] sm:h-[460px] md:h-[540px] rounded-md overflow-hidden shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.1),-4px_-4px_12px_-4px_rgba(255,255,255,0.08),0_8px_32px_-8px_rgba(0,0,0,0.3)] border border-input bg-card flex flex-col text-sm font-sans select-none'
 			role='region'
 			aria-label='Extension preview - interactive demonstration'
 		>
