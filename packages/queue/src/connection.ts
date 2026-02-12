@@ -1,4 +1,4 @@
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 
 const getQueueRedisUrl = (): string => {
 	const url =
@@ -15,10 +15,10 @@ const getQueueRedisUrl = (): string => {
 
 class Connection {
 	private static instance: Connection | null = null;
-	private connection: IORedis;
+	private connection: Redis;
 
 	private constructor(redisUrl: string) {
-		this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+		this.connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
 	}
 
 	static getInstance(): Connection {
