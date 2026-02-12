@@ -24,7 +24,10 @@ export const auth = betterAuth({
 			...schema,
 		},
 	}),
-	trustedOrigins: [env.CORS_ORIGINS ?? env.APP_URL],
+	trustedOrigins: [
+		env.APP_URL,
+		...(env.CORS_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean) ?? []),
+	],
 	socialProviders: {
 		google: {
 			prompt: 'select_account',
@@ -81,7 +84,7 @@ export const auth = betterAuth({
 			},
 		},
 	},
-
+baseURL: env.APP_URL,
 	databaseHooks: {
 		session: {
 			create: {
