@@ -6,5 +6,27 @@ await esbuild.build({
 	platform: 'node',
 	format: 'esm',
 	bundle: true,
-	external: ['hono', 'pg', 'drizzle-orm', '@envval/db', '@envval/email', '@envval/queue'],
+	external: [
+		'hono',
+		'@hono/zod-validator',
+		'@t3-oss/env-core',
+		'zod',
+		'nanoid',
+		'pg',
+		'drizzle-orm',
+		'bullmq',
+		'ioredis',
+		'resend',
+		'react',
+		'react-dom',
+		'better-auth',
+		'@upstash/ratelimit',
+		'@upstash/redis',
+	],
+	banner: {
+		js: `
+      import { createRequire } from 'node:module';
+      globalThis.require = createRequire(import.meta.url);
+    `,
+	},
 });
