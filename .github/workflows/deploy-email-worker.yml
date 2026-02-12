@@ -30,8 +30,16 @@ jobs:
           script: |
             set -e
 
-            # ensure bun is available in this non-interactive shell
-            export BUN_INSTALL="$HOME/.bun"
+            # load shell profile so bun/pm2 from your normal shell are on PATH
+            if [ -f "$HOME/.bashrc" ]; then
+              . "$HOME/.bashrc"
+            fi
+            if [ -f "$HOME/.profile" ]; then
+              . "$HOME/.profile"
+            fi
+
+            # ensure bun is available in case profile didn't set it
+            export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
             export PATH="$BUN_INSTALL/bin:$PATH"
 
             # go to your repo on the VPS

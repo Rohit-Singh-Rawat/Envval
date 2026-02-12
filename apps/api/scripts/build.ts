@@ -4,7 +4,7 @@ await esbuild.build({
   entryPoints: ["src/app.ts"],
   outdir: "dist",
   platform: "node",
-  format: "esm",
+  format: "cjs",
   bundle: true,
   external: ["hono"],
 });

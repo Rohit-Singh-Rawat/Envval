@@ -1,6 +1,6 @@
 {
 	"name": "@envval/api",
-	"type": "module",
+	"type": "commonjs",
 	"scripts": {
 		"dev": "bun --watch src/server.ts",
 		"db:push": "drizzle-kit push",
