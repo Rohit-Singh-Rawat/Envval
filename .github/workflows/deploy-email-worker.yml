@@ -1,0 +1,47 @@
+name: Deploy email worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/email-worker/**"
+      - "packages/email/**"
+      - "packages/queue/**"
+      - ".github/workflows/deploy-email-worker.yml"
+
+jobs:
+  deploy-email-worker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Deploy to email worker VPS
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.EMAIL_WORKER_HOST }}
+          username: ${{ secrets.EMAIL_WORKER_USER }}
+          key: ${{ secrets.EMAIL_WORKER_SSH_KEY }}
+          # uncomment the line below if your .pem has a passphrase
+          # passphrase: ${{ secrets.EMAIL_WORKER_SSH_PASSPHRASE }}
+          port: 22
+          script: |
+            set -e
+
+            # go to your repo on the VPS
+            cd /home/ubuntu/projects/Envval
+
+            # sync code with main
+            git fetch origin main
+            git reset --hard origin/main
+
+           
+            # only install what the worker needs
+            bun install --filter @envval/email-worker --production
+
+            cd apps/email-worker
+
+            pm2 restart email-worker
+            pm2 save

@@ -6,7 +6,8 @@ import { corsConfig } from '@/config/cors';
 import { errorHandler } from '@/shared/middleware/error.middleware';
 import { sessionMiddleware } from '@/shared/middleware/session.middleware';
 import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
-import 'dotenv/config';
+
+import { env } from '@/config/env';
 
 // API routes
 import { apiRoutes } from '@/api';
