@@ -13,7 +13,7 @@ const OtpEmailTemplate = (props: OtpEmailData): React.ReactElement => {
 
 	return (
 		<EmailLayout productName={productName} logoUrl={logoUrl}>
-			<h1 style={{ fontSize: '24px', margin: '0 0 12px 0', fontWeight: 700 }}>
+			<h1 style={{ fontSize: '24px', margin: '0 0 12px 0', fontWeight: 600 }}>
 				Your sign-in code
 			</h1>
 

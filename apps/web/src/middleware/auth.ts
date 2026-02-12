@@ -35,7 +35,7 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 		throw redirect({ to: '/login', search: { redirectUrl: currentPath } });
 	}
 	if (!isUserOnboarded(session)) {
-		throw redirect({ to: '/welcome' });
+		throw redirect({ to: '/onboarding' });
 	}
 
 	return next();

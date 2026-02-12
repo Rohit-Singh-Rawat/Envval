@@ -30,7 +30,8 @@
       "Bash(del \"c:\\\\Users\\\\ROHIT SINGH RAWAT\\\\OneDrive\\\\Desktop\\\\rsrCrafts\\\\Env0\\\\apps\\\\web\\\\src\\\\components\\\\home\\\\sections\\\\extension-illustration.tsx\")",
       "Bash(npx vite build:*)",
       "Bash(npx @tanstack/router-cli generate:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npx turbo build:*)"
     ]
   }
 }

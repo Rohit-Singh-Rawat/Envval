@@ -1,48 +1,47 @@
 import * as React from 'react';
 
-const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const FONT_STACK =
+	'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 interface EmailLayoutProps {
 	productName?: string;
 	/** Absolute URL to a hosted logo image (PNG/JPG). SVGs are not supported by most email clients. */
 	logoUrl?: string;
+	hideBranding?: boolean;
 	children: React.ReactNode;
 }
 
-/**
- * Shared layout wrapper for all transactional emails.
- * Provides consistent branding, spacing, and responsive structure.
- *
- * Logo must be a publicly accessible absolute URL — email clients
- * do not support relative paths or inline SVGs.
- */
+/** Shared layout wrapper for all transactional emails. */
 export const EmailLayout = ({
 	productName = 'Envval',
 	logoUrl,
+	hideBranding = false,
 	children,
 }: EmailLayoutProps): React.ReactElement => (
 	<div
 		style={{
 			fontFamily: FONT_STACK,
-			maxWidth: '600px',
+			maxWidth: '500px',
 			margin: '0 auto',
 			padding: '40px 32px',
 			color: '#1a1a1a',
 		}}
 	>
-		<div style={{ marginBottom: '32px' }}>
-			{logoUrl ? (
-				<img
-					src={logoUrl}
-					alt={productName}
-					width="48"
-					height="48"
-					style={{ display: 'block' }}
-				/>
-			) : (
-				<strong style={{ fontSize: '18px', letterSpacing: '-0.01em' }}>{productName}</strong>
-			)}
-		</div>
+		{!hideBranding && (
+			<div style={{ marginBottom: '32px' }}>
+				{logoUrl ? (
+					<img
+						src={logoUrl}
+						alt={productName}
+						width='48'
+						height='48'
+						style={{ display: 'block' }}
+					/>
+				) : (
+					<strong style={{ fontSize: '18px', letterSpacing: '-0.01em' }}>{productName}</strong>
+				)}
+			</div>
+		)}
 		{children}
 		<div
 			style={{
@@ -73,7 +72,10 @@ export const InfoBox = ({ rows }: InfoBoxProps): React.ReactElement => (
 		}}
 	>
 		{rows.map((row) => (
-			<div key={row.label} style={{ marginBottom: '8px' }}>
+			<div
+				key={row.label}
+				style={{ marginBottom: '8px' }}
+			>
 				<span style={{ color: '#666', fontSize: '14px', fontWeight: 600 }}>{row.label}: </span>
 				<span style={{ color: '#1a1a1a', fontSize: '14px' }}>{row.value}</span>
 			</div>
@@ -91,7 +93,7 @@ export const PrimaryButton = ({ href, label }: PrimaryButtonProps): React.ReactE
 		<a
 			href={href}
 			style={{
-				backgroundColor: '#dc2626',
+				backgroundColor: '#5b7cf7',
 				color: '#ffffff',
 				padding: '12px 32px',
 				borderRadius: '6px',
@@ -106,7 +108,7 @@ export const PrimaryButton = ({ href, label }: PrimaryButtonProps): React.ReactE
 	</div>
 );
 
-interface StepItem {
+export interface StepItem {
 	title: string;
 	description: string;
 }
@@ -115,8 +117,11 @@ interface StepItem {
 export const StepList = ({ steps }: { steps: ReadonlyArray<StepItem> }): React.ReactElement => (
 	<div style={{ marginBottom: '24px' }}>
 		{steps.map((step) => (
-			<div key={step.title} style={{ marginBottom: '16px', paddingLeft: '8px' }}>
-				<p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 600, color: '#1a1a1a' }}>
+			<div
+				key={step.title}
+				style={{ marginBottom: '16px', paddingLeft: '8px' }}
+			>
+				<p style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 500, color: '#1a1a1a' }}>
 					{step.title}
 				</p>
 				<p style={{ margin: 0, fontSize: '14px', color: '#555', lineHeight: 1.5 }}>
@@ -128,18 +133,12 @@ export const StepList = ({ steps }: { steps: ReadonlyArray<StepItem> }): React.R
 );
 
 /** Full-width hero image for email headers (welcome banners, announcements). */
-export const HeroImage = ({
-	src,
-	alt,
-}: {
-	src: string;
-	alt: string;
-}): React.ReactElement => (
+export const HeroImage = ({ src, alt }: { src: string; alt: string }): React.ReactElement => (
 	<div style={{ marginBottom: '24px' }}>
 		<img
 			src={src}
 			alt={alt}
-			width="600"
+			width='400'
 			style={{ display: 'block', maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
 		/>
 	</div>

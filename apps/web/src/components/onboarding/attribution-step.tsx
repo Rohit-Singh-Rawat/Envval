@@ -9,6 +9,7 @@ import {
 } from '@envval/ui/components/select';
 import {
 	Field,
+	FieldError,
 	FieldLabel,
 } from '@envval/ui/components/field';
 import type { OnboardingFormValues } from './types';
@@ -31,9 +32,14 @@ export function AttributionStep() {
 						<Select
 							onValueChange={field.onChange}
 							value={field.value || undefined}
+							aria-invalid={fieldState.invalid}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue placeholder='Select where you heard about us' />
+								<SelectValue>
+									{field.value
+										? ATTRIBUTION_SOURCE_OPTIONS.find((opt) => opt.value === field.value)?.label
+										: 'Select where you heard about us'}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								{ATTRIBUTION_SOURCE_OPTIONS.map((opt) => (
@@ -46,6 +52,9 @@ export function AttributionStep() {
 								))}
 							</SelectContent>
 						</Select>
+						{fieldState.invalid && (
+							<FieldError errors={[fieldState.error]} />
+						)}
 					</Field>
 				)}
 			/>
@@ -59,9 +68,14 @@ export function AttributionStep() {
 						<Select
 							onValueChange={field.onChange}
 							value={field.value || undefined}
+							aria-invalid={fieldState.invalid}
 						>
 							<SelectTrigger variant='muted'>
-								<SelectValue placeholder='Select how you found us' />
+								<SelectValue>
+									{field.value
+										? ATTRIBUTION_MEDIUM_OPTIONS.find((opt) => opt.value === field.value)?.label
+										: 'Select how you found us'}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								{ATTRIBUTION_MEDIUM_OPTIONS.map((opt) => (
@@ -74,6 +88,9 @@ export function AttributionStep() {
 								))}
 							</SelectContent>
 						</Select>
+						{fieldState.invalid && (
+							<FieldError errors={[fieldState.error]} />
+						)}
 					</Field>
 				)}
 			/>

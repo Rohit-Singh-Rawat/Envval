@@ -10,59 +10,44 @@ import { ProfileStep } from '@/components/onboarding/profile-step';
 import { AttributionStep } from '@/components/onboarding/attribution-step';
 import { StepProgress, type StepConfig } from '@/components/onboarding/step-progress';
 import { useOnboarding } from '@/hooks/onboarding/use-onboarding';
-import { redirectIfOnboardedMiddleware, redirectIfOnboardedGuard } from '@/middleware/auth';
+import { redirectIfOnboardedGuard, redirectIfOnboardedMiddleware } from '@/middleware/auth';
 import { useKeyMaterialSync } from '@/hooks/auth/use-key-material-sync';
 import { authClient } from '@/lib/auth-client';
 import { playUiSound } from '@/lib/sound';
 
 const searchSchema = z.object({
-	step: z.enum(['1', '2', 'complete']).optional(),
 	redirectUrl: z.string().optional(),
 });
 
-export const Route = createFileRoute('/welcome')({
-	component: RouteComponent,
+export const Route = createFileRoute('/onboarding')({
+	component: OnboardingRouteComponent,
 	validateSearch: searchSchema,
 	server: {
 		middleware: [redirectIfOnboardedMiddleware],
 	},
 	beforeLoad: async () => {
-		// Client-side guard (server already protected by middleware)
 		if (typeof window === 'undefined') return;
 		const { data: session } = await authClient.getSession();
 		redirectIfOnboardedGuard(session);
 	},
 });
 
-const steps: StepConfig[] = [
+const STEPS: StepConfig[] = [
 	{ id: 1, label: 'Your name', icon: UserIcon },
 	{ id: 2, label: 'How did you hear?', icon: CompassIcon },
 ];
 
-function RouteComponent() {
-	const { step: stepParam, redirectUrl } = Route.useSearch();
+function OnboardingRouteComponent() {
+	const { redirectUrl } = Route.useSearch();
 	const navigate = useNavigate();
 
-	// Auto-fetch key material if not already present (e.g., after OAuth signup)
 	useKeyMaterialSync();
 
-	const {
-		step,
-		isComplete,
-		form,
-		goNext,
-		goBack,
-		onSubmit,
-		onInvalid,
-		isSubmitting,
-	} = useOnboarding({
-		initialStep: stepParam === '1' ? 1 : stepParam === '2' ? 2 : 1,
-		initialComplete: stepParam === 'complete',
-		totalSteps: steps.length,
-	});
+	const { step, isComplete, form, goNext, goBack, onSubmit, onInvalid, isSubmitting } =
+		useOnboarding({ totalSteps: STEPS.length });
 
 	const handleContinueToDashboard = () => {
-		navigate({ to: redirectUrl || '/dashboard' });
+		navigate({ to: redirectUrl ?? '/dashboard' });
 	};
 
 	return (
@@ -74,12 +59,12 @@ function RouteComponent() {
 				<div className='w-screen border-t border-border' />
 				<div className='w-full max-w-md p-5'>
 					<StepProgress
-						steps={steps}
+						steps={STEPS}
 						currentStep={step}
 						className='pb-40'
 					/>
 					<div className='min-h-[500px]'>
-						<div className='flex flex-col items-center gap-3 pb-10 '>
+						<div className='flex flex-col items-center gap-3 pb-10'>
 							<EnvvalLogo className='size-12' />
 							<div className='text-center'>
 								<h1 className='text-2xl font-semibold'>Welcome to Envval</h1>
@@ -90,43 +75,51 @@ function RouteComponent() {
 						</div>
 						<FormProvider {...form}>
 							<form
-								onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+								onSubmit={(e) => {
+									e.preventDefault();
+									if (step < STEPS.length) {
+										void goNext();
+										return;
+									}
+									form.handleSubmit(onSubmit, onInvalid)();
+								}}
 								className='space-y-6'
 							>
-								<div className=''>
+								<div>
 									{step === 1 && <ProfileStep />}
 									{step === 2 && <AttributionStep />}
 								</div>
 
 								<div className='flex items-center justify-between pt-2'>
-									<Button
+									<button
 										type='button'
-										variant='muted'
 										onClick={() => {
 											playUiSound('button');
 											goBack();
 										}}
 										disabled={step === 1 || isSubmitting}
+										className='inline-flex items-center justify-center rounded-md h-8 px-3 gap-1.5 text-sm font-medium bg-muted/80 hover:bg-muted transition-all disabled:pointer-events-none disabled:opacity-50'
 									>
 										Back
-									</Button>
-									{step < steps.length ? (
-										<Button
+									</button>
+									{step < STEPS.length ? (
+										<button
 											type='button'
-											onClick={() => {
+											onClick={(ev) => {
+												ev.preventDefault();
+												ev.stopPropagation();
 												playUiSound('button');
 												void goNext();
 											}}
 											disabled={isSubmitting}
+											className='inline-flex items-center justify-center rounded-md h-8 px-3 gap-1.5 text-sm font-medium bg-primary text-primary-foreground shadow-button-default hover:shadow-button-hover hover:bg-primary/90 transition-all disabled:pointer-events-none disabled:opacity-50'
 										>
 											Next
-										</Button>
+										</button>
 									) : (
 										<Button
 											type='submit'
-											onClick={() => {
-												playUiSound('button');
-											}}
+											onClick={() => playUiSound('button')}
 											pending={isSubmitting}
 											disabled={isSubmitting}
 										>

@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as AnimationRouteImport } from './routes/animation'
@@ -34,9 +34,9 @@ import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as DashboardReposSlugRouteImport } from './routes/_dashboard/repos/$slug'
 
-const WelcomeRoute = WelcomeRouteImport.update({
-  id: '/welcome',
-  path: '/welcome',
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -158,7 +158,7 @@ export interface FileRoutesByFullPath {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
-  '/welcome': typeof WelcomeRoute
+  '/onboarding': typeof OnboardingRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
@@ -182,7 +182,7 @@ export interface FileRoutesByTo {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
-  '/welcome': typeof WelcomeRoute
+  '/onboarding': typeof OnboardingRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/dashboard': typeof DashboardDashboardRoute
@@ -209,7 +209,7 @@ export interface FileRoutesById {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
-  '/welcome': typeof WelcomeRoute
+  '/onboarding': typeof OnboardingRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/_dashboard/dashboard': typeof DashboardDashboardRoute
@@ -235,7 +235,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
-    | '/welcome'
+    | '/onboarding'
     | '/login'
     | '/signup'
     | '/dashboard'
@@ -259,7 +259,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
-    | '/welcome'
+    | '/onboarding'
     | '/login'
     | '/signup'
     | '/dashboard'
@@ -285,7 +285,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
-    | '/welcome'
+    | '/onboarding'
     | '/_auth/login'
     | '/_auth/signup'
     | '/_dashboard/dashboard'
@@ -312,7 +312,7 @@ export interface RootRouteChildren {
   AnimationRoute: typeof AnimationRoute
   ExtensionRoute: typeof ExtensionRoute
   HomeRoute: typeof HomeRoute
-  WelcomeRoute: typeof WelcomeRoute
+  OnboardingRoute: typeof OnboardingRoute
   MarketingAboutRoute: typeof MarketingAboutRoute
   MarketingChangelogRoute: typeof MarketingChangelogRoute
   MarketingContactRoute: typeof MarketingContactRoute
@@ -326,11 +326,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/welcome': {
-      id: '/welcome'
-      path: '/welcome'
-      fullPath: '/welcome'
-      preLoaderRoute: typeof WelcomeRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -538,7 +538,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnimationRoute: AnimationRoute,
   ExtensionRoute: ExtensionRoute,
   HomeRoute: HomeRoute,
-  WelcomeRoute: WelcomeRoute,
+  OnboardingRoute: OnboardingRoute,
   MarketingAboutRoute: MarketingAboutRoute,
   MarketingChangelogRoute: MarketingChangelogRoute,
   MarketingContactRoute: MarketingContactRoute,

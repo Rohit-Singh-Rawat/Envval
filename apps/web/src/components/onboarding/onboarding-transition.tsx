@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'motion/react';
-import { WelcomeComplete } from './welcome-complete';
+import { OnboardingComplete } from './onboarding-complete';
 
 interface OnboardingTransitionProps {
 	isComplete: boolean;
@@ -17,7 +17,7 @@ export function OnboardingTransition({
 			{!isComplete ? (
 				<OnboardingContainer>{children}</OnboardingContainer>
 			) : (
-				<WelcomeComplete onContinue={onContinue} />
+				<OnboardingComplete onContinue={onContinue} />
 			)}
 		</AnimatePresence>
 	);

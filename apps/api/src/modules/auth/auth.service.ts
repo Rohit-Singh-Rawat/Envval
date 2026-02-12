@@ -24,21 +24,18 @@ export const auth = betterAuth({
 			...schema,
 		},
 	}),
-	trustedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
+	trustedOrigins: [env.CORS_ORIGINS ?? env.APP_URL],
 	socialProviders: {
 		google: {
 			prompt: 'select_account',
-			clientId: process.env.GOOGLE_CLIENT_ID!,
-			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+			clientId: env.GOOGLE_CLIENT_ID,
+			clientSecret: env.GOOGLE_CLIENT_SECRET,
 		},
 		github: {
-			clientId: process.env.GITHUB_CLIENT_ID!,
-			clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+			clientId: env.GITHUB_CLIENT_ID,
+			clientSecret: env.GITHUB_CLIENT_SECRET,
 		},
 	},
-
-	// adds additional fields to the user model and can be used in the user object
-
 	user: {
 		modelName: 'user',
 		additionalFields: {
@@ -58,13 +55,11 @@ export const auth = betterAuth({
 				type: 'string',
 			},
 			notificationPreferences: {
-				type: 'string', // Stored as JSON string or object, better-auth might serialize it
+				type: 'string',
 				required: false,
 			},
 		},
 	},
-
-	// adds additional fields to the session model and can be used in the session object
 
 	session: {
 		modelName: 'session',
@@ -87,14 +82,6 @@ export const auth = betterAuth({
 		},
 	},
 
-	/*
-		hooks for the database operations that runs before and after the operation in the database
-		before: runs before the operation in the database
-		after: runs after the operation in the database
-
-		use when we want to modify the data before it is inserted into the database or anywhere the better-auth does the operation in the database
-	*/
-
 	databaseHooks: {
 		session: {
 			create: {
@@ -111,19 +98,25 @@ export const auth = betterAuth({
 						const preferences = parseNotificationPreferences(user.notificationPreferences);
 						if (!preferences.newDeviceLogin) return;
 
-						// Resolve the auth provider used for this sign-in (e.g. "google", "github", "email-otp")
+						// Fetch the user's most recently linked auth provider.
+						// emailOTP sign-ins don't create account rows, so latestAccount
+						// will be undefined for OTP users — handled by resolveSignInLabel.
 						const [latestAccount] = await db
 							.select({ providerId: schema.account.providerId })
 							.from(schema.account)
 							.where(eq(schema.account.userId, session.userId))
-							.orderBy(desc(schema.account.updatedAt))
+							.orderBy(desc(schema.account.createdAt))
 							.limit(1);
+
+						const sessionType = isSessionType(session.sessionType)
+							? session.sessionType
+							: 'SESSION_WEB';
 
 						emailService
 							.sendNewDeviceLoginEmail(user.email, {
 								userName: user.displayName || user.name,
 								deviceName: parseDeviceName(session.userAgent),
-								signInType: resolveSignInLabel(latestAccount?.providerId),
+								signInType: resolveSignInLabel(latestAccount?.providerId, sessionType),
 								timestamp: formatEmailTimestamp(new Date()),
 								ipAddress: session.ipAddress ?? undefined,
 								revokeUrl: `${env.APP_URL}/devices`,
@@ -134,7 +127,6 @@ export const auth = betterAuth({
 					}
 				},
 				before: async (data) => {
-					console.log('session create before', data);
 					const isExtension = isExtensionOrCli(data.userAgent);
 
 					if (isExtension) {
@@ -181,16 +173,9 @@ export const auth = betterAuth({
 			},
 		},
 
-		/* 
-		hooks for adding additional fields to the user model and can be used in the user object	
-		use when we want to modify the data before it is inserted into the database or anywhere the better-auth does the operation in the database
-
-		here we are generating the key material and encrypting it with the master key and storing it in the database for each new user.
-	*/
-
 		user: {
 			create: {
-				before: async (user, context) => {
+				before: async (user) => {
 					const keyMaterial = generateKeyMaterial();
 					const { ciphertext, iv, keyId } = encryptKeyMaterialWithMaster(keyMaterial);
 					return {
@@ -212,15 +197,9 @@ export const auth = betterAuth({
 			interval: '5s',
 			userCodeLength: 8,
 
-			// Validate client (only allow known clients)
 			validateClient: async (clientId) => {
 				const allowedClients = ['envval-extension', 'envval-cli'];
 				return allowedClients.includes(clientId);
-			},
-
-			// Hook when device is approved
-			onDeviceAuthRequest: async (clientId, scope) => {
-				console.log(`Device auth requested: ${clientId}, scope: ${scope}`);
 			},
 		}),
 		emailOTP({
@@ -292,14 +271,31 @@ function parseNotificationPreferences(raw: unknown): NotificationPreferences {
 	return DEFAULT_PREFERENCES;
 }
 
-const SIGN_IN_TYPE_LABELS: Record<string, string> = {
+type SessionType = (typeof schema.sessionType.enumValues)[number];
+
+const SESSION_TYPES = new Set<string>(schema.sessionType.enumValues);
+
+function isSessionType(value: unknown): value is SessionType {
+	return typeof value === 'string' && SESSION_TYPES.has(value);
+}
+
+export type AuthType = typeof auth;
+
+const PROVIDER_LABELS: Record<string, string> = {
 	google: 'Google OAuth',
 	github: 'GitHub OAuth',
 	'email-otp': 'Email OTP',
 	credential: 'Email & Password',
 };
 
-function resolveSignInLabel(providerId: string | undefined): string {
-	if (!providerId) return 'Unknown';
-	return SIGN_IN_TYPE_LABELS[providerId] ?? providerId;
+/**
+ * Maps an auth provider ID + session type to a human-readable sign-in label.
+ *
+ * When `providerId` is undefined the user signed in via email OTP,
+ * which does not create an account row in better-auth.
+ */
+function resolveSignInLabel(providerId: string | undefined, sessionType: SessionType): string {
+	const label = providerId ? (PROVIDER_LABELS[providerId] ?? providerId) : 'Email OTP';
+
+	return sessionType === 'SESSION_EXTENSION' ? `${label} (VS Code Extension)` : label;
 }

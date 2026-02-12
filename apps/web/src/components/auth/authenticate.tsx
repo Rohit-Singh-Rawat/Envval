@@ -181,7 +181,7 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 
 			if (mode === 'signup') {
 				navigate({
-					to: '/welcome',
+					to: '/onboarding',
 					...(search.redirectUrl && { search: { redirectUrl: search.redirectUrl } }),
 				});
 			} else if (search.redirectUrl) {

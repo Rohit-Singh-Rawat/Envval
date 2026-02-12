@@ -2,26 +2,24 @@ import { useState, useCallback, useEffect } from 'react';
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import client from '@/lib/api';
+import { apiClient } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
 import { useSession } from '@/lib/auth-client';
 
-type UseOnboardingOptions = {
-	initialStep?: number;
-	initialComplete?: boolean;
+export type UseOnboardingOptions = {
 	totalSteps: number;
 };
 
-export function useOnboarding({
-	initialStep = 1,
-	initialComplete = false,
-	totalSteps,
-}: UseOnboardingOptions) {
-	const [step, setStep] = useState(initialStep);
-	const [isComplete, setIsComplete] = useState(initialComplete);
-	const navigate = useNavigate();
+/** Fields to validate per step (used for Next button and onInvalid). */
+const STEP_FIELDS: Record<number, (keyof OnboardingFormValues)[]> = {
+	1: ['firstName'],
+	2: ['source', 'medium'],
+};
+
+export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
+	const [step, setStep] = useState(1);
+	const [isComplete, setIsComplete] = useState(false);
 	const { data: session } = useSession();
 
 	const form = useForm<OnboardingFormValues>({
@@ -30,27 +28,20 @@ export function useOnboarding({
 		defaultValues: {
 			firstName: '',
 			lastName: '',
-			source: '',
-			medium: '',
+			source: undefined,
+			medium: undefined,
 			details: '',
 		},
 	});
 
-	// Pre-fill form with user's name if logged in but doesn't have a name set
 	useEffect(() => {
-		if (session?.user?.name && !form.getValues('firstName')) {
-			const nameParts = session.user.name.split(' ');
-			const firstName = nameParts[0] || '';
-			const lastName = nameParts.slice(1).join(' ') || '';
-
-			if (firstName) {
-				form.setValue('firstName', firstName);
-			}
-			if (lastName) {
-				form.setValue('lastName', lastName);
-			}
-		}
-	}, [session, form]);
+		if (!session?.user?.name || form.getValues('firstName')) return;
+		const nameParts = session.user.name.split(' ');
+		const firstName = nameParts[0] ?? '';
+		const lastName = nameParts.slice(1).join(' ') ?? '';
+		if (firstName) form.setValue('firstName', firstName);
+		if (lastName) form.setValue('lastName', lastName);
+	}, [session?.user?.name, form]);
 
 	const onboardingMutation = useMutation({
 		mutationFn: async (data: OnboardingFormValues) => {
@@ -61,105 +52,93 @@ export function useOnboarding({
 				medium: data.medium || null,
 				details: data.details || null,
 			};
-			const response = await client.api.v1.onboarding.$post({
-				json: payload,
-			});
+			const response = await apiClient.onboarding.$post({ json: payload });
 			if (!response.ok) {
 				const error = await response
 					.json()
 					.catch(() => ({ message: 'Failed to complete onboarding' }));
-				throw new Error((error as { message: string }).message || 'Failed to complete onboarding');
+				throw new Error((error as { message: string }).message ?? 'Failed to complete onboarding');
 			}
 			return response.json();
 		},
 		onSuccess: () => {
 			toast.success('Onboarding completed successfully!');
 			setIsComplete(true);
-			navigate({
-				to: '/welcome',
-				search: { step: 'complete' },
-			});
 		},
-		onError: (error) => {
-			const message = error instanceof Error ? error.message : 'Failed to complete onboarding';
-			toast.error(message);
+		onError: (error: Error) => {
+			toast.error(error.message ?? 'Failed to complete onboarding');
 		},
 	});
 
-	const validateCurrentStep = useCallback(async (): Promise<boolean> => {
-		if (step === 1) {
-			// Validate only firstName for step 1
-			const isValid = await form.trigger('firstName');
-			return isValid;
-		}
-		if (step === 2) {
-			// Validate source and medium for step 2
-			const isValid = await form.trigger(['source', 'medium']);
-			return isValid;
-		}
-		return true;
-	}, [step, form]);
+	const validateCurrentStep = useCallback(
+		async (): Promise<boolean> => {
+			if (step === 1) return form.trigger('firstName');
+			if (step === 2) {
+				const values = form.getValues();
+				if (!values.source) {
+					form.setError('source', {
+						type: 'required',
+						message: 'Please select where you heard about us',
+					});
+				}
+				if (!values.medium) {
+					form.setError('medium', {
+						type: 'required',
+						message: 'Please select how you found us',
+					});
+				}
+				if (!values.source || !values.medium) return false;
+				return form.trigger(['source', 'medium']);
+			}
+			return true;
+		},
+		[step, form]
+	);
 
 	const goNext = useCallback(async () => {
 		const isValid = await validateCurrentStep();
-		if (isValid && step < totalSteps) {
-			setStep(step + 1);
-			navigate({
-				to: '/welcome',
-				search: { step: String(step + 1) as '1' | '2' },
-			});
-		}
-	}, [step, totalSteps, validateCurrentStep, navigate]);
+		if (isValid && step < totalSteps) setStep((s) => s + 1);
+	}, [step, totalSteps, validateCurrentStep]);
 
 	const goBack = useCallback(() => {
-		if (step > 1) {
-			setStep(step - 1);
-			navigate({
-				to: '/welcome',
-				search: { step: String(step - 1) as '1' | '2' },
-			});
-		}
-	}, [step, navigate]);
+		if (step > 1) setStep((s) => s - 1);
+	}, [step]);
 
 	const onSubmit = useCallback(
 		async (data: OnboardingFormValues) => {
-			if (step === totalSteps) {
-				await onboardingMutation.mutateAsync(data);
+			if (step !== totalSteps) return;
+			// Step 2 fields are optional in schema for step 1; require them before submitting.
+			if (totalSteps >= 2 && (!data.source || !data.medium)) {
+				if (!data.source) {
+					form.setError('source', {
+						type: 'required',
+						message: 'Please select where you heard about us',
+					});
+				}
+				if (!data.medium) {
+					form.setError('medium', {
+						type: 'required',
+						message: 'Please select how you found us',
+					});
+				}
+				toast.error('Please fill in how you heard about us before finishing.');
+				return;
 			}
+			await onboardingMutation.mutateAsync(data);
 		},
-		[step, totalSteps, onboardingMutation]
+		[step, totalSteps, form, onboardingMutation]
 	);
 
 	const onInvalid = useCallback(
 		(errors: FieldErrors<OnboardingFormValues>) => {
-			// Only react to validation errors relevant to the current step.
-			// This prevents "Next" on step 1 from showing step 2 errors, even if
-			// the entire form was validated (e.g. due to an implicit submit).
-			if (step === 1) {
-				if (errors.firstName) {
-					setStep(1);
-					navigate({
-						to: '/welcome',
-						search: { step: '1' },
-					});
-					toast.error('Please fill in your first name before continuing.');
-				}
-				return;
-			}
-
-			if (step === 2) {
-				if (errors.source || errors.medium) {
-					setStep(2);
-					navigate({
-						to: '/welcome',
-						search: { step: '2' },
-					});
-					toast.error('Please fill in how you heard about us before finishing.');
-				}
-				return;
-			}
+			const fields = STEP_FIELDS[step];
+			if (!fields) return;
+			const hasError = fields.some((f) => errors[f]);
+			if (!hasError) return;
+			if (step === 1) toast.error('Please fill in your first name before continuing.');
+			if (step === 2) toast.error('Please fill in how you heard about us before finishing.');
 		},
-		[step, navigate]
+		[step]
 	);
 
 	return {

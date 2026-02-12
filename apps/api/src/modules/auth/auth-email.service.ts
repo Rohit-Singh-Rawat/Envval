@@ -3,6 +3,23 @@ import { enforceRateLimit } from '@/shared/lib/redis/rate-limit';
 import { env } from '@/config/env';
 import { branding } from '@/config/branding';
 
+/** Shared branding fields injected into every email payload. */
+const brandingData = {
+	productName: branding.productName,
+	supportEmail: branding.supportEmail,
+	logoUrl: branding.logoUrl,
+} as const;
+
+interface NewDeviceLoginData {
+	userName: string;
+	deviceName: string;
+	timestamp: string;
+	signInType?: string;
+	location?: string;
+	ipAddress?: string;
+	revokeUrl?: string;
+}
+
 export class AuthEmailService {
 	async sendOTP(email: string, otp: string) {
 		await enforceRateLimit('email', email);
@@ -10,13 +27,8 @@ export class AuthEmailService {
 		await enqueueEmail({
 			to: email,
 			from: env.EMAIL_FROM,
-			template: 'otp' as const,
-			data: {
-				otp,
-				productName: branding.productName,
-				supportEmail: branding.supportEmail,
-				logoUrl: branding.logoUrl || undefined,
-			},
+			template: 'otp',
+			data: { otp, ...brandingData },
 		});
 
 		return { success: true };
@@ -28,13 +40,11 @@ export class AuthEmailService {
 		await enqueueEmail({
 			to: email,
 			from: env.EMAIL_FROM,
-			template: 'welcome' as const,
+			template: 'welcome',
 			data: {
 				name,
-				productName: branding.productName,
-				supportEmail: branding.supportEmail,
-				logoUrl: branding.logoUrl || undefined,
-				welcomeImageUrl: branding.welcomeImageUrl || undefined,
+				...brandingData,
+				welcomeImageUrl: branding.welcomeImageUrl,
 				dashboardUrl: `${env.APP_URL}/dashboard`,
 			},
 		});
@@ -48,44 +58,21 @@ export class AuthEmailService {
 		await enqueueEmail({
 			to: email,
 			from: env.EMAIL_FROM,
-			template: 'new-repo' as const,
-			data: {
-				userName,
-				repoName,
-				repoUrl,
-				productName: branding.productName,
-				supportEmail: branding.supportEmail,
-				logoUrl: branding.logoUrl || undefined,
-			},
+			template: 'new-repo',
+			data: { userName, repoName, repoUrl, ...brandingData },
 		});
 
 		return { success: true };
 	}
 
-	async sendNewDeviceLoginEmail(
-		email: string,
-		data: {
-			userName: string;
-			deviceName: string;
-			timestamp: string;
-			signInType?: string;
-			location?: string;
-			ipAddress?: string;
-			revokeUrl?: string;
-		}
-	) {
+	async sendNewDeviceLoginEmail(email: string, data: NewDeviceLoginData) {
 		await enforceRateLimit('email', email);
 
 		await enqueueEmail({
 			to: email,
 			from: env.EMAIL_FROM,
-			template: 'new-device' as const,
-			data: {
-				...data,
-				productName: branding.productName,
-				supportEmail: branding.supportEmail,
-				logoUrl: branding.logoUrl || undefined,
-			},
+			template: 'new-device',
+			data: { ...data, ...brandingData },
 		});
 
 		return { success: true };

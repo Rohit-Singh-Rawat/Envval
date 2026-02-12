@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { WelcomeEmailData } from '../schema';
-import { EmailLayout, HeroImage, StepList, PrimaryButton } from './shared/email-layout';
+import { EmailLayout, HeroImage, StepList, PrimaryButton, type StepItem } from './shared/email-layout';
 
-const GETTING_STARTED_STEPS = [
+const GETTING_STARTED_STEPS: readonly StepItem[] = [
 	{
 		title: 'Install the editor extension',
 		description:
@@ -17,75 +17,75 @@ const GETTING_STARTED_STEPS = [
 	{
 		title: 'Invite your team or connect another device',
 		description:
-			'Every change syncs instantly across all connected environments — no more pasting secrets in Slack.',
+			'Every change syncs instantly across all connected environments. No more pasting secrets in Slack.',
 	},
-] as const;
+];
 
-const WelcomeEmailTemplate = (props: WelcomeEmailData): React.ReactElement => {
-	const {
-		name,
-		logoUrl,
-		welcomeImageUrl,
-		dashboardUrl,
-		productName = 'Envval',
-	} = props;
+const WelcomeEmailTemplate = ({
+	name,
+	welcomeImageUrl,
+	dashboardUrl,
+	productName = 'Envval',
+}: WelcomeEmailData): React.ReactElement => (
+	<EmailLayout productName={productName} hideBranding>
+		{welcomeImageUrl && <HeroImage src={welcomeImageUrl} alt={`Welcome to ${productName}`} />}
 
-	return (
-		<EmailLayout productName={productName} logoUrl={logoUrl}>
-			{welcomeImageUrl && <HeroImage src={welcomeImageUrl} alt={`Welcome to ${productName}`} />}
+		<h1 style={{ fontSize: '24px', margin: '0 0 16px 0', fontWeight: 600 }}>
+			Welcome aboard, {name}!
+		</h1>
 
-			<h1 style={{ fontSize: '24px', margin: '0 0 16px 0', fontWeight: 700 }}>
-				Welcome to {productName}.
-			</h1>
+		<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			Hey {name}, I'm Rohit. I built {productName}. Really glad you're here.
+		</p>
 
-			<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				Hey {name}, thanks for signing up — we&apos;re genuinely excited to have you here.
-			</p>
+		<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			I made {productName} because I was tired of the same painful routine, hunting
+			down .env files, pasting secrets in DMs, hoping everyone's on the right version.
+			It encrypts everything end-to-end and keeps your secrets synced across every
+			device and teammate. Simple as that.
+		</p>
 
-			<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				{productName} is a secure environment variable manager that keeps your secrets
-				encrypted end-to-end and synced across every device and team member. No more
-				copy-pasting .env files, no more secrets in chat threads.
-			</p>
+		<p style={{ margin: '0 0 24px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			Best way to get a feel for it is to throw something real at it.
+			Here's where I'd start:
+		</p>
 
-			<p style={{ margin: '0 0 24px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				The fastest way to see it click is to give it something real to work on.
-				Here&apos;s a good place to start:
-			</p>
+		<StepList steps={GETTING_STARTED_STEPS} />
 
-			<StepList steps={GETTING_STARTED_STEPS} />
+		{dashboardUrl && (
+			<PrimaryButton href={dashboardUrl} label="Go to your dashboard" />
+		)}
 
-			{dashboardUrl && (
-				<PrimaryButton href={dashboardUrl} label="Go to your dashboard" />
-			)}
+		<p style={{ margin: '24px 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			Once it's set up, you won't think about it. Your secrets just stay safe
+			and in sync while you focus on building.
+		</p>
 
-			<p style={{ margin: '24px 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				{productName} is designed to fade into the background — your secrets stay
-				safe and in sync while you focus on shipping.
-			</p>
+		<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			If anything feels off or you have questions, just hit reply. I personally
+			read every message and I'd love to hear from you.
+		</p>
 
-			<p style={{ margin: '0 0 16px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				If anything feels confusing, broken, or surprising, just reply to this email.
-				We read and respond to every message.
-			</p>
+		<p style={{ margin: '0 0 4px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
+			Cheers,
+		</p>
+		<p style={{ margin: '0 0 0 0', color: '#1a1a1a', fontSize: '15px', fontWeight: 600 }}>
+			Rohit
+		</p>
+		<p style={{ margin: '0', color: '#888', fontSize: '13px' }}>
+			Founder, {productName}
+		</p>
+	</EmailLayout>
+);
 
-			<p style={{ margin: '0 0 4px 0', color: '#444', fontSize: '15px', lineHeight: 1.7 }}>
-				Cheers,
-			</p>
-			<p style={{ margin: '0 0 0 0', color: '#1a1a1a', fontSize: '15px', fontWeight: 600 }}>
-				The {productName} Team
-			</p>
-		</EmailLayout>
-	);
-};
+function stepsToPlainText(steps: readonly StepItem[]): string {
+	return steps
+		.map((step, i) => `${i + 1}. ${step.title}\n   ${step.description}`)
+		.join('\n\n');
+}
 
 export const render = (data: WelcomeEmailData) => {
-	const {
-		name,
-		productName = 'Envval',
-		supportEmail = 'support@envval.dev',
-		dashboardUrl,
-	} = data;
+	const { name, productName = 'Envval', dashboardUrl } = data;
 
 	const subject = `Welcome to ${productName}, ${name}!`;
 	const html = renderToStaticMarkup(<WelcomeEmailTemplate {...data} />);
@@ -93,30 +93,24 @@ export const render = (data: WelcomeEmailData) => {
 	const text = [
 		productName,
 		'',
-		`Welcome to ${productName}.`,
+		`Welcome aboard, ${name}!`,
 		'',
-		`Hey ${name}, thanks for signing up — we're genuinely excited to have you here.`,
+		`Hey ${name}, I'm Rohit. I built ${productName}. Really glad you're here.`,
 		'',
-		`${productName} is a secure environment variable manager that keeps your secrets encrypted end-to-end and synced across every device and team member. No more copy-pasting .env files, no more secrets in chat threads.`,
+		`I made ${productName} because I was tired of the same painful routine, hunting down .env files, pasting secrets in DMs, hoping everyone's on the right version. It encrypts everything end-to-end and keeps your secrets synced across every device and teammate. Simple as that.`,
 		'',
-		`The fastest way to see it click is to give it something real to work on.`,
+		`Best way to get a feel for it is to throw something real at it. Here's where I'd start:`,
 		'',
-		'1. Install the editor extension',
-		'   Grab the Envval extension for VS Code. It lets you pull, push, and rotate secrets without ever leaving your editor.',
-		'',
-		'2. Create your first repository',
-		'   A repository maps to a project. Add your .env files and Envval encrypts them end-to-end before they leave your machine.',
-		'',
-		'3. Invite your team or connect another device',
-		'   Every change syncs instantly across all connected environments — no more pasting secrets in Slack.',
+		stepsToPlainText(GETTING_STARTED_STEPS),
 		'',
 		...(dashboardUrl ? [`Go to your dashboard: ${dashboardUrl}`, ''] : []),
-		`${productName} is designed to fade into the background — your secrets stay safe and in sync while you focus on shipping.`,
+		`Once it's set up, you won't think about it. Your secrets just stay safe and in sync while you focus on building.`,
 		'',
-		'If anything feels confusing, broken, or surprising, just reply to this email. We read and respond to every message.',
+		`If anything feels off or you have questions, just hit reply. I personally read every message and I'd love to hear from you.`,
 		'',
 		'Cheers,',
-		`The ${productName} Team`,
+		'Rohit',
+		`Founder, ${productName}`,
 	].join('\n');
 
 	return { subject, text, html };

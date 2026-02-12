@@ -9,6 +9,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@envval/ui/components
 import { GithubIcon } from '@/components/icons/github';
 import { GoogleIcon } from '@/components/icons/google';
 import { authClient } from '@/lib/auth-client';
+import { env } from '@/env';
 
 const loginSchema = z.object({
 	email: z.email('Enter a valid email'),
@@ -38,10 +39,15 @@ const providerConfig: Record<
 };
 
 function OAuthButton({ provider, mode }: OAuthButtonProps) {
+	const webOrigin = typeof window !== 'undefined' ? window.location.origin : env.VITE_APP_URL;
 	const { mutate: signIn, isPending } = useMutation({
 		mutationFn: async () => {
-			// OAuth will redirect, key material fetch happens on callback page
-			await authClient.signIn.social({ provider });
+			// Absolute callback URLs so redirect goes to web app, not API (split frontend/backend)
+			await authClient.signIn.social({
+				provider,
+				callbackURL: `${webOrigin}/dashboard`,
+				newUserCallbackURL: `${webOrigin}/onboarding`,
+			});
 		},
 	});
 
