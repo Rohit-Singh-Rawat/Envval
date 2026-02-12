@@ -38,6 +38,12 @@ jobs:
               . "$HOME/.profile"
             fi
 
+            # ensure nvm-based node/npm global bins (like pm2) are available
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
+
             # ensure bun is available in case profile didn't set it
             export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
             export PATH="$BUN_INSTALL/bin:$PATH"
