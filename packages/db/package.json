@@ -32,7 +32,6 @@
 		"typescript": "5.9.2"
 	},
 	"dependencies": {
-		"dotenv": "^17.2.3",
 		"drizzle-orm": "^0.45.0",
 		"pg": "^8.16.3"
 	}

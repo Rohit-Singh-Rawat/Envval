@@ -1,9 +1,6 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import dotenv from 'dotenv';
-import { db } from '@envval/db';
 
-// Load .env file before importing db
-dotenv.config();
+import { db } from '@envval/db';
 
 async function runDatabaseMigrations() {
 	try {

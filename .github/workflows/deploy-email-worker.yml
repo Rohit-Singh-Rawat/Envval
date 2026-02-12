@@ -30,6 +30,10 @@ jobs:
           script: |
             set -e
 
+            # ensure bun is available in this non-interactive shell
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH="$BUN_INSTALL/bin:$PATH"
+
             # go to your repo on the VPS
             cd /home/ubuntu/projects/Envval
 
@@ -37,7 +41,6 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-           
             # only install what the worker needs
             bun install --filter @envval/email-worker --production
 
