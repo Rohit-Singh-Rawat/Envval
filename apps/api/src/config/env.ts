@@ -18,6 +18,8 @@ export const env = createEnv({
 		GITHUB_CLIENT_ID: z.string().min(1),
 		GITHUB_CLIENT_SECRET: z.string().min(1),
 		APP_URL: z.string().url(),
+		/** Root domain for cross-subdomain cookies (e.g. envval.com). Required when API and web are on different subdomains. */
+		COOKIE_DOMAIN: z.string().min(1).optional(),
 		CORS_ORIGINS: z.string().optional(),
 		PORT: z.string().optional(),
 		NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

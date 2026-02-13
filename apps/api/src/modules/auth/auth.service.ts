@@ -26,8 +26,20 @@ export const auth = betterAuth({
 	}),
 	trustedOrigins: [
 		env.APP_URL,
-		...(env.CORS_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean) ?? []),
+		...(env.CORS_ORIGINS?.split(',')
+			.map((o) => o.trim())
+			.filter(Boolean) ?? []),
 	],
+	advanced: {
+		// Share session cookie across subdomains (e.g. app.envval.com + api.envval.com)
+		// Set COOKIE_DOMAIN=envval.com in prod. Leave unset for localhost.
+		...(env.COOKIE_DOMAIN && {
+			crossSubDomainCookies: {
+				enabled: true,
+				domain: env.COOKIE_DOMAIN,
+			},
+		}),
+	},
 	socialProviders: {
 		google: {
 			prompt: 'select_account',
