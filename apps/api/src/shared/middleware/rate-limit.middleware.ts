@@ -14,6 +14,14 @@ interface RateLimitMiddlewareOptions {
 	 * @default 'user'
 	 */
 	by?: 'ip' | 'user' | ((c: Context<AppEnv>) => string);
+	/**
+	 * Restrict rate limiting to specific HTTP methods.
+	 * Requests with non-matching methods bypass the limiter entirely.
+	 * Useful for exempting read-only GET endpoints from write-oriented tiers.
+	 *
+	 * @example methods: ['POST'] — only rate-limit mutations, not session reads
+	 */
+	methods?: ReadonlyArray<string>;
 }
 
 /**
@@ -29,13 +37,21 @@ interface RateLimitMiddlewareOptions {
  *
  * // Inline in handler tuple for sensitive operations
  * honoFactory.createHandlers(rateLimitMiddleware({ tier: 'sensitive' }), authMiddleware, handler)
+ *
+ * // Auth tier on POST only — exempts GET /get-session from brute-force limits
+ * app.use('*', rateLimitMiddleware({ tier: 'auth', by: 'ip', methods: ['POST'] }))
  */
 export function rateLimitMiddleware(
 	options: RateLimitMiddlewareOptions
 ): MiddlewareHandler<AppEnv> {
-	const { tier, by = 'user' } = options;
+	const { tier, by = 'user', methods } = options;
+	const methodFilter = methods ? new Set(methods.map((m) => m.toUpperCase())) : null;
 
 	return async (c, next) => {
+		if (methodFilter && !methodFilter.has(c.req.method)) {
+			return next();
+		}
+
 		const identifier = resolveIdentifier(c, by);
 		const limiter = getRateLimiter(tier);
 		const result = await limiter.limit(identifier);
