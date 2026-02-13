@@ -6,12 +6,12 @@
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@envval/queue": "workspace:*",
 		"@envval/email": "workspace:*",
-		"winston": "^3.15.0"
+		"winston": "^3.19.0"
 	},
 	"scripts": {
 		"dev": "bun run --watch index.ts",

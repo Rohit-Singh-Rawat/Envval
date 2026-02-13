@@ -14,12 +14,12 @@
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"react": "^19.2.0",
-		"react-dom": "^19.2.0",
-		"typescript": "^5.8.3"
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4",
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"resend": "^6.6.0",
-		"zod": "^4.1.13"
+		"resend": "^6.9.2",
+		"zod": "^4.3.6"
 	}
 }

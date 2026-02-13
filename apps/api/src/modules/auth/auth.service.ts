@@ -39,6 +39,15 @@ export const auth = betterAuth({
 				domain: env.COOKIE_DOMAIN,
 			},
 		}),
+		cookies:{
+			state:{
+				attributes:{
+					secure: true,
+					sameSite: 'none',
+				}
+			}
+		},
+		cookiePrefix: 'envval-auth',
 	},
 	socialProviders: {
 		google: {
