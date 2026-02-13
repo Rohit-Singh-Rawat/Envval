@@ -31,7 +31,9 @@
       "Bash(npx vite build:*)",
       "Bash(npx @tanstack/router-cli generate:*)",
       "Bash(del:*)",
-      "Bash(npx turbo build:*)"
+      "Bash(npx turbo build:*)",
+      "Bash(npm install:*)",
+      "Bash(bun add:*)"
     ]
   }
 }

@@ -120,7 +120,7 @@ function ProjectItem({
 				<div className='flex items-center justify-between sm:justify-end gap-6 text-sm text-muted-foreground shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/20'>
 					<div className='flex items-center gap-6'>
 						<Tooltip>
-							<TooltipTrigger asChild>
+							<TooltipTrigger >
 								<div
 									className='flex items-center gap-1.5 cursor-default'
 									tabIndex={0}
@@ -140,7 +140,7 @@ function ProjectItem({
 						</Tooltip>
 
 						<Tooltip>
-							<TooltipTrigger asChild>
+							<TooltipTrigger >
 								<div
 									className='flex items-center gap-1.5 cursor-default'
 									tabIndex={0}
@@ -162,7 +162,7 @@ function ProjectItem({
 					</div>
 
 					<Tooltip>
-						<TooltipTrigger asChild>
+						<TooltipTrigger >
 							<button
 								type='button'
 								onClick={handleDeleteClick}

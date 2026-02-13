@@ -11,6 +11,7 @@ import { Input } from '@envval/ui/components/input';
 import { useDeleteAllRepos, useDeleteAccount } from '@/hooks/user/use-user';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 import { Alert02Icon, ArrowTurnBackwardIcon, Delete02Icon } from 'hugeicons-react';
 import { InlineCopyButton } from '../repos/delete-repo-dialog';
 
@@ -41,7 +42,12 @@ export function DangerZoneSection() {
 			setShowDeleteRepos(false);
 			navigate({ to: '/dashboard' });
 		} catch (error) {
-			toast.error('Failed to delete repositories');
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to delete repositories'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 
@@ -58,7 +64,12 @@ export function DangerZoneSection() {
 			// Redirect to home/login after account deletion
 			window.location.href = '/';
 		} catch (error) {
-			toast.error('Failed to delete account');
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to delete account'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 

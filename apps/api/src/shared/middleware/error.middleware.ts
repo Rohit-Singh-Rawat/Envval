@@ -9,24 +9,38 @@ interface ValidationError {
 	message: string;
 }
 
+interface ErrorCauseWithCode {
+	code?: unknown;
+}
+
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
 	logger.error(err.message, { error: err.stack });
 
 	if (err instanceof HTTPException) {
-		const cause = err.cause as ValidationError[] | undefined;
+		const rawCause = err.cause as unknown;
 
-		if (cause) {
+		let validationErrors: ValidationError[] | undefined;
+		let errorCode: string | undefined;
+
+		if (Array.isArray(rawCause)) {
+			validationErrors = rawCause as ValidationError[];
 			logger.error(`Validation failed: ${err.message}`, {
 				status: err.status,
-				errors: cause,
+				errors: validationErrors,
 			});
+		} else if (rawCause && typeof rawCause === 'object') {
+			const causeWithCode = rawCause as ErrorCauseWithCode;
+			if (typeof causeWithCode.code === 'string' && causeWithCode.code.trim().length > 0) {
+				errorCode = causeWithCode.code;
+			}
 		}
 
 		return c.json(
 			{
 				success: false,
 				error: err.message,
-				...(cause && { errors: cause }),
+				...(errorCode && { code: errorCode }),
+				...(validationErrors && { errors: validationErrors }),
 			},
 			err.status
 		);

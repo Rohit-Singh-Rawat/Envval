@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
 import { useSession } from '@/lib/auth-client';
 
@@ -65,8 +66,13 @@ export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
 			toast.success('Onboarding completed successfully!');
 			setIsComplete(true);
 		},
-		onError: (error: Error) => {
-			toast.error(error.message ?? 'Failed to complete onboarding');
+		onError: (error) => {
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to complete onboarding'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		},
 	});
 

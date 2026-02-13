@@ -6,8 +6,8 @@ export const siteConfig = {
 	url: env.VITE_APP_URL,
 	ogImage: env.VITE_OG_IMAGE,
 	author: 'Rohit Singh Rawat',
-	twitter: '@envval',
-    twitterCreator: '@rsr_crafts',
+	twitter: '@Spacing_whale',
+	twitterCreator: '@Spacing_whale',
 	keywords: [
 		'env',
 		'environment variables',

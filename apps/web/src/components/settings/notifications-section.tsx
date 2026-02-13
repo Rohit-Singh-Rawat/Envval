@@ -4,6 +4,7 @@ import { useUpdateNotifications, type NotificationPreferences, type UserProfile 
 import { useState } from 'react';
 import { toast } from '@/lib/toast';
 import { playUiSound } from '@/lib/sound';
+import { normalizeClientError } from '@/lib/error';
 
 interface NotificationsSectionProps {
 	profile: UserProfile;
@@ -27,7 +28,12 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 			await updateNotifications.mutateAsync(newPreferences);
 			toast.success('Notification preferences updated');
 		} catch (error) {
-			toast.error('Failed to update preferences');
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to update preferences'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		} finally {
 			setLoadingKey(null);
 		}

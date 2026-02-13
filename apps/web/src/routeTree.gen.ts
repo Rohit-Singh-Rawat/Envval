@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as OgRouteImport } from './routes/og'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ExtensionRouteImport } from './routes/extension'
 import { Route as AnimationRouteImport } from './routes/animation'
@@ -37,6 +38,11 @@ import { Route as DashboardReposSlugRouteImport } from './routes/_dashboard/repo
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgRoute = OgRouteImport.update({
+  id: '/og',
+  path: '/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
+  '/og': typeof OgRoute
   '/onboarding': typeof OnboardingRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
+  '/og': typeof OgRoute
   '/onboarding': typeof OnboardingRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/animation': typeof AnimationRoute
   '/extension': typeof ExtensionRoute
   '/home': typeof HomeRoute
+  '/og': typeof OgRoute
   '/onboarding': typeof OnboardingRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
+    | '/og'
     | '/onboarding'
     | '/login'
     | '/signup'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
+    | '/og'
     | '/onboarding'
     | '/login'
     | '/signup'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/animation'
     | '/extension'
     | '/home'
+    | '/og'
     | '/onboarding'
     | '/_auth/login'
     | '/_auth/signup'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   AnimationRoute: typeof AnimationRoute
   ExtensionRoute: typeof ExtensionRoute
   HomeRoute: typeof HomeRoute
+  OgRoute: typeof OgRoute
   OnboardingRoute: typeof OnboardingRoute
   MarketingAboutRoute: typeof MarketingAboutRoute
   MarketingChangelogRoute: typeof MarketingChangelogRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og': {
+      id: '/og'
+      path: '/og'
+      fullPath: '/og'
+      preLoaderRoute: typeof OgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnimationRoute: AnimationRoute,
   ExtensionRoute: ExtensionRoute,
   HomeRoute: HomeRoute,
+  OgRoute: OgRoute,
   OnboardingRoute: OnboardingRoute,
   MarketingAboutRoute: MarketingAboutRoute,
   MarketingChangelogRoute: MarketingChangelogRoute,

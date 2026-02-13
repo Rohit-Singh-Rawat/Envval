@@ -5,6 +5,7 @@ import { Button } from '@envval/ui/components/button';
 import { object, string } from 'zod';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 
 const DeviceSearchSchema = object({
 	user_code: string().optional(),
@@ -24,8 +25,13 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 		try {
 			await authClient.device.approve({ userCode });
 			setResult('approved');
-		} catch (err) {
-			toast.error('Failed to approve device');
+		} catch (error) {
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to approve device'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 		setProcessing(false);
 	};
@@ -35,8 +41,13 @@ function DeviceAuthorizationContent({ userCode }: { userCode: string }) {
 		try {
 			await authClient.device.deny({ userCode });
 			setResult('denied');
-		} catch (err) {
-			toast.error('Failed to deny device');
+		} catch (error) {
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to deny device'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 		setProcessing(false);
 	};

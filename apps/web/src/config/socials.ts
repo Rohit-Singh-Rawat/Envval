@@ -1,14 +1,13 @@
 export const SOCIAL_LINKS = {
-	twitter: 'https://twitter.com/rsr_crafts',
-	github: 'https://github.com/rohitsinghrawat',
+	twitter: 'https://twitter.com/Spacing_whale',
+	github: 'https://github.com/Rohit-Singh-Rawat',
 } as const;
 
 export const CONTACT_EMAILS = {
-	support: 'support@envval.com',
-	security: 'security@envval.com',
-	privacy: 'privacy@envval.com',
+	support: 'rohitsrawat3002@gmail.com',
+	security: 'rohitsrawat3002@gmail.com',
+	privacy: 'rohitsrawat3002@gmail.com',
 } as const;
 
 export type SocialKey = keyof typeof SOCIAL_LINKS;
 export type ContactEmailKey = keyof typeof CONTACT_EMAILS;
-

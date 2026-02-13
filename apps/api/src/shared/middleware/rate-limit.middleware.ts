@@ -53,6 +53,7 @@ export function rateLimitMiddleware(
 				{
 					success: false,
 					error: 'Too many requests. Please try again later.',
+					code: 'rate_limit_exceeded',
 				},
 				{
 					status: HTTP_TOO_MANY_REQUESTS,

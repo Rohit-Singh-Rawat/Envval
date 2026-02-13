@@ -6,9 +6,7 @@ export const Route = createFileRoute('/')({
 	server: {
 		middleware: [homePageMiddleware],
 	},
-	pendingComponent: () => (
-		<Home/>
-	),
+	pendingComponent: () => <Home />,
 });
 
 function App() {

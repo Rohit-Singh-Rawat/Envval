@@ -7,6 +7,7 @@ import { AvatarPicker } from './avatar-picker';
 import { useUpdateProfile, type UserProfile } from '@/hooks/user/use-user';
 import { toast } from '@/lib/toast';
 import { Edit02Icon } from 'hugeicons-react';
+import { normalizeClientError } from '@/lib/error';
 
 interface ProfileSectionProps {
 	profile: UserProfile;
@@ -32,7 +33,12 @@ export function ProfileSection({ profile }: ProfileSectionProps) {
 			await updateProfile.mutateAsync({ displayName: displayName.trim() });
 			toast.success('Profile updated');
 		} catch (error) {
-			toast.error('Failed to update profile');
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to update profile'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 
@@ -53,7 +59,12 @@ export function ProfileSection({ profile }: ProfileSectionProps) {
 			});
 			toast.success('Avatar updated');
 		} catch (error) {
-			toast.error('Failed to update avatar');
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to update avatar'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 

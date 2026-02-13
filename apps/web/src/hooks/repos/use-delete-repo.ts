@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 
 type DeleteRepoParams = {
 	slug: string;
@@ -29,8 +30,12 @@ export function useDeleteRepo() {
 			toast.success('Repository deleted successfully');
 		},
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : 'Failed to delete repository';
-			toast.error(message);
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to delete repository'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		},
 	});
 }

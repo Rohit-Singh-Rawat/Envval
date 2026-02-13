@@ -12,6 +12,7 @@ import { authClient } from '@/lib/auth-client';
 import { Spinner } from '@envval/ui/components/icons/spinner';
 import { useDeviceKeyMaterialRegistration } from '@/hooks/auth/use-device-key-material-registration';
 import { toastKeyMaterialSync, toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 
 type AuthenticateProps = {
 	mode?: 'login' | 'signup';
@@ -163,8 +164,9 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 			startResendCooldown();
 		},
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : 'Failed to send code';
-			toast.error(message);
+			const { message, kind } = normalizeClientError(error, 'Failed to send code');
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		},
 	});
 
@@ -191,7 +193,14 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 			}
 		},
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : 'Incorrect code, try again';
+			const { message, kind } = normalizeClientError(error, 'Incorrect code, try again');
+			// For rate limit errors, avoid marking the input as "incorrect code"
+			if (kind === 'rate_limit') {
+				setOtpState((prev) => ({ ...prev, error: null }));
+				toast.warning(message);
+				return;
+			}
+
 			setOtpState((prev) => ({ ...prev, error: message }));
 			toast.warning(message);
 		},
@@ -211,8 +220,9 @@ function Authenticate({ mode = 'login' }: AuthenticateProps) {
 			toast.success('Verification code resent');
 		},
 		onError: (error) => {
-			const message = error instanceof Error ? error.message : 'Failed to resend code';
-			toast.error(message);
+			const { message, kind } = normalizeClientError(error, 'Failed to resend code');
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		},
 	});
 

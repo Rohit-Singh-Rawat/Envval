@@ -31,7 +31,10 @@ export const Route = createFileRoute('/blog/introducing-envval')({
 					'The story behind Envval - why I built a secure environment variable management tool after years of .env frustrations.',
 			},
 			{ property: 'og:type', content: 'article' },
+			{ property: 'og:image', content: `${siteConfig.url}${blogMetadata.coverImage}` },
 			{ name: 'twitter:card', content: 'summary_large_image' },
+
+			{ name: 'twitter:image', content: `${siteConfig.url}${blogMetadata.coverImage}` },
 			{ name: 'article:author', content: siteConfig.author },
 		],
 	}),

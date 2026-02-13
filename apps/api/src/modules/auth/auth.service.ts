@@ -84,7 +84,6 @@ export const auth = betterAuth({
 			},
 		},
 	},
-baseURL: env.APP_URL,
 	databaseHooks: {
 		session: {
 			create: {

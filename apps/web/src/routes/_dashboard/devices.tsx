@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { ComputerIcon } from 'hugeicons-react';
 import { useDevices, useDeleteDevice, useDeleteAllDevices } from '@/hooks/devices/use-devices';
 import { toast } from '@/lib/toast';
+import { normalizeClientError } from '@/lib/error';
 import { DevicesTable } from '@/components/devices/device-card';
 import { DangerZone } from '@/components/devices/danger-zone';
 import { Heading } from '@/components/dashboard/shared/heading';
@@ -39,8 +40,13 @@ function DevicesContent() {
 		try {
 			await deleteDevice.mutateAsync(deviceId);
 			toast.success('Device removed successfully');
-		} catch {
-			toast.error('Failed to remove device');
+		} catch (error) {
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to remove device'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 
@@ -53,8 +59,13 @@ function DevicesContent() {
 		try {
 			await deleteAllDevices.mutateAsync(currentDeviceId);
 			toast.success('All other devices have been removed');
-		} catch {
-			toast.error('Failed to remove devices');
+		} catch (error) {
+			const { message, kind } = normalizeClientError(
+				error,
+				'Failed to remove devices'
+			);
+			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			showToast(message);
 		}
 	};
 

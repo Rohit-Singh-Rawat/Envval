@@ -69,6 +69,9 @@ export async function enforceRateLimit(tier: RateLimitTier, identifier: string):
 	if (!success) {
 		throw new HTTPException(HTTP_TOO_MANY_REQUESTS, {
 			message: 'Too many requests. Please try again later.',
+			// Attach a machine-readable code via cause so the global error handler
+			// can surface it without conflating it with validation errors.
+			cause: { code: 'rate_limit_exceeded' },
 		});
 	}
 }
