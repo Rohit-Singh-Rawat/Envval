@@ -138,7 +138,8 @@ export const HeroImage = ({ src, alt }: { src: string; alt: string }): React.Rea
 		<img
 			src={src}
 			alt={alt}
-			width='400'
+			width='100%'
+			height='auto'
 			style={{ display: 'block', maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
 		/>
 	</div>

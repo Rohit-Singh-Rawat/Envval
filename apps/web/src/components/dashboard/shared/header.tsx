@@ -20,7 +20,7 @@ import { getOrCreateAvatarSeed } from '@/lib/avatar-utils';
 import { useUserProfile } from '@/hooks/user/use-user';
 import { getAvatarById } from '@/lib/avatars';
 
-const AVATAR_SIZE = 32;
+const AVATAR_SIZE = 20;
 
 function UserDropdownSkeleton() {
 	return (
@@ -68,7 +68,7 @@ function UserDropdown() {
 			<DropdownMenuTrigger>
 				<Button
 					variant='ghost'
-					className='flex items-center hover:bg-muted/50 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/50 px-2 has-[>svg]:px-2'
+					className="flex items-center hover:bg-muted/50 transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/50 px-2 has-[>svg]:px-2 [&_svg:not([class*='size-'])]:size-5 "
 					aria-label='User menu'
 				>
 					<UserAvatar
