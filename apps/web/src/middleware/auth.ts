@@ -24,34 +24,25 @@ export function redirectIfOnboardedGuard(session: Session | null | undefined): v
 }
 
 export const authMiddleware = createMiddleware().server(async ({ next, request }) => {
-	console.log('[authMiddleware] Starting auth check');
-	console.log('[authMiddleware] Request headers:', request.headers.get('cookie') ?? 'No cookie');
 	const { data: session } = await authClient.getSession({
 		fetchOptions: { headers: request.headers },
 	});
-	console.log('[authMiddleware] Session:', session ? `User: ${session.user?.id}` : 'No session');
 
 	const url = new URL(request.url);
 	const currentPath = url.pathname + url.search;
-	console.log('[authMiddleware] Current path:', currentPath);
 
 	if (!session) {
-		console.log('[authMiddleware] No session, redirecting to login');
 		throw redirect({ to: '/login', search: { redirectUrl: currentPath } });
 	}
 	if (!isUserOnboarded(session)) {
-		console.log('[authMiddleware] User not onboarded, redirecting to onboarding');
 		throw redirect({ to: '/onboarding' });
 	}
 
-	console.log('[authMiddleware] Auth check passed');
 	return next();
 });
 
 export const redirectIfAuthenticatedMiddleware = createMiddleware().server(
 	async ({ next, request }) => {
-		console.log('[redirectIfAuthenticatedMiddleware] Starting auth check');
-		console.log('[redirectIfAuthenticatedMiddleware] Request headers:', request.headers.get('cookie') ?? 'No cookie');
 		const { data: session } = await authClient.getSession({
 			fetchOptions: { headers: request.headers },
 		});
@@ -62,8 +53,6 @@ export const redirectIfAuthenticatedMiddleware = createMiddleware().server(
 
 export const redirectIfOnboardedMiddleware = createMiddleware().server(
 	async ({ next, request }) => {
-		console.log('[redirectIfOnboardedMiddleware] Starting auth check');
-		console.log('[redirectIfOnboardedMiddleware] Request headers:', request.headers.get('cookie') ?? 'No cookie');
 		const { data: session } = await authClient.getSession({
 			fetchOptions: { headers: request.headers },
 		});
@@ -77,8 +66,6 @@ export const redirectIfOnboardedMiddleware = createMiddleware().server(
 );
 
 export const homePageMiddleware = createMiddleware().server(async ({ next, request }) => {
-	console.log('[homePageMiddleware] Starting auth check');
-	console.log('[homePageMiddleware] Request headers:', request.headers.get('cookie') ?? 'No cookie');
 	const { data: session } = await authClient.getSession({
 		fetchOptions: { headers: request.headers },
 	});

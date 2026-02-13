@@ -181,7 +181,7 @@ export interface FileRoutesByFullPath {
   '/security': typeof MarketingSecurityRoute
   '/terms': typeof MarketingTermsRoute
   '/blog/introducing-envval': typeof BlogIntroducingEnvvalRoute
-  '/blog': typeof BlogIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/repos/$slug': typeof DashboardReposSlugRoute
 }
 export interface FileRoutesByTo {
@@ -261,7 +261,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/terms'
     | '/blog/introducing-envval'
-    | '/blog'
+    | '/blog/'
     | '/repos/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -377,14 +377,14 @@ declare module '@tanstack/react-router' {
     '/_dashboard': {
       id: '/_dashboard'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
       id: '/_auth'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -398,7 +398,7 @@ declare module '@tanstack/react-router' {
     '/blog/': {
       id: '/blog/'
       path: '/blog'
-      fullPath: '/blog'
+      fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
