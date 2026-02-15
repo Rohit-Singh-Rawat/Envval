@@ -3,6 +3,7 @@ import { DeviceService } from './device.service';
 import { HTTPException } from 'hono/http-exception';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { logger } from '@/shared/utils/logger';
 
 const deleteDeviceParamsSchema = z.object({
 	deviceId: z.string().min(1),
@@ -10,7 +11,8 @@ const deleteDeviceParamsSchema = z.object({
 
 /**
  * DELETE /api/v1/devices/:deviceId
- * Deletes a specific device and all its sessions.
+ * Deletes a specific device and all its sessions atomically.
+ * Returns metadata about deleted sessions for audit logging.
  */
 export const deleteDeviceHandler = honoFactory.createHandlers(
 	zValidator('param', deleteDeviceParamsSchema),
@@ -32,11 +34,19 @@ export const deleteDeviceHandler = honoFactory.createHandlers(
 			throw new HTTPException(403, { message: 'Forbidden' });
 		}
 
-		const deletedDevice = await DeviceService.deleteDevice(deviceId);
+		const result = await DeviceService.deleteDevice(deviceId);
+
+		logger.info('Device deleted', {
+			userId: user.id,
+			deviceId,
+			deviceName: result.device.name,
+			sessionsDeleted: result.sessionsDeleted,
+		});
 
 		return c.json({
 			success: true,
-			device: deletedDevice,
+			device: result.device,
+			sessionsDeleted: result.sessionsDeleted,
 		});
 	}
 );

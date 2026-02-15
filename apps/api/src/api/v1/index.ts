@@ -1,5 +1,6 @@
 import { honoFactory } from '@/shared/utils/factory';
 import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
+import { deviceMiddleware } from '@/shared/middleware/device.middleware';
 
 import { postOnboardingHandler } from '@/modules/onboarding/post-onboarding-handler';
 
@@ -35,10 +36,11 @@ import { deleteUserAccountHandler } from '@/modules/user/delete-user-account-han
 /**
  * API v1 Routes
  *
- * Rate limiting layers (applied cumulatively):
+ * Middleware layers (applied in order):
  * 1. Global IP limit (100 req/10s) — applied in app.ts
- * 2. API user limit (60 req/min) — applied here via .use()
- * 3. Sensitive tier (5 req/hr) — applied per-handler on destructive operations
+ * 2. API user limit (60 req/min) — applied here via rateLimitMiddleware
+ * 3. Device validation — applied here via deviceMiddleware (checks revocation)
+ * 4. Sensitive tier (5 req/hr) — applied per-handler on destructive operations
  *
  * RESTful conventions:
  * - Path params for resource identifiers: /repos/:repoId, /envs/:envId
@@ -49,13 +51,14 @@ import { deleteUserAccountHandler } from '@/modules/user/delete-user-account-han
 export const v1Routes = honoFactory
 	.createApp()
 	.use('*', rateLimitMiddleware({ tier: 'api' }))
+	.use('*', deviceMiddleware)
 	.post('/onboarding', ...postOnboardingHandler)
 
 	// Repositories
 	.get('/repos', ...getRepositoriesHandler)
-	.post('/repos', ...postRepositoriesHandler)
+	.post('/repos', rateLimitMiddleware({ tier: 'mutation' }), ...postRepositoriesHandler)
 	.get('/repos/exists', ...getRepositoryExistsHandler)
-	.post('/repos/migrate', ...postRepoMigrateHandler)
+	.post('/repos/migrate', rateLimitMiddleware({ tier: 'mutation' }), ...postRepoMigrateHandler)
 	.get('/repos/by-slug/:slug', ...getRepositoryBySlugHandler)
 	.delete('/repos/by-slug/:slug', ...deleteRepositoryHandler)
 	.get('/repos/:repoId', ...getRepositoryHandler)
@@ -64,11 +67,11 @@ export const v1Routes = honoFactory
 
 	// Environments
 	.get('/envs', ...getEnvsHandler)
-	.post('/envs', ...postEnvsHandler)
+	.post('/envs', rateLimitMiddleware({ tier: 'mutation' }), ...postEnvsHandler)
 	.get('/envs/exists', ...getEnvExistsHandler)
 	.get('/envs/:envId', ...getEnvHandler)
 	.get('/envs/:envId/metadata', ...getEnvMetadataHandler)
-	.put('/envs/:envId', ...putEnvsHandler)
+	.put('/envs/:envId', rateLimitMiddleware({ tier: 'mutation' }), ...putEnvsHandler)
 	.delete('/envs/:envId', ...deleteEnvHandler)
 
 	// Devices

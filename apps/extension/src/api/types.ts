@@ -37,6 +37,7 @@ export interface CreateEnvData {
 }
 
 export interface UpdateEnvData {
+	readonly baseHash: string;
 	readonly content?: string;
 	readonly fileName?: string;
 	readonly envCount?: number;

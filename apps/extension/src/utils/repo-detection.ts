@@ -6,7 +6,10 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IGNORED_ENV_FILES } from '../lib/constants';
+import { ENV_FILE_INCLUDE_PATTERN, ENV_FILE_EXCLUDE_PATTERN } from '../lib/file-patterns';
 import { RepoIdentityStore } from '../services/repo-identity-store';
+import { WorkspaceContextProvider } from '../services/workspace-context-provider';
+import { WorkspaceValidator } from '../services/workspace-validator';
 import type { Logger } from '../utils/logger';
 
 const execAsync = promisify(exec);
@@ -58,8 +61,9 @@ interface WorkspaceIdentity {
 
 
 export async function getWorkspacePath(): Promise<string | undefined> {
-  const folders = vscode.workspace.workspaceFolders;
-  return folders?.[0]?.uri.fsPath;
+  const contextProvider = WorkspaceContextProvider.getInstance();
+  const context = contextProvider.getWorkspaceContext();
+  return context.primaryPath;
 }
 
 /**
@@ -759,53 +763,84 @@ function shouldIgnoreEnvFile(fileName: string): boolean {
 }
 
 /**
- * Retrieves all environment files (.env*) within the workspace.
- * 
- * This function performs a manual recursive scan of the filesystem to ensure it discovers 
- * files typically excluded from version control (via .gitignore). It specifically avoids 
- * scanning 'node_modules' and hidden directories to optimize performance and prevent 
- * noise from dependency configurations or system files.
- * 
- * @returns A promise that resolves to a sorted array of relative file paths.
+ * Retrieves all environment files (.env*) within the workspace using VS Code's native file search.
+ *
+ * This leverages VS Code's optimized findFiles API which:
+ * - Automatically respects .gitignore and user's files.exclude settings
+ * - Handles large workspaces efficiently with native code
+ * - Works across all file systems (local, remote, WSL, containers)
+ * - Provides built-in performance optimizations and caching
+ *
+ * @param logger Optional logger for validation and diagnostics
+ * @returns Array of relative file paths to .env files, sorted alphabetically
  */
-export async function getAllEnvFiles(): Promise<string[]> {
-  const workspacePath = await getWorkspacePath();
-  if (!workspacePath) {
+export async function getAllEnvFiles(logger?: Logger): Promise<string[]> {
+  const contextProvider = WorkspaceContextProvider.getInstance();
+  const context = contextProvider.getWorkspaceContext();
+
+  if (context.mode === 'none') {
+    logger?.debug('No workspace open, skipping env file scan');
     return [];
   }
 
-  const envFiles: string[] = [];
+  const workspacePath = context.primaryPath!;
 
-  /**
-   * Internal recursive helper for filesystem traversal.
-   */
-  const findEnvFiles = (dir: string, relativePath: string = ''): void => {
-    try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const relPath = path.join(relativePath, entry.name);
-        const fullPath = path.join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          // Standard optimization: skip dependencies and hidden system/config directories
-          if (entry.name === 'node_modules' || entry.name.startsWith('.')) {
-            continue;
-          }
-          findEnvFiles(fullPath, relPath);
-        } else if (entry.isFile()) {
-          // Match .env or .env.suffix patterns while avoiding example/template files
-          const isEnvFile = entry.name === '.env' || entry.name.startsWith('.env.');
-          if (isEnvFile && !shouldIgnoreEnvFile(entry.name)) {
-            envFiles.push(relPath);
-          }
-        }
-      }
-    } catch (error) {
-      logMessage(`Error accessing directory ${dir}: ${error}`, 'warn');
+  // Validate workspace safety (warns users about Desktop, C:\, etc.)
+  if (logger) {
+    const validator = WorkspaceValidator.getInstance(logger);
+    const canProceed = await validator.validateAndPromptIfNeeded(workspacePath);
+    if (!canProceed) {
+      logger.warn('Workspace validation failed or user cancelled');
+      return [];
     }
-  };
+  }
 
-  findEnvFiles(workspacePath);
-  return envFiles.sort();
+  try {
+    logger?.debug('Scanning workspace for .env files using VS Code API');
+
+    /**
+     * Use VS Code's native file search - the industry-standard approach.
+     *
+     * Automatically respects:
+     * - .gitignore files (in workspace root)
+     * - User's files.exclude settings
+     * - User's search.exclude settings
+     *
+     * Explicit exclusions are defined in file-patterns.ts for:
+     * - Build outputs (dist, build, out, .next, target)
+     * - Dependencies (node_modules, vendor, packages)
+     * - Version control (.git, .svn, .hg)
+     * - IDE/Editor (.vscode, .idea, .vs)
+     * - Cache/temp (.cache, .temp, tmp)
+     * - Virtual environments (.venv, venv, env)
+     */
+    const envFileUris = await vscode.workspace.findFiles(
+      ENV_FILE_INCLUDE_PATTERN,
+      ENV_FILE_EXCLUDE_PATTERN,
+      undefined,
+      undefined
+    );
+
+    logger?.info(`Found ${envFileUris.length} environment files in workspace`);
+
+    // Convert URIs to relative paths and filter out ignored files
+    const relativePaths = envFileUris
+      .map(uri => vscode.workspace.asRelativePath(uri))
+      .filter(relativePath => {
+        const fileName = path.basename(relativePath);
+        const shouldIgnore = shouldIgnoreEnvFile(fileName);
+        if (shouldIgnore) {
+          logger?.debug(`Ignoring ${fileName} (matches ignore list)`);
+        }
+        return !shouldIgnore;
+      })
+      .sort();
+
+    logger?.debug(`After filtering: ${relativePaths.length} env files to track`);
+    return relativePaths;
+
+  } catch (error) {
+    logger?.error(`Failed to scan workspace: ${error instanceof Error ? error.message : String(error)}`);
+    return [];
+  }
 }

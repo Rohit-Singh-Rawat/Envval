@@ -1,7 +1,8 @@
 import { db } from '@envval/db';
 import { device, deviceType } from '@envval/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { MAX_DEVICES_PER_USER } from '@/shared/constants/system-limits';
 
 const deviceMetaSchema = z.object({
 	name: z.string().optional(),
@@ -12,6 +13,14 @@ const deviceMetaSchema = z.object({
 type DeviceMeta = z.infer<typeof deviceMetaSchema>;
 
 export class DeviceService {
+	async getDeviceCountByUserId(userId: string): Promise<number> {
+		const [result] = await db
+			.select({ value: count() })
+			.from(device)
+			.where(eq(device.userId, userId));
+		return result?.value ?? 0;
+	}
+
 	async ensureExists(
 		deviceId: string,
 		userId: string,
@@ -27,6 +36,12 @@ export class DeviceService {
 			.limit(1);
 
 		if (existingDevice.length === 0) {
+			// Enforce per-user device quota before creating a new record
+			const deviceCount = await this.getDeviceCountByUserId(userId);
+			if (deviceCount >= MAX_DEVICES_PER_USER) {
+				throw new Error(`Device limit reached (max ${MAX_DEVICES_PER_USER})`);
+			}
+
 			const newDevice = {
 				id: deviceId,
 				userId,

@@ -267,6 +267,59 @@ h1 {
 	color: var(--success);
 }
 
+/* Animated success check: circle draws in, then check (ease-out, <300ms total) */
+.success .result-icon {
+	animation: success-icon-pop 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.success .result-icon .success-check-circle {
+	animation: success-circle-draw 0.2s 0.05s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.success .result-icon .success-check-mark {
+	animation: success-check-draw 0.22s 0.18s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes success-icon-pop {
+	from {
+		opacity: 0;
+		transform: scale(0.92);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes success-circle-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes success-check-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.success .result-icon,
+	.success .result-icon .success-check-circle,
+	.success .result-icon .success-check-mark {
+		animation-duration: 0.01ms;
+		animation-delay: 0s;
+	}
+	.success .result-icon {
+		opacity: 1;
+		transform: scale(1);
+	}
+	.success .result-icon .success-check-circle,
+	.success .result-icon .success-check-mark {
+		stroke-dashoffset: 0;
+	}
+}
+
 .error .result-icon {
 	background: rgba(239, 68, 68, 0.1);
 }
@@ -324,7 +377,7 @@ h1 {
 	font-size: 14px;
 	font-weight: 500;
 	opacity: 0;
-	transition: all 0.3s ease;
+	transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease-out;
 	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 	display: flex;
 	align-items: center;
@@ -334,6 +387,23 @@ h1 {
 .copy-feedback.show {
 	opacity: 1;
 	transform: translateX(-50%) translateY(0);
+}
+
+.copy-feedback.show .copy-check-path {
+	animation: copy-check-draw 0.3s 0.1s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes copy-check-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.copy-feedback.show .copy-check-path {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
 }
 
 .hint {

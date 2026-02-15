@@ -64,6 +64,7 @@ export class Commands {
 		authProvider: AuthenticationProvider,
 		syncManager: SyncManager,
 		repoIdentityCommands: RepoIdentityCommands,
+		envInitService: EnvInitService,
 		logger: Logger
 	): void {
 		if (this.registered) {
@@ -120,12 +121,12 @@ export class Commands {
 				}
 			}),
 
-			vscode.commands.registerCommand(Commands.OPEN_FILE, async (itemOrUri?: any) => {
+			vscode.commands.registerCommand(Commands.OPEN_FILE, async (itemOrUri?: vscode.Uri | { metadata: { fileName: string } }) => {
 				let uri: vscode.Uri | undefined;
-				
+
 				if (itemOrUri instanceof vscode.Uri) {
 					uri = itemOrUri;
-				} else if (itemOrUri && itemOrUri.metadata) {
+				} else if (itemOrUri && typeof itemOrUri === 'object' && 'metadata' in itemOrUri) {
 					// Triggered from Tree Item
 					const fileName = itemOrUri.metadata.fileName;
 					const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -145,13 +146,7 @@ export class Commands {
 			}),
 
 			vscode.commands.registerCommand(Commands.SHOW_INIT_PROMPT, async () => {
-				EnvInitService.getInstance(
-					context,
-					undefined as any,
-					undefined as any,
-					undefined as any,
-					logger
-				).performInitialCheck();
+				await envInitService.performInitialCheck();
 			}),
 
 			// Connection

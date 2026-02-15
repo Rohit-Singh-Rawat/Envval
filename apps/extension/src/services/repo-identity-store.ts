@@ -178,7 +178,9 @@ export class RepoIdentityStore {
    */
   getMostRecentGitRemote(workspacePath: string): { url: string; normalizedUrl: string } | undefined {
     const data = this.getStoredData(workspacePath);
-    if (!data?.gitRemoteHistory.length) return undefined;
+    if (!data?.gitRemoteHistory.length) {
+      return undefined;
+    }
 
     // Sort by detection time, most recent first
     const sorted = data.gitRemoteHistory.sort((a, b) =>

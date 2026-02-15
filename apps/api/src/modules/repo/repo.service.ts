@@ -16,11 +16,33 @@ function generateSlug(name: string): string {
 		.replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Escapes characters that have special meaning in SQL LIKE clauses.
+ * Prevents users from using '%' or '_' to trigger inefficient full-table scans.
+ */
+function escapeLikePattern(input: string): string {
+	return input.replace(/[%_\\]/g, '\\$&');
+}
+
 export class RepoService {
+	
+	async getRepositoryCount(userId: string): Promise<number> {
+		const [result] = await db
+			.select({ value: count() })
+			.from(repo)
+			.where(eq(repo.userId, userId));
+		return result?.value ?? 0;
+	}
+
 	async getRepositories(userId: string, page: number, limit: number, search?: string) {
 		const whereClause = and(
 			eq(repo.userId, userId),
-			search ? or(like(repo.name, `%${search}%`), like(repo.slug, `%${search}%`)) : undefined
+			search
+				? or(
+						like(repo.name, `%${escapeLikePattern(search)}%`),
+						like(repo.slug, `%${escapeLikePattern(search)}%`)
+				  )
+				: undefined
 		);
 
 		const repositories = await db

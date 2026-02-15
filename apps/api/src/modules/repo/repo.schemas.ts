@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_WORKSPACE_PATH_LENGTH } from '@/shared/constants/system-limits';
 
 /**
  * Shared validation schemas for repository-related endpoints.
@@ -84,7 +85,7 @@ export const repoCreateBodySchema = z.object({
 	repoId: repoIdHashSchema,
 	name: repoNameSchema,
 	gitRemoteUrl: z.string().min(1, 'Git remote URL cannot be empty').optional(),
-	workspacePath: z.string().min(1, 'Workspace path is required'),
+	workspacePath: z.string().min(1, 'Workspace path is required').max(MAX_WORKSPACE_PATH_LENGTH),
 });
 
 /**

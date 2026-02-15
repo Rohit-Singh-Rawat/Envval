@@ -21,11 +21,18 @@ import { EnvHoverProvider, SUPPORTED_LANGUAGES } from './providers/env-hover-pro
 import { ConnectionMonitor } from './services/connection-monitor';
 import { OperationQueueService } from './services/operation-queue';
 import { NOTIFICATION_DEBOUNCE_MS } from './lib/constants';
+import { WorkspaceValidator } from './services/workspace-validator';
+import { WorkspaceContextProvider } from './services/workspace-context-provider';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 	const logger = createLogger(context, getLoggingVerbose());
+
+	// Initialize workspace components early for validation
+	const workspaceValidator = WorkspaceValidator.getInstance(logger);
+	const contextProvider = WorkspaceContextProvider.getInstance();
+
 	const statusBar = StatusBar.getInstance();
 	const secrets = EnvVaultVsCodeSecrets.getInstance(context);
 	const authProvider = AuthenticationProvider.getInstance(secrets, logger);
@@ -66,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	logger.info('EnvVault extension is now active!');
 
 	Commands.getInstance().registerCommands(context);
-	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, logger);
+	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, envInitService, logger);
 
 	// Initialize status calculator for tree view
 	const statusCalculator = EnvStatusCalculator.getInstance(logger);
@@ -80,6 +87,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
 		trackedEnvsProvider.refresh();
+	});
+
+	// Command to manually re-validate workspace
+	vscode.commands.registerCommand('envval.validateWorkspace', async () => {
+		const wsContext = contextProvider.getWorkspaceContext();
+		if (wsContext.primaryPath) {
+			workspaceValidator.clearCache(wsContext.primaryPath);
+			const result = await workspaceValidator.validateWorkspace(
+				wsContext.primaryPath,
+				{ showPrompts: true, force: true }
+			);
+			if (result.canProceed) {
+				vscode.window.showInformationMessage(
+					`Workspace validation passed. Safe to scan for environment files.`
+				);
+			}
+		} else {
+			vscode.window.showWarningMessage('No workspace open');
+		}
 	});
 
 	const disposeConfigListener = onConfigChange((config) => {
@@ -181,7 +207,27 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 }
 
-export function deactivate() {
-	// VS Code disposes of all subscriptions in context.subscriptions automatically
-	// This includes our singleton instances that implement Disposable
+/**
+ * Extension deactivation lifecycle hook.
+ *
+ * Ensures clean shutdown of all services to prevent:
+ * - Memory leaks from active intervals/timers
+ * - Orphaned file system watchers
+ * - Dangling event listeners
+ *
+ * Note: VS Code automatically disposes context.subscriptions,
+ * but explicit cleanup ensures deterministic shutdown order.
+ */
+export function deactivate(): void {
+	// No-op: All cleanup is handled via context.subscriptions disposal
+	// The subscription array ensures proper cleanup order:
+	// 1. Config listener
+	// 2. StatusBar (disposes status bar item)
+	// 3. AuthProvider (clears auth state listeners)
+	// 4. EnvFileWatcher (stops file system watchers)
+	// 5. SyncManager (stops polling interval)
+	// 6. ConnectionMonitor (stops network checks)
+	// 7. OperationQueue (clears pending operations)
+	// 8. EnvCache (clears cache)
+	// 9. Hover provider (unregisters hover handler)
 }

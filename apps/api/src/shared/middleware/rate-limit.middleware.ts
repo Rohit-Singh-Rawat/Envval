@@ -106,9 +106,11 @@ function resolveIdentifier(
  */
 export function getClientIp(c: Context<AppEnv>): string {
 	return (
-		c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-		c.req.header('x-real-ip') ??
+		// Prioritize trusted headers from reverse proxies (Cloudflare, Vercel, etc.)
+		// x-forwarded-for is easily spoofed if not strictly controlled by the edge.
 		c.req.header('cf-connecting-ip') ??
+		c.req.header('x-real-ip') ??
+		c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
 		'anonymous'
 	);
 }

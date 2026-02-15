@@ -241,8 +241,12 @@ export class AuthenticationProvider {
 						return false;
 					}
 
-					const errorCode = (error as any).response?.data?.error;
-					const errorDescription = (error as any).response?.data?.error_description || (error as Error).message;
+					const errorCode = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+					const errorDescription = axios.isAxiosError(error)
+						? error.response?.data?.error_description || error.message
+						: error instanceof Error
+						? error.message
+						: 'Unknown error';
 
 					switch (errorCode) {
 						case 'authorization_pending':

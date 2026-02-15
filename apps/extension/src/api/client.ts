@@ -193,7 +193,9 @@ class ApiClient {
 	 * After cooldown, allows a single "probe" request in half-open state.
 	 */
 	private checkCircuitBreaker(): void {
-		if (this.circuitState === 'closed') return;
+		if (this.circuitState === 'closed') {
+			return;
+		}
 
 		if (this.circuitState === 'open') {
 			const elapsed = Date.now() - this.circuitOpenedAt;

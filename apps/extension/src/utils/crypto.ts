@@ -128,13 +128,17 @@ export function deriveKey(keyMaterial: string, userId: string): string {
  */
 export function encryptEnv(plaintext: string, key: string, logger?: Logger): EncryptionResult {
 	try {
-        if (logger) logger.debug(`[encryptEnv] Starting encryption. Plaintext length: ${plaintext.length}`);
+		if (logger) {
+			logger.debug(`[encryptEnv] Starting encryption. Plaintext length: ${plaintext.length}`);
+		}
 		if (plaintext === undefined || plaintext === null || !key) {
 			throw new Error('plaintext and key are required');
 		}
 
 		const iv = crypto.randomBytes(CRYPTO_CONFIG.IV_LENGTH_BYTES);
-        if (logger) logger.debug(`[encryptEnv] Generated IV: ${iv.toString('base64')}`);
+		if (logger) {
+			logger.debug(`[encryptEnv] Generated IV: ${iv.toString('base64')}`);
+		}
 
 		const cipher = crypto.createCipheriv(
 			CRYPTO_CONFIG.ALGORITHM,
@@ -145,14 +149,18 @@ export function encryptEnv(plaintext: string, key: string, logger?: Logger): Enc
 		let ciphertext = cipher.update(plaintext, 'utf8', 'base64');
 		ciphertext += cipher.final('base64');
 		const authTag = cipher.getAuthTag();
-        if (logger) logger.debug(`[encryptEnv] Encryption complete. Ciphertext length: ${ciphertext.length}, AuthTag: ${authTag.toString('base64')}`);
+		if (logger) {
+			logger.debug(`[encryptEnv] Encryption complete. Ciphertext length: ${ciphertext.length}, AuthTag: ${authTag.toString('base64')}`);
+		}
 
 		return {
 			ciphertext: `${ciphertext}.${authTag.toString('base64')}`,
 			iv: iv.toString('base64'),
 		};
 	} catch (error) {
-        if (logger) logger.error(`[encryptEnv] Error: ${error instanceof Error ? error.message : String(error)}`);
+		if (logger) {
+			logger.error(`[encryptEnv] Error: ${error instanceof Error ? error.message : String(error)}`);
+		}
 		throw new CryptoError(
 			'Failed to encrypt environment data',
 			'encrypt',

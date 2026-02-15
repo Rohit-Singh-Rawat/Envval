@@ -45,6 +45,11 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-# AG Internal Documentation
+# Internal documentation (planning, research, architecture notes)
 AG_docs/
+docs/
+
+# Internal planning / backlog
+TODO.md
+**/TODO.md
 

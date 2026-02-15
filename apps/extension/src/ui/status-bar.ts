@@ -27,6 +27,8 @@ export type StatusBarState =
   | "Error"
   | "Offline"
   | "Reconnecting";
+  // TODO: Soft-revoke implementation (future enhancement)
+  // | "ReadOnly";
 
 const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
   Unauthenticated: {
@@ -65,6 +67,14 @@ const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
     tooltip: "Attempting to reconnect...",
     color: new ThemeColor('statusBarItem.warningForeground'),
   },
+  // TODO: Soft-revoke implementation (future enhancement)
+  /*
+  ReadOnly: {
+    icon: "$(lock)",
+    tooltip: "Device revoked - Read-only mode",
+    color: new ThemeColor('statusBarItem.errorForeground'),
+  },
+  */
 };
 
 /**
@@ -108,7 +118,9 @@ export class StatusBar implements Disposable {
   }
 
   public setLoading(loading: boolean, message?: string): void {
-    if (this.isOffline) return;
+    if (this.isOffline) {
+      return;
+    }
     if (loading) {
       this.activeOperationsCount++;
       this.updateState("Loading", message);
@@ -118,7 +130,9 @@ export class StatusBar implements Disposable {
   }
 
   public setSyncState(syncing: boolean, lastSyncedAt?: Date): void {
-    if (this.isOffline) return;
+    if (this.isOffline) {
+      return;
+    }
     if (syncing) {
       this.activeOperationsCount++;
       this.updateState("Syncing");
@@ -148,6 +162,20 @@ export class StatusBar implements Disposable {
       }
     }
   }
+
+  // TODO: Soft-revoke implementation (future enhancement)
+  /*
+  public setReadOnly(readOnly: boolean, revokedAt?: string): void {
+    if (readOnly) {
+      const tooltip = revokedAt
+        ? `EnvVault: Device revoked at ${new Date(revokedAt).toLocaleString()} - Read-only mode`
+        : 'EnvVault: Device revoked - Read-only mode';
+      this.updateState("ReadOnly", tooltip);
+    } else {
+      this.updateBaseState();
+    }
+  }
+  */
 
   private decrementOpCount(lastSyncedAt?: Date): void {
     this.activeOperationsCount = Math.max(0, this.activeOperationsCount - 1);

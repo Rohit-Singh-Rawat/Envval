@@ -44,3 +44,6 @@ export const DEFAULT_HOVER_ENABLED = true;
 export const DEFAULT_HOVER_SHOW_VALUES = true;
 export const DEFAULT_HOVER_MASK_SENSITIVE = true;
 export const DEFAULT_HOVER_SHOW_UNDEFINED = true;
+
+// File size ceiling — reject env files above this before reading/encrypting
+export const MAX_ENV_FILE_SIZE_BYTES = 256_000; // 256 KB raw (encrypts to ~340 KB base64)

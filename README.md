@@ -119,8 +119,6 @@ graph LR
     F --> G["Upload Encrypted Blob"]
 ```
 
-> For detailed architecture diagrams, authentication sequence flows, and the full encryption model, see [`docs/01-ARCHITECTURE.md`](docs/01-ARCHITECTURE.md) and [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md).
-
 ---
 
 ## Getting Started
@@ -192,7 +190,6 @@ envval/
 │   ├── queue/            # BullMQ job queue abstraction (Redis)
 │   └── typescript-config/# Shared tsconfig presets
 │
-├── docs/                 # Architecture and system design docs
 ├── turbo.json            # Turborepo pipeline configuration
 ├── package.json          # Root workspace configuration
 └── bun.lock              # Bun lockfile

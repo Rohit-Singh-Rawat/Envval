@@ -79,7 +79,7 @@ export class EnvCacheService implements Disposable {
 			return;
 		}
 
-		const envFiles = await getAllEnvFiles();
+		const envFiles = await getAllEnvFiles(this.logger);
 		this.fileCache.clear();
 		this.keyIndex.clear();
 
@@ -97,7 +97,7 @@ export class EnvCacheService implements Disposable {
 			return;
 		}
 
-		const envFiles = await getAllEnvFiles();
+		const envFiles = await getAllEnvFiles(this.logger);
 		const relativePath = envFiles.find(
 			(f) => path.basename(f) === fileName || f === fileName
 		);

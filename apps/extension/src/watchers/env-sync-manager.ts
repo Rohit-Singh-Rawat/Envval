@@ -11,7 +11,7 @@ import { EnvInitService } from '../services/env-init';
 import fs from 'fs';
 import path from 'path';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
-import { IGNORE_INTERVAL_MS } from '../lib/constants';
+import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
 import { StatusBar } from '../ui/status-bar';
 import { ConnectionMonitor } from '../services/connection-monitor';
 import { OperationQueueService } from '../services/operation-queue';
@@ -39,6 +39,14 @@ export class SyncManager implements Disposable {
    * Track in-flight syncs to prevent race conditions (e.g., Save vs Poll).
    */
   private readonly activeSyncs: Set<string> = new Set();
+
+  // TODO: Soft-revoke implementation (future enhancement)
+  // Currently unused because devices are hard-deleted (401 response), not soft-revoked (403 response)
+  // /**
+  //  * Read-only mode flag - set when device is revoked.
+  //  * In read-only mode, user can view files but cannot sync changes.
+  //  */
+  // private readOnlyMode = false;
 
   private constructor(
     context: vscode.ExtensionContext,
@@ -273,6 +281,12 @@ export class SyncManager implements Disposable {
         return;
       }
 
+      const stat = fs.statSync(uri.fsPath);
+      if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+        window.showErrorMessage(`EnvVault: ${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
+        return;
+      }
+
       const content = fs.readFileSync(uri.fsPath, 'utf8');
       const hash = hashEnv(content);
       const metadata = await this.metadataStore.loadEnvMetadata(envId);
@@ -296,6 +310,7 @@ export class SyncManager implements Disposable {
 
       try {
         await this.apiClient.updateEnv(envId, {
+          baseHash: metadata.lastSyncedHash,
           content: `${ciphertext}:${iv}`,
           latestHash: hash,
           envCount
@@ -307,6 +322,48 @@ export class SyncManager implements Disposable {
         if (error instanceof ApiError && error.status === 404) {
           await this.metadataStore.clearMetadata(envId);
           await this.envInitService.maybeInitializeOrRestore(uri);
+        }
+        // TODO: Soft-revoke implementation (future enhancement)
+        // Currently devices are hard-deleted (sessions deleted → 401 response)
+        // When soft-revoke is implemented, this will enable graceful read-only mode
+        /*
+        else if (error instanceof ApiError && error.status === 403) {
+          // Device revoked - enter read-only mode
+          this.enterReadOnlyMode();
+          window.showErrorMessage(
+            'Your device has been revoked. You can view files but cannot sync changes.',
+            'Re-authenticate'
+          ).then(choice => {
+            if (choice === 'Re-authenticate') {
+              vscode.commands.executeCommand('envval.logout');
+            }
+          });
+        }
+        */
+        else if (error instanceof ApiError && error.status === 412) {
+          // Conflict detected - environment was modified by another device
+          this.logger.warn(`Conflict detected for ${fileName} - showing resolution dialog`);
+          const choice = await window.showWarningMessage(
+            `Conflict: ${fileName} was modified on another device`,
+            'Use Local (overwrite remote)',
+            'Use Remote (discard local)',
+            'Cancel'
+          );
+
+          if (choice === 'Use Local (overwrite remote)') {
+            // Force push with current hash as baseHash
+            await this.pushEnv(envId);
+          } else if (choice === 'Use Remote (discard local)') {
+            // Pull latest from remote
+            const remoteEnv = await this.apiClient.getEnv(envId);
+            const key = await this.getEncryptionKey();
+            if (key && remoteEnv) {
+              const [ciphertext, iv] = remoteEnv.content.split(':');
+              const remoteContent = decryptEnv(ciphertext, iv, key);
+              const remoteHash = hashEnv(remoteContent);
+              await this.applyRemoteUpdate(uri, remoteContent, remoteHash);
+            }
+          }
         } else {
           throw error;
         }
@@ -381,6 +438,12 @@ export class SyncManager implements Disposable {
         return;
       }
 
+      const stat = fs.statSync(filePath);
+      if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+        window.showErrorMessage(`EnvVault: ${metadata.fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
+        return;
+      }
+
       const content = fs.readFileSync(filePath, 'utf8');
       const hash = hashEnv(content);
       const key = await this.getEncryptionKey();
@@ -392,6 +455,7 @@ export class SyncManager implements Disposable {
       const envCount = countEnvVars(content);
 
       await this.apiClient.updateEnv(envId, {
+        baseHash: metadata.lastSyncedHash,
         content: `${ciphertext}:${iv}`,
         latestHash: hash,
         envCount
@@ -400,8 +464,55 @@ export class SyncManager implements Disposable {
       await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
       window.showInformationMessage(`EnvVault: Pushed ${metadata.fileName}`);
     } catch (error: unknown) {
-      this.logger.error(`Manual push failed: ${error instanceof Error ? error.message : String(error)}`);
-      window.showErrorMessage(`EnvVault Push Failed.`);
+      // TODO: Soft-revoke implementation (future enhancement)
+      /*
+      if (error instanceof ApiError && error.status === 403) {
+        // Device revoked - enter read-only mode
+        this.enterReadOnlyMode();
+        window.showErrorMessage(
+          'Your device has been revoked. You can view files but cannot sync changes.',
+          'Re-authenticate'
+        ).then(choice => {
+          if (choice === 'Re-authenticate') {
+            vscode.commands.executeCommand('envval.logout');
+          }
+        });
+      } else
+      */
+      if (error instanceof ApiError && error.status === 412) {
+        // Conflict detected
+        this.logger.warn(`Push conflict for ${metadata.fileName}`);
+        const choice = await window.showWarningMessage(
+          `Conflict: ${metadata.fileName} was modified on another device`,
+          'Force Push (overwrite remote)',
+          'Pull Remote (discard local)',
+          'Cancel'
+        );
+
+        if (choice === 'Force Push (overwrite remote)') {
+          // Retry push - will use current hash
+          await this.pushEnv(envId);
+        } else if (choice === 'Pull Remote (discard local)') {
+          const remoteEnv = await this.apiClient.getEnv(envId);
+          const key = await this.getEncryptionKey();
+          if (key && remoteEnv) {
+            const [ciphertext, iv] = remoteEnv.content.split(':');
+            const remoteContent = decryptEnv(ciphertext, iv, key);
+            const remoteHash = hashEnv(remoteContent);
+            const workspacePath = await getWorkspacePath();
+            if (workspacePath) {
+              await this.applyRemoteUpdate(
+                Uri.file(path.join(workspacePath, metadata.fileName)),
+                remoteContent,
+                remoteHash
+              );
+            }
+          }
+        }
+      } else {
+        this.logger.error(`Manual push failed: ${error instanceof Error ? error.message : String(error)}`);
+        window.showErrorMessage(`EnvVault Push Failed.`);
+      }
     } finally {
       this.activeSyncs.delete(envId);
       StatusBar.getInstance().setSyncState(false, new Date());
@@ -413,7 +524,9 @@ export class SyncManager implements Disposable {
    */
   public async processQueuedOperations(): Promise<void> {
     const queue = OperationQueueService.getInstance();
-    if (queue.isEmpty) return;
+    if (queue.isEmpty) {
+      return;
+    }
 
     this.logger.info(`[SyncManager] Processing ${queue.size} queued operations`);
 
@@ -456,6 +569,21 @@ export class SyncManager implements Disposable {
     this.cachedKey = null;
     this.logger.debug('Key cache invalidated.');
   }
+
+  // TODO: Soft-revoke implementation (future enhancement)
+  /*
+  private enterReadOnlyMode(revokedAt?: string): void {
+    if (this.readOnlyMode) {
+      return;
+    }
+
+    this.readOnlyMode = true;
+    this.stopPolling();
+    StatusBar.getInstance().setReadOnly(true, revokedAt);
+    vscode.commands.executeCommand('setContext', 'envval:readOnly', true);
+    this.logger.warn(`[SyncManager] Entered read-only mode - device revoked at ${revokedAt || 'unknown time'}`);
+  }
+  */
 
   public dispose(): void {
     this.stopPolling();

@@ -28,12 +28,13 @@ export const icons = {
 		<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
 	</svg>`,
 
-	check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-		<polyline points="20 6 9 17 4 12"/>
+	check: `<svg class="success-check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<circle class="success-check-circle" cx="12" cy="12" r="10" fill="none" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+		<path class="success-check-mark" d="M7 12l3 3 7-7" fill="none" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
 	</svg>`,
 
-	checkSmall: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-		<polyline points="20 6 9 17 4 12"/>
+	checkSmall: `<svg class="copy-check-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+		<path class="copy-check-path" d="M20 6L9 17l-5-5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
 	</svg>`,
 
 	x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

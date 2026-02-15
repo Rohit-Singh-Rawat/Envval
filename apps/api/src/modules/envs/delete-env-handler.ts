@@ -4,6 +4,7 @@ import { authMiddleware } from '@/shared/middleware/auth.middleware';
 import { HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_INTERNAL_SERVER_ERROR, HTTP_NO_CONTENT } from '@/shared/constants/http-status';
 import { EnvService } from './env.service';
 import { envIdParamSchema } from './env.schemas';
+import { logger } from '@/shared/utils/logger';
 
 const envService = new EnvService();
 
@@ -26,7 +27,7 @@ export const deleteEnvHandler = honoFactory.createHandlers(
 
 			return new Response(null, { status: HTTP_NO_CONTENT });
 		} catch (error) {
-			console.error('Failed to delete environment:', error);
+			logger.error('Failed to delete environment', { error });
 			return ctx.json(
 				{ error: 'Failed to delete environment' },
 				HTTP_INTERNAL_SERVER_ERROR

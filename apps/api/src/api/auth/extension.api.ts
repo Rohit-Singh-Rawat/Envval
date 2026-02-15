@@ -10,7 +10,12 @@ import { DeviceService } from '@/modules/auth/device.service';
 import { decryptKeyMaterialWithMaster, wrapKeyMaterialForDevice } from '@/shared/utils/crypto';
 import { logger } from '@/shared/utils/logger';
 
+import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
+import { HTTP_UNAUTHORIZED } from '@/shared/constants/http-status';
+
 const SESSION_RENEWAL_DAYS = 30;
+const MAX_SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days absolute max age
+
 
 const deviceService = new DeviceService();
 
@@ -39,7 +44,11 @@ export const extensionApi = new Hono()
 	 * - Device record creation
 	 * - Key material provisioning
 	 */
-	.post('/device/token', zValidator('json', extensionTokenSchema), async (c) => {
+	.post(
+		'/device/token',
+		rateLimitMiddleware({ tier: 'auth', by: 'ip' }), // Strict IP limit for token generation
+		zValidator('json', extensionTokenSchema),
+		async (c) => {
 		const body = c.req.valid('json');
 		const userAgent = c.req.header('user-agent') || '';
 		const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || '';
@@ -173,7 +182,7 @@ export const extensionApi = new Hono()
 	 * invalidated. This limits the exposure window if a token is stolen
 	 * and satisfies RFC 9700's rotation requirement for public clients.
 	 */
-	.post('/device/refresh-session', async (c) => {
+	.post('/device/refresh-session', rateLimitMiddleware({ tier: 'mutation', by: 'ip' }), async (c) => {
 		const authHeader = c.req.header('authorization');
 		if (!authHeader?.startsWith('Bearer ')) {
 			return c.json({ error: 'missing_token', error_description: 'Bearer token required' }, 401);
@@ -187,6 +196,7 @@ export const extensionApi = new Hono()
 				token: sessionTable.token,
 				sessionType: sessionTable.sessionType,
 				userId: sessionTable.userId,
+				createdAt: sessionTable.createdAt,
 			})
 			.from(sessionTable)
 			.where(and(eq(sessionTable.token, token), eq(sessionTable.sessionType, 'SESSION_EXTENSION')))
@@ -195,6 +205,20 @@ export const extensionApi = new Hono()
 		if (!sessionRecord) {
 			logger.info('Extension session refresh rejected: session not found or revoked');
 			return c.json({ error: 'session_revoked', error_description: 'Session has been revoked or does not exist' }, 401);
+		}
+
+		if (Date.now() - sessionRecord.createdAt.getTime() > MAX_SESSION_AGE_MS) {
+			logger.warn('Extension session refresh rejected: session max age exceeded', {
+				sessionId: sessionRecord.id,
+				ageDays: Math.round((Date.now() - sessionRecord.createdAt.getTime()) / (24 * 60 * 60 * 1000)),
+			});
+			return c.json(
+				{
+					error: 'session_expired',
+					error_description: 'Session too old, please sign in again',
+				},
+				HTTP_UNAUTHORIZED
+			);
 		}
 
 		const newToken = nanoid(32);

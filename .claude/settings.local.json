@@ -36,7 +36,13 @@
       "Bash(bun add:*)",
       "Bash(wc:*)",
       "Bash(grep:*)",
-      "Bash(node esbuild.js:*)"
+      "Bash(node esbuild.js:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx esbuild:*)",
+      "Bash(npm run package:*)",
+      "Bash(find:*)",
+      "Bash(npx skills find:*)",
+      "Bash(npx skills add kjgarza/marketplace-claude@vscode-extension-builder -g -y)"
     ]
   }
 }
