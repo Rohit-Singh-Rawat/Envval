@@ -8,6 +8,7 @@ import { RepoIdentityCommands } from './repo-identity';
 import { Logger } from '../utils/logger';
 import { EnvInitService } from '../services/env-init';
 import { LoginWindow } from '../ui/login-window';
+import { ConnectionMonitor } from '../services/connection-monitor';
 
 /**
  * Singleton class that manages all VS Code commands for the EnvVault extension.
@@ -32,6 +33,7 @@ export class Commands {
 	public static readonly PUSH_ENV = 'envval.pushEnv';
 	public static readonly REFRESH_TRACKED_ENVS = 'envval.refreshTrackedEnvs';
 	public static readonly OPEN_FILE = 'envval.openFile';
+	public static readonly RETRY_CONNECTION = 'envval.retryConnection';
 
 	// UI/Welcome View Commands
 	public static readonly SHOW_LOGIN = 'envval.showLogin';
@@ -150,7 +152,12 @@ export class Commands {
 					undefined as any,
 					logger
 				).performInitialCheck();
-			})
+			}),
+
+			// Connection
+			vscode.commands.registerCommand(Commands.RETRY_CONNECTION, () => {
+				ConnectionMonitor.getInstance().retryNow();
+			}),
 		);
 
 		this.registered = true;

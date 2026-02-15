@@ -5,7 +5,7 @@ import axios, {
 	type InternalAxiosRequestConfig,
 	isAxiosError,
 } from 'axios';
-import { API_BASE_URL } from '../lib/constants';
+import { API_BASE_URL, CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_COOLDOWN_MS } from '../lib/constants';
 import type {
 	EnvExistsResponse,
 	EnvMetadata,
@@ -61,6 +61,8 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 	__retryCount?: number;
 }
 
+type CircuitState = 'closed' | 'open' | 'half-open';
+
 /**
  * Structured API error with status code and request context.
  * Enables upstream code to handle errors based on type (network vs business logic).
@@ -86,6 +88,9 @@ export class ApiError extends Error {
 class ApiClient {
 	protected readonly client: AxiosInstance;
 	protected readonly logger?: Logger;
+	private circuitState: CircuitState = 'closed';
+	private consecutiveFailures = 0;
+	private circuitOpenedAt = 0;
 
 	constructor(baseURL: string = API_BASE_URL, logger?: Logger) {
 		this.logger = logger;
@@ -100,12 +105,17 @@ class ApiClient {
 
 	private setupRetryInterceptor(): void {
 		this.client.interceptors.response.use(
-			(response) => response,
+			(response) => {
+				this.recordSuccess();
+				return response;
+			},
 			async (error: AxiosError) => this.handleRetry(error)
 		);
 	}
 
 	private async handleRetry(error: AxiosError): Promise<unknown> {
+		this.recordFailure();
+
 		const config = error.config as RetryableRequestConfig | undefined;
 		if (!config) {
 			return Promise.reject(error);
@@ -176,7 +186,57 @@ class ApiClient {
 		return new Promise((resolve) => { setTimeout(resolve, ms); });
 	}
 
+	/**
+	 * Throws immediately if the circuit breaker is open, preventing
+	 * requests to an API that is known to be unavailable.
+	 * After cooldown, allows a single "probe" request in half-open state.
+	 */
+	private checkCircuitBreaker(): void {
+		if (this.circuitState === 'closed') return;
+
+		if (this.circuitState === 'open') {
+			const elapsed = Date.now() - this.circuitOpenedAt;
+			if (elapsed >= CIRCUIT_BREAKER_COOLDOWN_MS) {
+				this.circuitState = 'half-open';
+				this.logger?.info('[API] Circuit breaker HALF-OPEN - testing connection');
+				return;
+			}
+			throw new ApiError(
+				'Service temporarily unavailable',
+				undefined,
+				'circuit-breaker',
+				true
+			);
+		}
+		// half-open: allow request through for testing
+	}
+
+	private recordSuccess(): void {
+		if (this.consecutiveFailures > 0 || this.circuitState !== 'closed') {
+			this.logger?.info('[API] Circuit breaker CLOSED - connection recovered');
+		}
+		this.consecutiveFailures = 0;
+		this.circuitState = 'closed';
+	}
+
+	private recordFailure(): void {
+		this.consecutiveFailures++;
+		if (this.consecutiveFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD && this.circuitState === 'closed') {
+			this.circuitState = 'open';
+			this.circuitOpenedAt = Date.now();
+			this.logger?.warn(
+				`[API] Circuit breaker OPEN after ${this.consecutiveFailures} consecutive failures (cooldown: ${CIRCUIT_BREAKER_COOLDOWN_MS / 1000}s)`
+			);
+		}
+	}
+
+	public resetCircuitBreaker(): void {
+		this.circuitState = 'closed';
+		this.consecutiveFailures = 0;
+	}
+
 	protected async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+		this.checkCircuitBreaker();
 		try {
 			const response = await this.client.get<T>(url, config);
 			return response.data;
@@ -190,6 +250,7 @@ class ApiClient {
 		data?: TRequest,
 		config?: AxiosRequestConfig
 	): Promise<TResponse> {
+		this.checkCircuitBreaker();
 		try {
 			const response = await this.client.post<TResponse>(url, data, config);
 			return response.data;
@@ -203,6 +264,7 @@ class ApiClient {
 		data?: TRequest,
 		config?: AxiosRequestConfig
 	): Promise<TResponse> {
+		this.checkCircuitBreaker();
 		try {
 			const response = await this.client.put<TResponse>(url, data, config);
 			return response.data;
@@ -212,6 +274,7 @@ class ApiClient {
 	}
 
 	protected async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+		this.checkCircuitBreaker();
 		try {
 			const response = await this.client.delete<T>(url, config);
 			return response.data;

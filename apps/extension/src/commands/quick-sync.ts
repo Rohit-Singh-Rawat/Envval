@@ -5,6 +5,7 @@ function showQuickSyncAction() {
 	const quickSyncAction = window.createQuickPick();
 	quickSyncAction.items = [
 		{ label: 'Force Sync', description: 'Force sync your environment variables' },
+		{ label: 'Retry Connection', description: 'Test server connectivity' },
 		{ label: 'Show Logs', description: 'Show the logs of your environment variables' },
 		{ label: 'Logout', description: 'Clear credentials and sign out' },
 	];
@@ -21,6 +22,9 @@ export async function handleQuickSyncAction() {
 			switch (selection.label) {
 				case 'Force Sync':
 					commands.executeCommand(Commands.FORCE_SYNC);
+					break;
+				case 'Retry Connection':
+					commands.executeCommand(Commands.RETRY_CONNECTION);
 					break;
 				case 'Show Logs':
 					commands.executeCommand(Commands.SHOW_LOGS);

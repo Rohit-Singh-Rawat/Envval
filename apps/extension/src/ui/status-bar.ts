@@ -2,6 +2,11 @@ import { StatusBarAlignment, StatusBarItem, window, ThemeColor, Disposable } fro
 import { Commands } from "../commands";
 
 /**
+ * Locally defined to avoid circular dependency.
+ */
+type ConnectionState = 'online' | 'offline' | 'reconnecting';
+
+/**
  * Configuration for a status bar state
  */
 interface StatusBarStateConfig {
@@ -13,13 +18,15 @@ interface StatusBarStateConfig {
 /**
  * Available states for the EnvVault status bar item.
  */
-export type StatusBarState = 
-  | "Unauthenticated" 
-  | "Loading" 
-  | "Authenticated" 
-  | "Synced" 
-  | "Syncing" 
-  | "Error";
+export type StatusBarState =
+  | "Unauthenticated"
+  | "Loading"
+  | "Authenticated"
+  | "Synced"
+  | "Syncing"
+  | "Error"
+  | "Offline"
+  | "Reconnecting";
 
 const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
   Unauthenticated: {
@@ -48,6 +55,16 @@ const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
     tooltip: "Error occurred - Click for details",
     color: new ThemeColor('statusBarItem.errorForeground'),
   },
+  Offline: {
+    icon: "$(cloud-offline)",
+    tooltip: "Offline - Click to retry connection",
+    color: new ThemeColor('statusBarItem.warningForeground'),
+  },
+  Reconnecting: {
+    icon: "$(sync~spin)",
+    tooltip: "Attempting to reconnect...",
+    color: new ThemeColor('statusBarItem.warningForeground'),
+  },
 };
 
 /**
@@ -57,9 +74,10 @@ const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
 export class StatusBar implements Disposable {
   private static instance: StatusBar;
   private readonly statusBarItem: StatusBarItem;
-  
+
   private activeOperationsCount: number = 0;
   private lastKnownAuthState: boolean = false;
+  private isOffline = false;
 
   private constructor() {
     this.statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 10);
@@ -90,6 +108,7 @@ export class StatusBar implements Disposable {
   }
 
   public setLoading(loading: boolean, message?: string): void {
+    if (this.isOffline) return;
     if (loading) {
       this.activeOperationsCount++;
       this.updateState("Loading", message);
@@ -99,6 +118,7 @@ export class StatusBar implements Disposable {
   }
 
   public setSyncState(syncing: boolean, lastSyncedAt?: Date): void {
+    if (this.isOffline) return;
     if (syncing) {
       this.activeOperationsCount++;
       this.updateState("Syncing");
@@ -109,6 +129,24 @@ export class StatusBar implements Disposable {
 
   public setSyncError(message?: string): void {
     this.updateState("Error", message);
+  }
+
+  public setConnectionState(connectionState: ConnectionState): void {
+    if (connectionState === 'offline') {
+      this.isOffline = true;
+      this.updateState("Offline");
+      this.statusBarItem.command = Commands.RETRY_CONNECTION;
+    } else if (connectionState === 'reconnecting') {
+      this.isOffline = true;
+      this.updateState("Reconnecting");
+      this.statusBarItem.command = Commands.RETRY_CONNECTION;
+    } else {
+      this.isOffline = false;
+      this.statusBarItem.command = Commands.SHOW_QUICK_SYNC_ACTION;
+      if (this.activeOperationsCount === 0) {
+        this.updateBaseState();
+      }
+    }
   }
 
   private decrementOpCount(lastSyncedAt?: Date): void {

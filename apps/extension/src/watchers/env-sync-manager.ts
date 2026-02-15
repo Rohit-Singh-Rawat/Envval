@@ -13,13 +13,15 @@ import path from 'path';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 import { IGNORE_INTERVAL_MS } from '../lib/constants';
 import { StatusBar } from '../ui/status-bar';
+import { ConnectionMonitor } from '../services/connection-monitor';
+import { OperationQueueService } from '../services/operation-queue';
 
 /**
  * Service orchestrating the synchronization between local files and EnvVault.
  * Handles watchers, background polling, and conflict resolution.
  */
 export class SyncManager implements Disposable {
-  private static instance: SyncManager; 
+  private static instance: SyncManager;
   private pollInterval?: NodeJS.Timeout;
   private readonly context: vscode.ExtensionContext;
   private readonly apiClient: EnvVaultApiClient;
@@ -37,14 +39,14 @@ export class SyncManager implements Disposable {
    * Track in-flight syncs to prevent race conditions (e.g., Save vs Poll).
    */
   private readonly activeSyncs: Set<string> = new Set();
-  
+
   private constructor(
-    context: vscode.ExtensionContext, 
-    apiClient: EnvVaultApiClient, 
-    secretsManager: EnvVaultVsCodeSecrets, 
-    metadataStore: EnvVaultMetadataStore, 
-    envFileWatcher: EnvFileWatcher, 
-    envInitService: EnvInitService, 
+    context: vscode.ExtensionContext,
+    apiClient: EnvVaultApiClient,
+    secretsManager: EnvVaultVsCodeSecrets,
+    metadataStore: EnvVaultMetadataStore,
+    envFileWatcher: EnvFileWatcher,
+    envInitService: EnvInitService,
     logger: Logger
   ) {
     this.context = context;
@@ -61,15 +63,30 @@ export class SyncManager implements Disposable {
       envFileWatcher.onDidDelete(event => this.handleDeletedEnvFile(event.uri))
     ];
     context.subscriptions.push(...subscriptions);
+
+    // Pause/resume polling based on network connectivity
+    const connectionMonitor = ConnectionMonitor.getInstance();
+    context.subscriptions.push(
+        connectionMonitor.onDidChangeConnectionState(online => {
+            if (online) {
+                this.logger.info('[SyncManager] Connection restored - resuming sync');
+                this.startPolling();
+                this.pollRemoteChanges();
+            } else {
+                this.logger.info('[SyncManager] Connection lost - pausing sync');
+                this.stopPolling();
+            }
+        })
+    );
   }
 
   public static getInstance(
-    context: vscode.ExtensionContext, 
-    apiClient: EnvVaultApiClient, 
-    secretsManager: EnvVaultVsCodeSecrets, 
-    metadataStore: EnvVaultMetadataStore, 
-    envFileWatcher: EnvFileWatcher, 
-    envInitService: EnvInitService, 
+    context: vscode.ExtensionContext,
+    apiClient: EnvVaultApiClient,
+    secretsManager: EnvVaultVsCodeSecrets,
+    metadataStore: EnvVaultMetadataStore,
+    envFileWatcher: EnvFileWatcher,
+    envInitService: EnvInitService,
     logger: Logger
   ): SyncManager {
     if (!SyncManager.instance) {
@@ -83,6 +100,10 @@ export class SyncManager implements Disposable {
    * Provides real-time feedback via the status bar.
    */
   public async pollRemoteChanges(): Promise<void> {
+    if (!ConnectionMonitor.getInstance().isOnline) {
+      return;
+    }
+
     const trackedEnvs = await this.metadataStore.getAllTrackedEnvs();
     if (trackedEnvs.length === 0) {
       return;
@@ -94,7 +115,7 @@ export class SyncManager implements Disposable {
         if (this.activeSyncs.has(localMeta.envId)) {
           continue;
         }
-        
+
         this.activeSyncs.add(localMeta.envId);
         try {
           // Check if user recently chose to ignore this file
@@ -213,7 +234,7 @@ export class SyncManager implements Disposable {
       this.logger.error(`Conflict resolution failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  
+
   public startPolling(): void {
     const config = getVSCodeConfig();
     const interval = config.pollIntervalSeconds * 1000;
@@ -233,8 +254,13 @@ export class SyncManager implements Disposable {
     if (!result) {
       return;
     }
-    
+
     const { envId } = result;
+    if (!ConnectionMonitor.getInstance().isOnline) {
+      OperationQueueService.getInstance().enqueue('push', envId, fileName);
+      this.logger.info(`[SyncManager] Offline - queued push for ${fileName}`);
+      return;
+    }
     if (this.activeSyncs.has(envId)) {
       return;
     }
@@ -255,7 +281,7 @@ export class SyncManager implements Disposable {
         await this.envInitService.maybeInitializeOrRestore(uri);
         return;
       }
-      
+
       if (metadata.lastSyncedHash === hash) {
         return;
       }
@@ -264,7 +290,7 @@ export class SyncManager implements Disposable {
       if (!key) {
         return;
       }
-      
+
       const { ciphertext, iv } = encryptEnv(content, key);
       const envCount = countEnvVars(content);
 
@@ -274,7 +300,7 @@ export class SyncManager implements Disposable {
           latestHash: hash,
           envCount
         });
-        
+
         await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
         this.logger.info(`Synced ${fileName}`);
       } catch (error: unknown) {
@@ -304,6 +330,10 @@ export class SyncManager implements Disposable {
       return;
     }
     const { envId } = result;
+    if (!ConnectionMonitor.getInstance().isOnline) {
+      this.logger.info(`[SyncManager] Offline - skipping remote delete for ${path.basename(uri.fsPath)}`);
+      return;
+    }
     if (await this.metadataStore.loadEnvMetadata(envId)) {
        await this.apiClient.deleteEnv(envId);
     }
@@ -325,9 +355,15 @@ export class SyncManager implements Disposable {
     if (this.activeSyncs.has(envId)) {
       return;
     }
-    
+
     const metadata = await this.metadataStore.loadEnvMetadata(envId);
     if (!metadata) {
+      return;
+    }
+
+    if (!ConnectionMonitor.getInstance().isOnline) {
+      OperationQueueService.getInstance().enqueue('push', envId, metadata.fileName);
+      window.showInformationMessage(`EnvVault: Queued push for ${metadata.fileName} (offline)`);
       return;
     }
 
@@ -372,6 +408,34 @@ export class SyncManager implements Disposable {
     }
   }
 
+  /**
+   * Processes all queued offline operations. Called when connection is restored.
+   */
+  public async processQueuedOperations(): Promise<void> {
+    const queue = OperationQueueService.getInstance();
+    if (queue.isEmpty) return;
+
+    this.logger.info(`[SyncManager] Processing ${queue.size} queued operations`);
+
+    const result = await queue.processAll(async (op) => {
+      if (op.type === 'push') {
+        try {
+          await this.pushEnv(op.envId);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    });
+
+    if (result.succeeded > 0) {
+      window.showInformationMessage(
+        `EnvVault: Back online - synced ${result.succeeded} queued change${result.succeeded > 1 ? 's' : ''}`
+      );
+    }
+  }
+
   private async getEncryptionKey(): Promise<string | null> {
     if (this.cachedKey) {
       return this.cachedKey;
@@ -379,7 +443,7 @@ export class SyncManager implements Disposable {
 
     const keyMaterial = await this.secretsManager.getKeyMaterial();
     const userId = await this.secretsManager.getUserId();
-    
+
     if (!keyMaterial || !userId) {
       return null;
     }

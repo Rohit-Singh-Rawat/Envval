@@ -71,6 +71,10 @@
 				"command": "envval.openFile",
 				"title": "Open File",
 				"icon": "$(go-to-file)"
+			},
+			{
+				"command": "envval.retryConnection",
+				"title": "EnvVal: Retry Connection"
 			}
 		],
 		"viewsContainers": {

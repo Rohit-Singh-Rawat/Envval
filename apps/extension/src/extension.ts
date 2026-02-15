@@ -18,6 +18,9 @@ import { TrackedEnvsProvider } from './views/tracked-envs';
 import { EnvCacheService } from './services/env-cache';
 import { EnvStatusCalculator } from './services/env-status-calculator';
 import { EnvHoverProvider, SUPPORTED_LANGUAGES } from './providers/env-hover-provider';
+import { ConnectionMonitor } from './services/connection-monitor';
+import { OperationQueueService } from './services/operation-queue';
+import { NOTIFICATION_DEBOUNCE_MS } from './lib/constants';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -29,6 +32,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvVaultMetadataStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context, logger);
+	const connectionMonitor = ConnectionMonitor.getInstance(logger);
+	const operationQueue = OperationQueueService.getInstance(context, logger);
 
 	// Initialize env cache and hover provider (works without authentication)
 	const envCache = EnvCacheService.getInstance(envFileWatcher, logger);
@@ -45,7 +50,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		secrets,
 		logger
 	);
-	
+
 	const repoIdentityCommands = new RepoIdentityCommands(context, metadataStore, logger);
 
 	const syncManager = SyncManager.getInstance(
@@ -72,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger
 	);
 	vscode.window.registerTreeDataProvider('envvalTrackedEnvs', trackedEnvsProvider);
-	
+
 	vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
 		trackedEnvsProvider.refresh();
 	});
@@ -81,10 +86,38 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.setVerbose(config.loggingVerbose);
 	});
 
+	// Throttle connection notifications to prevent spam
+	let lastNotificationAt = 0;
+
+	connectionMonitor.onDidChangeDetailedState((state) => {
+		statusBar.setConnectionState(state);
+		vscode.commands.executeCommand('setContext', 'envval:offline', state !== 'online');
+	});
+
+	connectionMonitor.onDidChangeConnectionState(async (online) => {
+		const now = Date.now();
+		const canNotify = now - lastNotificationAt > NOTIFICATION_DEBOUNCE_MS;
+
+		if (online) {
+			apiClient.resetCircuitBreaker();
+			await syncManager.processQueuedOperations();
+
+			if (canNotify && !operationQueue.isEmpty) {
+				lastNotificationAt = now;
+			}
+		} else {
+			if (canNotify) {
+				vscode.window.showWarningMessage('EnvVault: Connection lost. Changes will be queued.');
+				lastNotificationAt = now;
+			}
+		}
+	});
+
 	// Function to start all services (only when authenticated)
 	const startServices = async () => {
 		logger.info('Starting EnvVault services...');
 		envFileWatcher.start();
+		connectionMonitor.start();
 		await envInitService.performInitialCheck();
 		syncManager.startPolling();
 		trackedEnvsProvider.refresh();
@@ -95,7 +128,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	const stopServices = () => {
 		logger.info('Stopping EnvVault services...');
 		syncManager.stopPolling();
+		connectionMonitor.stop();
 		envFileWatcher.stop();
+		operationQueue.clear();
 		logger.info('EnvVault services stopped');
 	};
 
@@ -145,6 +180,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		authProvider,
 		envFileWatcher,
 		syncManager,
+		connectionMonitor,
+		operationQueue,
 		envCache,
 		hoverDisposable
 	);
