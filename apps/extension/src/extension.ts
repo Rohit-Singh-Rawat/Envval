@@ -134,44 +134,38 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info('EnvVault services stopped');
 	};
 
+	// Initialize LoginWindow eagerly so it's available for auto-logout
+	const loginWindow = LoginWindow.getInstance(context, authProvider, logger);
+
 	// Check authentication status
 	const isAuthenticated = await authProvider.isAuthenticated();
 	vscode.commands.executeCommand('setContext', 'envval:authenticated', isAuthenticated);
 	vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !isAuthenticated);
 
+	// Single auth state handler for both initial states
+	authProvider.onAuthenticationStateChanged(async (authenticated) => {
+		vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
+		vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
+
+		if (authenticated) {
+			loginWindow.dispose();
+			statusBar.setAuthenticationState(true);
+			await startServices();
+		} else {
+			stopServices();
+			syncManager.invalidateCache();
+			statusBar.setAuthenticationState(false);
+			trackedEnvsProvider.refresh();
+			await loginWindow.show();
+		}
+	});
+
 	if (!isAuthenticated) {
 		statusBar.setAuthenticationState(false);
-		const loginWindow = LoginWindow.getInstance(context, authProvider, logger);
 		await loginWindow.show();
-
-		authProvider.onAuthenticationStateChanged(async (authenticated) => {
-			vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
-			vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
-			if (authenticated) {
-				await startServices();
-				statusBar.setAuthenticationState(true);
-				loginWindow.dispose();
-			} else {
-				stopServices();
-				syncManager.invalidateCache();
-				statusBar.setAuthenticationState(false);
-				trackedEnvsProvider.refresh();
-			}
-		});
 	} else {
 		statusBar.setAuthenticationState(true);
 		await startServices();
-
-		authProvider.onAuthenticationStateChanged(async (authenticated) => {
-			vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
-			vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
-			if (!authenticated) {
-				stopServices();
-				syncManager.invalidateCache();
-				statusBar.setAuthenticationState(false);
-				trackedEnvsProvider.refresh();
-			}
-		});
 	}
 
 	context.subscriptions.push(

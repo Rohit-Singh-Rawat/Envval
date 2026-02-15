@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { db } from '@envval/db';
 import { session as sessionTable, user as userTable } from '@envval/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { auth } from '@/modules/auth/auth.service';
 import { DeviceService } from '@/modules/auth/device.service';
 import { decryptKeyMaterialWithMaster, wrapKeyMaterialForDevice } from '@/shared/utils/crypto';
 import { logger } from '@/shared/utils/logger';
+
+const SESSION_RENEWAL_DAYS = 30;
 
 const deviceService = new DeviceService();
 
@@ -160,6 +162,56 @@ export const extensionApi = new Hono()
 				400
 			);
 		}
+	})
+	/**
+	 * Refreshes an extension session with token rotation (RFC 9700).
+	 * Bypasses better-auth's getSession (which rejects expired tokens) and
+	 * queries the session table directly. This allows renewal of naturally
+	 * expired sessions while rejecting revoked ones (deleted from DB).
+	 *
+	 * Issues a NEW token on every refresh — the old token is immediately
+	 * invalidated. This limits the exposure window if a token is stolen
+	 * and satisfies RFC 9700's rotation requirement for public clients.
+	 */
+	.post('/device/refresh-session', async (c) => {
+		const authHeader = c.req.header('authorization');
+		if (!authHeader?.startsWith('Bearer ')) {
+			return c.json({ error: 'missing_token', error_description: 'Bearer token required' }, 401);
+		}
+
+		const token = authHeader.slice(7);
+
+		const [sessionRecord] = await db
+			.select({
+				id: sessionTable.id,
+				token: sessionTable.token,
+				sessionType: sessionTable.sessionType,
+				userId: sessionTable.userId,
+			})
+			.from(sessionTable)
+			.where(and(eq(sessionTable.token, token), eq(sessionTable.sessionType, 'SESSION_EXTENSION')))
+			.limit(1);
+
+		if (!sessionRecord) {
+			logger.info('Extension session refresh rejected: session not found or revoked');
+			return c.json({ error: 'session_revoked', error_description: 'Session has been revoked or does not exist' }, 401);
+		}
+
+		const newToken = nanoid(32);
+		const newExpiresAt = new Date(Date.now() + SESSION_RENEWAL_DAYS * 24 * 60 * 60 * 1000);
+
+		await db
+			.update(sessionTable)
+			.set({ token: newToken, expiresAt: newExpiresAt, updatedAt: new Date() })
+			.where(eq(sessionTable.id, sessionRecord.id));
+
+		logger.info('Extension session refreshed with token rotation', {
+			sessionId: sessionRecord.id,
+			userId: sessionRecord.userId,
+			newExpiresAt: newExpiresAt.toISOString(),
+		});
+
+		return c.json({ access_token: newToken });
 	});
 
 /**

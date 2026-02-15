@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
-import { DEVICE_VERIFICATION_URL } from '../lib/constants';
+import { API_BASE_URL, DEVICE_VERIFICATION_URL, SESSION_REFRESH_PATH } from '../lib/constants';
 import { Logger } from '../utils/logger';
 import { AuthApiClient } from '../api/client';
 import { DeviceCodeResponse, DeviceTokenResponse } from '../api/types';
@@ -306,8 +306,6 @@ export class AuthenticationProvider {
 			this.isPolling = false;
 			this.pollAbortController = null;
 			return false;
-			this.pollAbortController = null;
-			return false;
 		} finally {
 			this.isPolling = false;
 			this.pollAbortController = null;
@@ -349,6 +347,49 @@ export class AuthenticationProvider {
 		} catch (error) {
 			this.logger.error(`Logout failed: ${(error as Error).message}`);
 			vscode.window.showErrorMessage('EnvVault: Failed to logout.');
+		}
+	}
+
+	/**
+	 * Attempts to refresh the session by calling the server's extension-only
+	 * refresh endpoint. Uses raw axios to avoid triggering interceptors.
+	 * Returns the (same or new) access token on success, null if the session
+	 * was revoked or cannot be refreshed.
+	 */
+	public async refreshSession(): Promise<string | null> {
+		const currentToken = await this.secretsManager.getAccessToken();
+		if (!currentToken) {
+			this.logger.warn('[Auth] No access token to refresh');
+			return null;
+		}
+
+		try {
+			const response = await axios.post<{ access_token: string }>(
+				`${API_BASE_URL}${SESSION_REFRESH_PATH}`,
+				undefined,
+				{
+					headers: {
+						Authorization: `Bearer ${currentToken}`,
+						'User-Agent': 'envval-extension',
+					},
+					timeout: 10_000,
+					validateStatus: (status) => status < 500,
+				}
+			);
+
+			if (response.status === 200 && response.data.access_token) {
+				this.logger.info('[Auth] Session refreshed successfully');
+				await this.secretsManager.setAccessToken(response.data.access_token);
+				return response.data.access_token;
+			}
+
+			// 401 = session revoked or doesn't exist
+			this.logger.info('[Auth] Session refresh rejected by server (revoked or expired beyond recovery)');
+			return null;
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			this.logger.error(`[Auth] Session refresh failed: ${message}`);
+			return null;
 		}
 	}
 

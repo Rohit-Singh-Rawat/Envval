@@ -33,6 +33,9 @@ export const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
 export const OPERATION_QUEUE_STORAGE_KEY = 'envval.operationQueue';
 export const OPERATION_QUEUE_MAX_SIZE = 100;
 
+// Session refresh
+export const SESSION_REFRESH_PATH = '/api/auth/extension/device/refresh-session';
+
 // Notification throttling
 export const NOTIFICATION_DEBOUNCE_MS = 5_000;
 

@@ -56,9 +56,10 @@ const RETRYABLE_NETWORK_CODES: ReadonlySet<string> = new Set([
 	'EAI_AGAIN', // DNS lookup timeout
 ]);
 
-/** Extended axios config that tracks retry attempts for the interceptor. */
+/** Extended axios config that tracks retry attempts and auth retry state. */
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 	__retryCount?: number;
+	__isAuthRetry?: boolean;
 }
 
 type CircuitState = 'closed' | 'open' | 'half-open';
@@ -353,6 +354,7 @@ export class AuthApiClient extends ApiClient {
 export class EnvVaultApiClient extends ApiClient {
 	private static instance: EnvVaultApiClient;
 	private readonly authProvider: AuthenticationProvider;
+	private refreshPromise: Promise<string | null> | null = null;
 
 	private constructor(authProvider: AuthenticationProvider, logger: Logger) {
 		super(API_BASE_URL, logger);
@@ -363,7 +365,8 @@ export class EnvVaultApiClient extends ApiClient {
 	/**
 	 * Configures request/response interceptors for authentication.
 	 * - Request: Attaches bearer token from auth provider.
-	 * - Response: Triggers re-auth flow on 401 Unauthorized.
+	 * - Response 401: Attempts session refresh via mutex, then retries.
+	 *   Falls back to logout if refresh fails (session revoked/expired beyond recovery).
 	 */
 	private setupAuthInterceptors(): void {
 		this.client.interceptors.request.use(
@@ -380,13 +383,52 @@ export class EnvVaultApiClient extends ApiClient {
 		this.client.interceptors.response.use(
 			(response) => response,
 			async (error) => {
-				if (isAxiosError(error) && error.response?.status === 401) {
-					this.logger?.error('[API] Session expired - re-authentication required');
-					await this.authProvider.handleTokenRefreshFailure();
+				if (!isAxiosError(error) || error.response?.status !== 401) {
+					return Promise.reject(error);
 				}
-				return Promise.reject(error);
+
+				const config = error.config as RetryableRequestConfig | undefined;
+				if (!config) {
+					return Promise.reject(error);
+				}
+
+				// Prevent infinite refresh loops: if this is already a retried request, give up
+				if (config.__isAuthRetry) {
+					this.logger?.error('[API] Session refresh succeeded but request still unauthorized — logging out');
+					await this.authProvider.handleTokenRefreshFailure();
+					return Promise.reject(error);
+				}
+
+				const newToken = await this.refreshWithMutex();
+
+				if (!newToken) {
+					this.logger?.error('[API] Session could not be refreshed — logging out');
+					await this.authProvider.handleTokenRefreshFailure();
+					return Promise.reject(error);
+				}
+
+				// Retry the original request with the refreshed token
+				config.__isAuthRetry = true;
+				config.headers.Authorization = `Bearer ${newToken}`;
+				return this.client.request(config);
 			}
 		);
+	}
+
+	/**
+	 * Ensures only one refresh request runs at a time. Concurrent 401 handlers
+	 * all await the same promise instead of firing parallel refresh requests.
+	 */
+	private async refreshWithMutex(): Promise<string | null> {
+		if (this.refreshPromise) {
+			return this.refreshPromise;
+		}
+
+		this.refreshPromise = this.authProvider.refreshSession().finally(() => {
+			this.refreshPromise = null;
+		});
+
+		return this.refreshPromise;
 	}
 
 	/**
