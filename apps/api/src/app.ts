@@ -24,6 +24,9 @@ const app = new Hono<AppEnv>()
 	.get('/', (c) => {
 		return c.json({ message: 'Hello World' });
 	})
+	.get('/health', (c) => {
+		return c.json({ status: 'ok' });
+	})
 	// Mount API routes
 	.route('/api', apiRoutes);
 

@@ -10,6 +10,7 @@ import { DeviceService } from './device.service';
 import { env } from '@/config/env';
 import { encryptKeyMaterialWithMaster, generateKeyMaterial } from '@/shared/utils/crypto';
 import { parseDeviceName, formatEmailTimestamp } from '@/shared/utils/user-agent';
+import { rateLimitStorage } from '@/shared/lib/redis/rate-limit-storage';
 
 const emailService = new AuthEmailService();
 const deviceService = new DeviceService();
@@ -39,15 +40,34 @@ export const auth = betterAuth({
 				domain: env.COOKIE_DOMAIN,
 			},
 		}),
-		cookies:{
-			state:{
-				attributes:{
-					secure: true,
-					sameSite: 'none',
+		...(env.NODE_ENV === 'production'
+			? {
+					cookies: {
+						state: {
+							attributes: {
+								secure: true,
+								sameSite: 'none',
+							},
+						},
+					},
 				}
-			}
-		},
+			: {}),
 		cookiePrefix: 'envval-auth',
+	},
+	rateLimit: {
+		enabled: true,
+		window: 60,
+		max: 100,
+		customRules: {
+			'/email-otp/send-verification-otp': {
+				window: 1800,
+				max: 5,
+			},
+			'/sign-in/email-otp': {
+				window: 60,
+				max: 5,
+			},
+		},
 	},
 	socialProviders: {
 		google: {

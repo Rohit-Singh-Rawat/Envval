@@ -22,8 +22,6 @@ interface NewDeviceLoginData {
 
 export class AuthEmailService {
 	async sendOTP(email: string, otp: string) {
-		await enforceRateLimit('email', email);
-
 		await enqueueEmail({
 			to: email,
 			from: env.EMAIL_FROM,
