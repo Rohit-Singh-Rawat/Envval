@@ -33,7 +33,10 @@
       "Bash(del:*)",
       "Bash(npx turbo build:*)",
       "Bash(npm install:*)",
-      "Bash(bun add:*)"
+      "Bash(bun add:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(node esbuild.js:*)"
     ]
   }
 }

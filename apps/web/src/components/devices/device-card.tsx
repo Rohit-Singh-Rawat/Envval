@@ -136,6 +136,80 @@ function RemoveDeviceDialog({
 	);
 }
 
+// Mobile card view for small screens
+function DeviceCard({
+	device,
+	currentDeviceId,
+	onRemove,
+	isPending,
+}: {
+	device: Device;
+	currentDeviceId: string | null;
+	onRemove: (device: Device) => void;
+	isPending: boolean;
+}) {
+	const Icon = getDeviceIcon(device.type);
+	const displayName = getDeviceDisplayName(device);
+	const isCurrentDevice = device.id === currentDeviceId;
+	const deviceType = device.type === 'DEVICE_EXTENSION' ? 'VS Code' : 'Web Browser';
+	const status = getDeviceStatus(device.lastSeenAt);
+
+	return (
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			className="bg-background rounded-lg p-4 space-y-3"
+		>
+			<div className="flex items-start justify-between gap-3">
+				<div className="flex items-center gap-3 min-w-0 flex-1">
+					<div className="p-2 rounded-lg bg-muted/50 shrink-0">
+						<Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+					</div>
+					<div className="min-w-0 flex-1">
+						<div className="flex items-center gap-2 flex-wrap">
+							<span
+								className="font-normal text-foreground truncate max-w-[180px]"
+								title={displayName}
+							>
+								{displayName}
+							</span>
+							{isCurrentDevice && (
+								<span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
+									<CheckmarkCircle02Icon className="size-3" aria-hidden="true" />
+									Current
+								</span>
+							)}
+						</div>
+						<p className="text-xs text-muted-foreground">{deviceType}</p>
+					</div>
+				</div>
+				{!isCurrentDevice && (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						onClick={() => onRemove(device)}
+						disabled={isPending}
+						className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+						aria-label={`Remove ${displayName}`}
+					>
+						<Delete01Icon className="size-4" aria-hidden="true" />
+					</Button>
+				)}
+			</div>
+			<div className="flex items-center gap-4 text-sm">
+				<div className="flex items-center gap-1.5">
+					<span className="text-muted-foreground">Status:</span>
+					<span className={cn('font-medium', status.color)}>{status.label}</span>
+				</div>
+				<div className="flex items-center gap-1.5">
+					<span className="text-muted-foreground">Last active:</span>
+					<span className="text-foreground">{formatDate(device.lastSeenAt)}</span>
+				</div>
+			</div>
+		</motion.div>
+	);
+}
+
 export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: DevicesTableProps) {
 	const [deviceToRemove, setDeviceToRemove] = useState<Device | null>(null);
 
@@ -242,7 +316,21 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 
 	return (
 		<>
-			<div className="w-full devices-table-wrapper rounded-xl p-1 bg-muted/50">
+			{/* Mobile view - card layout */}
+			<div className="md:hidden w-full space-y-2 rounded-xl p-1 bg-muted/50">
+				{devices.map((device) => (
+					<DeviceCard
+						key={device.id}
+						device={device}
+						currentDeviceId={currentDeviceId}
+						onRemove={handleRemoveClick}
+						isPending={isPending}
+					/>
+				))}
+			</div>
+
+			{/* Desktop view - table layout */}
+			<div className="hidden md:block w-full devices-table-wrapper rounded-xl p-1 bg-muted/50">
 				<table className="devices-table w-full" role="grid" aria-label="Devices list">
 					<thead>
 						{table.getHeaderGroups().map((headerGroup) => (

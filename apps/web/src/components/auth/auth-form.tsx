@@ -126,7 +126,7 @@ function AuthForm({ onSubmit, mode = 'login', isSubmitting }: AuthFormProps) {
 				<div className='absolute inset-x-0 top-1/2 h-px bg-border' />
 			</div>
 
-			<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+			<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 overflow-hidden'>
 				<OAuthButton
 					provider='google'
 					mode={mode}

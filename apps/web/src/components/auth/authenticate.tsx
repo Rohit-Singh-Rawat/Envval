@@ -51,7 +51,7 @@ function OtpStep({
 				<Button
 					type='button'
 					variant='muted'
-					className='absolute left-0 top-2 group flex items-center overflow-hidden round h-9 w-9 hover:w-[72px] transition-all duration-300 ease-in-out'
+					className='absolute left-0 top-0 group flex items-center overflow-hidden round h-9 w-9 hover:w-[72px] transition-all duration-300 ease-in-out'
 					onClick={onBack}
 					disabled={isResending || isVerifying}
 				>
@@ -73,7 +73,7 @@ function OtpStep({
 			<div className='space-y-1 text-center'>
 				<h1 className='text-center'>Enter Verification Code</h1>
 				<p className='text-sm text-muted-foreground text-center'>
-					Send verification code to{' '}
+					We sent a verification code to{' '}
 					<span className='text-foreground font-zodiak font-medium'>{email}</span>
 				</p>
 			</div>

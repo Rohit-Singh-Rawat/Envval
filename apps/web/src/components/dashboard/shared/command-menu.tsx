@@ -8,8 +8,10 @@ import {
 	CommandItem,
 	CommandList,
 } from '@envval/ui/components/command';
+import { Drawer, DrawerContent } from '@envval/ui/components/drawer';
 import { Spinner } from '@envval/ui/components/icons/spinner';
 import { Kbd } from '@envval/ui/components/kbd';
+import { useIsMobile } from '@envval/ui/hooks/use-mobile';
 import { cn } from '@envval/ui/lib/utils';
 import { useNavigate } from '@tanstack/react-router';
 import { Copy01Icon, FolderOpenIcon, Logout01Icon, Search01Icon } from 'hugeicons-react';
@@ -45,11 +47,11 @@ export function CommandMenuTrigger({ className }: CommandMenuTriggerProps) {
 					className='size-4 opacity-70 group-hover:opacity-100 transition-opacity'
 					aria-hidden
 				/>
-				<span className='hidden md:inline-flex font-medium'>Search...</span>
+				<span className='inline-flex font-medium'>Search...</span>
 			</div>
 
 			<Kbd
-				className='hidden md:inline-flex ml-4 group-hover:bg-muted/80 transition-colors border-border/50 '
+				className='inline-flex ml-4 group-hover:bg-muted/80 transition-colors border-border/50 '
 				aria-hidden
 			>
 				<span className='text-xs opacity-70'>⌘</span>K
@@ -66,6 +68,52 @@ function runAndClose(setOpen: (open: boolean) => void, action: () => void) {
 
 function matchesSearch(label: string, searchLower: string): boolean {
 	return !searchLower || label.toLowerCase().includes(searchLower);
+}
+
+type ResponsiveCommandDialogProps = {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	title: string;
+	description: string;
+	children: React.ReactNode;
+};
+
+function ResponsiveCommandDialog({
+	open,
+	onOpenChange,
+	title,
+	description,
+	children,
+}: ResponsiveCommandDialogProps) {
+	const isMobile = useIsMobile();
+
+	if (isMobile) {
+		return (
+			<Drawer
+				open={open}
+				onOpenChange={onOpenChange}
+			>
+				<DrawerContent
+					className='max-h-[85dvh] rounded-t-2xl border-t border-border bg-popover p-0'
+					aria-label={title}
+					aria-description={description}
+				>
+					{children}
+				</DrawerContent>
+			</Drawer>
+		);
+	}
+
+	return (
+		<CommandDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title={title}
+			description={description}
+		>
+			{children}
+		</CommandDialog>
+	);
 }
 
 export function CommandMenu() {
@@ -131,7 +179,7 @@ export function CommandMenu() {
 	}, [open]);
 
 	return (
-		<CommandDialog
+		<ResponsiveCommandDialog
 			open={open}
 			onOpenChange={setOpen}
 			title='Command palette'
@@ -259,7 +307,7 @@ export function CommandMenu() {
 					</div>
 				</CommandFooter>
 			</Command>
-		</CommandDialog>
+		</ResponsiveCommandDialog>
 	);
 }
 

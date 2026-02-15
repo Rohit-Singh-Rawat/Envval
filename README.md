@@ -1,102 +1,427 @@
-# Envval Monorepo
+<p align="center">
+  <img src="apps/web/public/favicon.svg" alt="EnvVault Logo" width="60" />
+</p>
 
-Envval is a multi-surface developer experience: a Next.js dashboard, a Hono API, a VS Code companion, and a small shared UI toolkit that are all wired together with Turborepo.
+<h1 align="center">EnvVault</h1>
 
-## TL;DR
+<p align="center">
+  <strong>Zero-knowledge environment variable management — encrypted, synced, everywhere.</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> &middot;
+  <a href="#architecture">Architecture</a> &middot;
+  <a href="#getting-started">Getting Started</a> &middot;
+  <a href="#project-structure">Project Structure</a> &middot;
+  <a href="#environment-variables">Environment Variables</a> &middot;
+  <a href="#development">Development</a> &middot;
+  <a href="#deployment">Deployment</a> &middot;
+  <a href="#contributing">Contributing</a> &middot;
+  <a href="#security">Security</a> &middot;
+  <a href="#license">License</a>
+</p>
+
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Hono-4.x-E36002?logo=hono&logoColor=white" alt="Hono" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Bun-1.2-F9F1E1?logo=bun&logoColor=black" alt="Bun" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Turborepo-2.x-EF4444?logo=turborepo&logoColor=white" alt="Turborepo" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E" alt="License" /></a>
+</p>
+
+---
+
+<p align="center">
+  <img src="apps/web/public/images/open-graph.png" alt="EnvVault Dashboard" width="800" />
+</p>
+
+---
+
+## What is EnvVault?
+
+EnvVault is a **zero-knowledge**, **end-to-end encrypted** environment variable manager that keeps your `.env` files secure and synced across your entire team and all your devices. The server **never** sees your plaintext secrets.
+
+It ships as three interconnected surfaces — a **web dashboard**, a **REST API**, and a **VS Code extension** — all orchestrated in a single Turborepo monorepo.
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **End-to-End Encryption** | AES-256-GCM encryption with PBKDF2 key derivation — secrets are encrypted client-side before leaving your machine |
+| **Zero-Knowledge Architecture** | The server stores only encrypted blobs; it can never read your environment variables |
+| **Cross-Device Sync** | Seamlessly sync `.env` files between your editor, dashboard, and teammates |
+| **Device Authorization** | OAuth 2.0 Device Flow (RFC 8628) for secure VS Code extension authentication |
+| **Device Isolation** | Each device holds its own RSA-wrapped copy of encryption keys — revoke one without affecting others |
+| **Web Dashboard** | Full-featured React 19 UI for managing repositories, environments, and team settings |
+| **VS Code Extension** | Inline hover previews, one-click sync, tracked environment tree view, and smart monorepo detection |
+| **Transactional Email** | Resend-powered email service with React-based templates and BullMQ background processing |
+| **Type-Safe API Client** | Hono RPC client (`hc`) for fully typed frontend-backend communication |
+
+---
+
+## Architecture
+
+EnvVault follows a client-server model where **all cryptographic operations happen on the client**. The API server acts as an encrypted blob store with an authentication and authorization layer.
+
+```mermaid
+graph TB
+    subgraph Clients
+        WEB["Web Dashboard<br/>React 19 + TanStack Router"]
+        EXT["VS Code Extension<br/>TypeScript + VS Code API"]
+        CLI["CLI Tool<br/>Planned"]
+    end
+
+    subgraph API["API Server"]
+        HONO["Hono REST API<br/>Node.js + TypeScript"]
+        AUTH["Better Auth<br/>OAuth + Sessions + Device Flow"]
+        QUEUE["BullMQ<br/>Background Jobs"]
+    end
+
+    subgraph Data["Data Layer"]
+        PG[("PostgreSQL<br/>Drizzle ORM")]
+        REDIS[("Redis<br/>Queue + Rate Limiting")]
+    end
+
+    subgraph Packages["Shared Packages"]
+        DB_PKG["@envval/db<br/>Schema + Migrations"]
+        UI_PKG["@envval/ui<br/>React Components"]
+        EMAIL_PKG["@envval/email<br/>Templates + Resend"]
+        QUEUE_PKG["@envval/queue<br/>Job Queue Abstraction"]
+    end
+
+    WEB -->|"HTTPS<br/>Encrypted payload"| HONO
+    EXT -->|"HTTPS<br/>Encrypted payload"| HONO
+    CLI -.->|"HTTPS"| HONO
+
+    HONO --> AUTH
+    HONO --> QUEUE
+    HONO --> PG
+    QUEUE --> REDIS
+
+    WEB --> UI_PKG
+    HONO --> DB_PKG
+    HONO --> EMAIL_PKG
+    HONO --> QUEUE_PKG
+```
+
+### Encryption Flow
+
+```mermaid
+graph LR
+    A["Plaintext .env"] --> B["Derive AES Key<br/>PBKDF2"]
+    B --> C["Generate Random IV"]
+    C --> D["AES-256-GCM Encrypt"]
+    D --> E["ciphertext.authTag:iv"]
+    E --> F["SHA-256 Hash"]
+    F --> G["Upload Encrypted Blob"]
+```
+
+> For detailed architecture diagrams, authentication sequence flows, and the full encryption model, see [`docs/01-ARCHITECTURE.md`](docs/01-ARCHITECTURE.md) and [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md).
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Node.js** | >= 18 | Runtime for the API server and build tooling |
+| **Bun** | >= 1.2.8 | Workspace package manager |
+| **PostgreSQL** | >= 14 | Primary data store |
+| **Redis** | >= 6 | Job queue (BullMQ) and rate limiting (Upstash) |
+| **VS Code** | >= 1.106 | Required only for extension development |
+
+### Quick Start
 
 ```bash
-# install (uses Bun by default)
+# 1. Clone the repository
+git clone https://github.com/Rohit-Singh-Rawat/Env0.git
+cd Env0
+
+# 2. Install all dependencies (workspace-aware)
 bun install
 
-# run everything in watch mode
+# 3. Set up environment variables
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env with your database URL, OAuth credentials, etc.
+
+# 4. Push the database schema
+bun run --filter=@envval/db db:push
+
+# 5. Start all services in development mode
 bun run dev
-
-# focus on a single target
-bunx turbo dev --filter=web
 ```
 
-## Repo layout
+The web app will be available at `http://localhost:3000` and the API at `http://localhost:8080`.
 
-| Surface | Path | Stack | Notes |
-| --- | --- | --- | --- |
-| Web app | `apps/web` | Next.js 16 / React 19 | UI for env management, consumes the API and shared UI kit |
-| API | `apps/api` | Hono on Node | REST entrypoint with CORS + logging baked in |
-| VS Code extension | `apps/extension` | VS Code 1.106, esbuild | Ships commands that integrate Envval flows directly in the editor |
-| UI kit | `packages/ui` | React components | Primitive `Button`, `Card`, `Code` shared across surfaces |
-| TS configs | `packages/typescript-config` | TS project refs | Reusable `tsconfig` targets for apps, libs, and Next.js |
-
-Everything is TypeScript, linted with ESLint 9, formatted with Prettier 3, and orchestrated through `turbo.json`.
-
-## Requirements
-
-- Node 18+ (same runtime as the deployed API)
-- Bun 1.2.8 (the workspace PM); swap to npm/pnpm if you must, but keep the lockfiles in sync
-- VS Code 1.106+ if you want to hack on `apps/extension`
-
-## Install once
+### Running a Single Service
 
 ```bash
-bun install
+# Web dashboard only
+bunx turbo dev --filter=web
+
+# API server only
+bunx turbo dev --filter=@envval/api
+
+# VS Code extension (watch mode)
+cd apps/extension && bun run watch
 ```
 
-This runs workspace-aware installs for every app/package.
+---
 
-## Day-to-day commands
+## Project Structure
 
-| Action | Command | Notes |
-| --- | --- | --- |
-| Run every dev target | `bun run dev` | `turbo run dev` with caching disabled for live reloads |
-| Run a single app | `bunx turbo dev --filter=<target>` | Examples: `web`, `api`, `extension#watch` |
-| Build all artifacts | `bun run build` | Produces `.next`, API `dist`, and extension bundle |
-| Type-check everything | `bun run check-types` | Uses each package’s `tsconfig` from `@envval/typescript-config` |
-| Lint everything | `bun run lint` | ESLint with `"--max-warnings 0"` in each workspace |
-| Format Markdown/TS | `bun run format` | Runs Prettier over code + docs |
+This is a **Turborepo monorepo** with workspaces under `apps/` and `packages/`.
 
-## App-specific notes
+```
+envval/
+├── apps/
+│   ├── web/              # React 19 dashboard (Vite + TanStack Router)
+│   ├── api/              # Hono REST API server
+│   ├── extension/        # VS Code extension
+│   └── email-worker/     # BullMQ email processing worker (Bun)
+│
+├── packages/
+│   ├── db/               # Drizzle ORM schema, migrations, and DB client
+│   ├── ui/               # Shared React component library
+│   ├── email/            # Email service + React email templates
+│   ├── queue/            # BullMQ job queue abstraction (Redis)
+│   └── typescript-config/# Shared tsconfig presets
+│
+├── docs/                 # Architecture and system design docs
+├── turbo.json            # Turborepo pipeline configuration
+├── package.json          # Root workspace configuration
+└── bun.lock              # Bun lockfile
+```
 
-### Web (`apps/web`)
+### Apps
 
-- Ports: `3000` by default (`npm run dev` inside the app if you prefer local scripts).
-- Uses the shared UI kit via the `@envval/ui` workspace alias.
-- Type generation: `next typegen` is part of the `check-types` script—keep it up to date before pushes.
+| App | Stack | Description |
+|-----|-------|-------------|
+| **`apps/web`** | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion, Better Auth | Primary web dashboard for managing repositories, environments, and devices |
+| **`apps/api`** | Hono, Drizzle ORM, Better Auth, Zod, Upstash | RESTful API with typed RPC client exports for the frontend |
+| **`apps/extension`** | VS Code API, esbuild, Axios | Editor extension with env hover previews, tree view, and device-flow auth |
+| **`apps/email-worker`** | BullMQ, Winston, Bun runtime | Background worker that processes the email job queue |
 
-### API (`apps/api`)
+### Packages
 
-- Serve with `bunx turbo dev --filter=api` or `cd apps/api && bun run dev`.
-- Hono + `@hono/node-server` provides a lightweight fetch-compatible stack.
-- Environment: copy `.env.example` → `.env` (create one if missing) and set at least `PORT` (defaults to `8080`).
-- `tsx` handles hot-reload during dev; ship builds with `tsc` + `node dist/server.js`.
+| Package | Stack | Description |
+|---------|-------|-------------|
+| **`@envval/db`** | Drizzle ORM, PostgreSQL (`pg`) | Database schema definitions, migration tooling, and the shared DB client |
+| **`@envval/ui`** | React 19 | Shared UI primitives (Button, Card, Code, etc.) used across surfaces |
+| **`@envval/email`** | Resend, Zod | Email service abstraction with React-based templates |
+| **`@envval/queue`** | BullMQ, ioredis | Redis-backed job queue for async operations (email dispatch, etc.) |
+| **`@envval/typescript-config`** | TypeScript 5.9 | Reusable `tsconfig` presets for apps, libraries, and Next.js projects |
 
-### VS Code extension (`apps/extension`)
+---
 
-- Build once via `bunx turbo run build --filter=extension`.
-- Watch mode for authoring: `cd apps/extension && bun run watch`.
-- Tests: `bun run test` uses `@vscode/test-cli`.
-- Publishing flow: `bun run package` to emit the signed `.vsix`, then `vsce publish`.
+## Environment Variables
 
-## Shared packages
+### API Server (`apps/api`)
 
-- `@envval/ui` exposes simple React primitives. Generate new components with `bun run --filter=@envval/ui generate:component`.
-- `@envval/typescript-config` holds `base`, `react-library`, and `nextjs` configs. Reference them from any new workspace so every project shares compiler flags.
+Create an `.env` file in `apps/api/` with the following:
 
-## Turbo tips
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `KEY_MATERIAL_MASTER_KEY` | Yes | 32-byte hex string for server-side envelope encryption |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 client ID |
+| `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth 2.0 client secret |
+| `GITHUB_CLIENT_ID` | Yes | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | Yes | GitHub OAuth app client secret |
+| `RESEND_API_KEY` | Yes | Resend API key for transactional email |
+| `UPSTASH_REDIS_REST_URL` | Yes | Upstash Redis URL for rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | Yes | Upstash Redis token |
+| `PORT` | No | API server port (default: `8080`) |
 
-- Filters (`--filter=<target>`) respect dependency graphs, so `--filter=web...` will build the UI kit first if needed.
-- Caching is on for `build`, `lint`, and `check-types`; it is intentionally off for `dev` to avoid stale hot reloads.
-- Remote caching is ready—just run `bunx turbo login && bunx turbo link` with your Vercel account when you want to hydrate CI caches.
+### Email Worker (`apps/email-worker`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `REDIS_URL` | Yes | Redis connection string for BullMQ |
+| `RESEND_API_KEY` | Yes | Resend API key |
+
+---
+
+## Development
+
+### Common Commands
+
+| Action | Command | Description |
+|--------|---------|-------------|
+| Dev (all) | `bun run dev` | Start all services in watch mode |
+| Build (all) | `bun run build` | Production build for all workspaces |
+| Type check | `bun run check-types` | Run `tsc --noEmit` across all packages |
+| Lint | `bun run lint` | Lint all workspaces |
+| Format | `bun run format` | Format all TS/MD files with Prettier |
+| DB push | `bun run --filter=@envval/db db:push` | Push schema changes to the database |
+| DB studio | `bun run --filter=@envval/db db:studio` | Open Drizzle Studio GUI |
+| DB migrate | `bun run --filter=@envval/api db:migrate` | Run database migrations |
+
+### Turbo Tips
+
+- **Filters** respect the dependency graph — `--filter=web...` builds `@envval/ui` first if needed.
+- **Caching** is enabled for `build`, `lint`, and `check-types`; deliberately disabled for `dev` to avoid stale hot reloads.
+- **Remote caching** — run `bunx turbo login && bunx turbo link` with your Vercel account to share caches across CI.
+
+### Tech Stack Summary
+
+| Layer | Technology |
+|-------|-----------|
+| Language | TypeScript 5.9 (strict mode) |
+| Monorepo | Turborepo 2.x + Bun workspaces |
+| Frontend | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion |
+| Backend | Hono 4.x, Drizzle ORM, PostgreSQL, BullMQ, ioredis |
+| Auth | Better Auth (OAuth + session + device flow) |
+| Encryption | AES-256-GCM, PBKDF2, RSA-OAEP (Web Crypto API) |
+| Email | Resend + React Email templates |
+| Extension | VS Code API, esbuild |
+| Linting | ESLint 9 + Biome 2.x |
+| Formatting | Prettier 3 + Biome |
+| Testing | Vitest, @vscode/test-cli |
+
+---
+
+## Deployment
+
+### Web App (`apps/web`)
+
+Deploy the Vite-built SPA to any static host:
+
+```bash
+bun run build --filter=web
+# Output: apps/web/dist/
+```
+
+Recommended hosts: Vercel, Netlify, Cloudflare Pages.
+
+### API Server (`apps/api`)
+
+```bash
+bun run build --filter=@envval/api
+# Output: apps/api/dist/
+# Run: node dist/server.js
+```
+
+Recommended hosts: Railway, Fly.io, Render, Vercel Functions.
+
+> **Note:** Set all required environment variables in your deployment target before deploying.
+
+### Email Worker (`apps/email-worker`)
+
+```bash
+bun run build --filter=@envval/email-worker
+# Output: apps/email-worker/dist/
+# Run: bun dist/index.js
+```
+
+### VS Code Extension
+
+```bash
+cd apps/extension
+bun run package          # Produces a .vsix file
+# Publish: vsce publish
+```
+
+### Deployment Checklist
+
+- [ ] `bun run build` succeeds locally with no errors
+- [ ] `bun run check-types` passes
+- [ ] All required environment variables are configured in the deploy target
+- [ ] Database migrations are applied (`db:migrate` or `db:push`)
+- [ ] Redis is accessible for queue processing and rate limiting
+- [ ] Extension version is bumped before marketplace upload
+
+---
 
 ## Contributing
 
-1. Create a feature branch.
-2. `bun run dev` (or filter to the surface you need) and keep `bun run check-types && bun run lint` clean.
-3. Add/update tests when touching API routes or UI logic.
-4. Open a PR with screenshots (web), sample responses (API), or screencasts (extension) as relevant.
+Contributions are welcome. Whether it is a bug fix, feature, or documentation improvement — we appreciate it.
 
-## Deployment checklist
+### How to Contribute
 
-- `bun run build` succeeds locally.
-- API `.env` matches the deployment target (e.g., Fly.io, Render, Vercel Functions).
-- Next.js build artifacts can be deployed on Vercel/Netlify; remember to set `NEXT_PUBLIC_*` envs.
-- Extension package is bumped and re-built before uploading to the VS Code marketplace.
+1. **Fork** the repository
+2. **Create a feature branch**: `git checkout -b feat/your-feature-name`
+3. **Install dependencies**: `bun install`
+4. **Make your changes** and ensure they pass:
+   ```bash
+   bun run check-types   # Type safety
+   bun run lint          # Code quality
+   bun run build         # Build integrity
+   ```
+5. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/):
+   ```
+   feat: add environment variable search
+   fix: resolve device auth token refresh
+   docs: update API endpoint reference
+   ```
+6. **Open a Pull Request** with:
+   - A clear description of the change
+   - Screenshots or screencasts for UI changes
+   - Sample API responses for endpoint changes
 
-Happy shipping! 🚀
+### Development Guidelines
+
+- **TypeScript** — Use strict typing everywhere. Avoid `any`.
+- **Components** — Add shared components to `packages/ui`; keep app-specific components local.
+- **API routes** — Follow the existing `modules/` pattern with `*.handler.ts`, `*.service.ts`, and `*.schema.ts`.
+- **Tests** — Add tests when touching API routes or UI logic. Use Vitest for web, `@vscode/test-cli` for the extension.
+- **Commits** — Keep them atomic and well-scoped. One logical change per commit.
+
+---
+
+## Security
+
+EnvVault takes security seriously. The entire system is built on a **zero-knowledge architecture** — the server never has access to plaintext secrets.
+
+### Security Model
+
+| Threat | Mitigation |
+|--------|-----------|
+| Server database breach | Key material is encrypted at rest using envelope encryption |
+| Network interception | HTTPS + RSA-OAEP wrapped key material |
+| Device compromise | Per-device key wrapping; revoke one device without affecting others |
+| Replay attacks | Short-lived JWTs (15 min) + session validation |
+| Key material leak | Master key rotation re-encrypts all user key materials |
+
+### Reporting Vulnerabilities
+
+**Please do NOT open a public GitHub issue for security vulnerabilities.**
+
+If you discover a security vulnerability, please report it responsibly by emailing **security@envvault.io** (or contacting the maintainer directly). We will acknowledge receipt within 48 hours and work on a fix promptly.
+
+---
+
+## Roadmap
+
+- [ ] CLI tool for CI/CD pipeline integration
+- [ ] Team sharing and role-based access control
+- [ ] Environment version history and rollback
+- [ ] Key rotation mechanism
+- [ ] Self-hosted deployment option (Docker Compose)
+- [ ] Web app device registration with RSA keypair
+- [ ] Audit logs for environment access
+
+---
+
+## Community
+
+- [Report a Bug](https://github.com/Rohit-Singh-Rawat/Env0/issues/new?template=bug_report.md)
+- [Request a Feature](https://github.com/Rohit-Singh-Rawat/Env0/issues/new?template=feature_request.md)
+- [Discussions](https://github.com/Rohit-Singh-Rawat/Env0/discussions)
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Built by <a href="https://github.com/Rohit-Singh-Rawat">Rohit Singh Rawat</a>
+</p>

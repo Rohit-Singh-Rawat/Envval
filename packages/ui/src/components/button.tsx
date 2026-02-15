@@ -1,12 +1,13 @@
-"use client"
+'use client';
 
 import * as React from 'react';
 import { Button as ButtonPrimitive } from '@base-ui/react/button';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { cn } from '@envval/ui/lib/utils';
 import { Spinner } from '@envval/ui/components/icons/spinner';
+import { useIsMobile } from '@envval/ui/hooks/use-mobile';
 
 const buttonVariants = cva(
 	"inline-flex items-center justify-center cursor-pointer squircle  shadow-button-base-light gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive active:scale-[0.98] transition-all duration-200 ease-in-out",
@@ -58,12 +59,57 @@ function Button({
 	...props
 }: ButtonProps) {
 	const [hasAnimated, setHasAnimated] = React.useState(false);
+	const isMobile = useIsMobile();
+	const shouldReduceMotion = useReducedMotion();
 
 	React.useEffect(() => {
 		if (pending !== undefined) {
 			setHasAnimated(true);
 		}
 	}, [pending]);
+
+	const useSimpleAnimation = isMobile || shouldReduceMotion;
+	const motionProps = useSimpleAnimation
+		? {
+				initial: hasAnimated ? { opacity: 0 } : false,
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				transition: { duration: 0.15, ease: 'easeOut' as const },
+			}
+		: {
+				initial: hasAnimated ? { y: 20, opacity: 0 } : false,
+				animate: { y: 0, opacity: 1 },
+				exit: { y: -20, opacity: 0 },
+				transition: { duration: 0.2, ease: 'easeInOut' as const },
+			};
+
+	// #region agent log
+	const isNarrow = typeof window !== 'undefined' && window.innerWidth < 768;
+	React.useLayoutEffect(() => {
+		const w = typeof window !== 'undefined' ? window.innerWidth : 0;
+		fetch('http://127.0.0.1:7242/ingest/98ed4269-d2f9-46e6-b407-f649eea16e88', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ec5fbd' },
+			body: JSON.stringify({
+				sessionId: 'ec5fbd',
+				location: 'button.tsx',
+				message: 'button mount/render',
+				data: {
+					innerWidth: w,
+					isNarrow,
+					shouldReduceMotion,
+					useSimpleAnimation,
+					pending,
+					hasAnimated,
+					hoverAnimate,
+					branch: hoverAnimate && !pending ? 'hover' : 'animatePresence',
+				},
+				timestamp: Date.now(),
+				hypothesisId: 'H1',
+			}),
+		}).catch(() => {});
+	}, [pending, hasAnimated, hoverAnimate, isNarrow, shouldReduceMotion, useSimpleAnimation]);
+	// #endregion
 
 	return (
 		<ButtonPrimitive
@@ -82,16 +128,13 @@ function Button({
 				</span>
 			) : (
 				<AnimatePresence
-					mode='popLayout'
+					mode={useSimpleAnimation ? 'wait' : 'popLayout'}
 					initial={false}
 				>
 					{pending ? (
 						<motion.span
 							key='pending'
-							initial={hasAnimated ? { y: 20, opacity: 0 } : false}
-							animate={{ y: 0, opacity: 1 }}
-							exit={{ y: -20, opacity: 0 }}
-							transition={{ duration: 0.2, ease: 'easeInOut' }}
+							{...motionProps}
 							className='inline-flex items-center gap-2'
 						>
 							<Spinner className='size-4' />
@@ -100,10 +143,7 @@ function Button({
 					) : (
 						<motion.span
 							key='children'
-							initial={hasAnimated ? { y: 20, opacity: 0 } : false}
-							animate={{ y: 0, opacity: 1 }}
-							exit={{ y: -20, opacity: 0 }}
-							transition={{ duration: 0.2, ease: 'easeInOut' }}
+							{...motionProps}
 							className='inline-flex items-center gap-2'
 						>
 							{children}

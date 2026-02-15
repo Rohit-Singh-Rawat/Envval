@@ -13,6 +13,7 @@ import { cn } from '@envval/ui/lib/utils';
 import { Link, useLocation } from '@tanstack/react-router';
 import { DASHBOARD_NAV_ITEMS } from '@/lib/dashboard-nav';
 import { CommandMenuTrigger } from './command-menu';
+import { EnvvalLogo } from '@/components/logo/envval';
 
 interface AppSidebarProps {
 	className?: string;
@@ -24,18 +25,28 @@ export function AppSidebar({ className }: AppSidebarProps) {
 
 	return (
 		<Sidebar
-			className={cn('bg-background w-56 shrink-0 h-full flex flex-col justify-center', className)}
+			className={cn(
+				'bg-background w-48 lg:w-56 shrink-0 h-full max-sm:p-3 max-sm:py-5 flex flex-col justify-center',
+				className
+			)}
 			collapsible='none'
 			variant='sidebar'
 		>
-			<SidebarHeader className='p-2 pb-2'>
-				<div className='flex items-center justify-between gap-2'>
-					<CommandMenuTrigger className='w-full justify-start' />
-				</div>
+			<SidebarHeader className='px-3 py-4 p-2 gap-5'>
+				<Link
+					to='/'
+					className='flex items-center gap-2 md:hidden'
+				>
+					<EnvvalLogo
+						variant='full'
+						className='max-md:h-8 max-md:w-auto'
+					/>
+				</Link>
+				<CommandMenuTrigger className='w-full justify-start' />
 			</SidebarHeader>
-			<SidebarContent>
+			<SidebarContent className='px-2 lg:px-3'>
 				<SidebarGroup>
-					<SidebarGroupLabel>Main</SidebarGroupLabel>
+					<SidebarGroupLabel className='text-xs'>Main</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{DASHBOARD_NAV_ITEMS.map((item) => {
@@ -45,7 +56,10 @@ export function AppSidebar({ className }: AppSidebarProps) {
 										<SidebarMenuButton>
 											<Link
 												to={item.href}
-												className={`flex items-center w-full gap-2  ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+												className={cn(
+													'flex items-center w-full gap-2 text-sm',
+													isActive ? 'text-primary' : 'text-muted-foreground'
+												)}
 											>
 												<item.icon className='size-4 text-inherit' />
 												<span>{item.title}</span>
