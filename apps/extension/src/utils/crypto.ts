@@ -128,18 +128,13 @@ export function deriveKey(keyMaterial: string, userId: string): string {
  */
 export function encryptEnv(plaintext: string, key: string, logger?: Logger): EncryptionResult {
 	try {
-		if (logger) {
-			logger.debug(`[encryptEnv] Starting encryption. Plaintext length: ${plaintext.length}`);
-		}
 		if (plaintext === undefined || plaintext === null || !key) {
 			throw new Error('plaintext and key are required');
 		}
 
-		const iv = crypto.randomBytes(CRYPTO_CONFIG.IV_LENGTH_BYTES);
-		if (logger) {
-			logger.debug(`[encryptEnv] Generated IV: ${iv.toString('base64')}`);
-		}
+		logger?.debug(`Encrypting ${plaintext.length} bytes`);
 
+		const iv = crypto.randomBytes(CRYPTO_CONFIG.IV_LENGTH_BYTES);
 		const cipher = crypto.createCipheriv(
 			CRYPTO_CONFIG.ALGORITHM,
 			Buffer.from(key, 'hex'),
@@ -149,18 +144,12 @@ export function encryptEnv(plaintext: string, key: string, logger?: Logger): Enc
 		let ciphertext = cipher.update(plaintext, 'utf8', 'base64');
 		ciphertext += cipher.final('base64');
 		const authTag = cipher.getAuthTag();
-		if (logger) {
-			logger.debug(`[encryptEnv] Encryption complete. Ciphertext length: ${ciphertext.length}, AuthTag: ${authTag.toString('base64')}`);
-		}
 
 		return {
 			ciphertext: `${ciphertext}.${authTag.toString('base64')}`,
 			iv: iv.toString('base64'),
 		};
 	} catch (error) {
-		if (logger) {
-			logger.error(`[encryptEnv] Error: ${error instanceof Error ? error.message : String(error)}`);
-		}
 		throw new CryptoError(
 			'Failed to encrypt environment data',
 			'encrypt',
@@ -198,15 +187,23 @@ export function decryptEnv(ciphertext: string, iv: string, key: string): string 
 
 		const [encryptedData, authTagBase64] = parts;
 
-		// Create decipher
+		if (!encryptedData || !authTagBase64) {
+			throw new Error('Ciphertext data or authentication tag is empty');
+		}
+
+		// Validate auth tag is exactly 16 bytes (128-bit GCM tag)
+		const authTagBuffer = Buffer.from(authTagBase64, 'base64');
+		if (authTagBuffer.length !== 16) {
+			throw new Error(`Invalid auth tag length: expected 16 bytes, got ${authTagBuffer.length}`);
+		}
+
 		const decipher = crypto.createDecipheriv(
 			CRYPTO_CONFIG.ALGORITHM,
 			Buffer.from(key, 'hex'),
 			Buffer.from(iv, 'base64')
 		);
 
-		// Set authentication tag (validates data integrity)
-		decipher.setAuthTag(Buffer.from(authTagBase64, 'base64'));
+		decipher.setAuthTag(authTagBuffer);
 
 		// Decrypt
 		let plaintext = decipher.update(encryptedData, 'base64', 'utf8');

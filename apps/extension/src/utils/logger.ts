@@ -4,7 +4,7 @@ import { getLoggingVerbose } from "../lib/config";
 
 export class Logger {
   private static instance: Logger;
-  private channel: OutputChannel;
+  private readonly channel: OutputChannel;
   private verbose: boolean;
 
   private constructor(ctx: ExtensionContext, verbose: boolean) {
@@ -23,28 +23,33 @@ export class Logger {
     return Logger.instance;
   }
 
+  private write(level: string, message: string): void {
+    const timestamp = new Date().toISOString();
+    this.channel.appendLine(`${timestamp} [${level}] ${message}`);
+  }
+
   public log(message: string): void {
     if (this.verbose) {
-      this.channel.appendLine(message);
+      this.write("LOG", message);
     }
   }
 
   public debug(message: string): void {
     if (this.verbose) {
-      this.channel.appendLine(`[DEBUG] ${message}`);
+      this.write("DEBUG", message);
     }
   }
 
   public info(message: string): void {
-    this.channel.appendLine(`[INFO] ${message}`);
+    this.write("INFO", message);
   }
 
   public warn(message: string): void {
-    this.channel.appendLine(`[WARN] ${message}`);
+    this.write("WARN", message);
   }
 
   public error(message: string): void {
-    this.channel.appendLine(`[ERROR] ${message}`);
+    this.write("ERROR", message);
   }
 
   public show(): void {

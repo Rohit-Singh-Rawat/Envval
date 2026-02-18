@@ -104,11 +104,9 @@ export class EnvVaultVsCodeSecrets {
 
 		try {
 			return unwrapKeyMaterial(privateKey, wrappedKeyMaterial);
-		} catch (error) {
-			// Log the error but don't expose crypto internals to user
-			if (error instanceof Error) {
-				console.error('[EnvVault] Failed to unwrap key material:', error.message);
-			}
+		} catch {
+			// Unwrap failure is expected when keys are rotated or corrupted.
+			// Callers handle undefined by re-authenticating.
 			return undefined;
 		}
 	}

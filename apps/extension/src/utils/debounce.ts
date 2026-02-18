@@ -1,22 +1,35 @@
+export interface DebouncedFunction<T extends (...args: never[]) => void> {
+  (...args: Parameters<T>): void;
+  /** Cancels any pending invocation so it never fires. */
+  cancel(): void;
+}
+
 /**
- * Creates a debounced function that delays invoking func until after wait milliseconds
- * have elapsed since the last time the debounced function was invoked.
+ * Creates a debounced wrapper that delays invoking `func` until `wait` ms
+ * have elapsed since the last call. Exposes `.cancel()` for cleanup on dispose.
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => void>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
+): DebouncedFunction<T> {
   let timeoutId: NodeJS.Timeout | undefined;
 
-  return function (this: any, ...args: Parameters<T>) {
-    const context = this;
-
+  const debounced = function (this: unknown, ...args: Parameters<T>) {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-
     timeoutId = setTimeout(() => {
-      func.apply(context, args);
+      func.apply(this, args);
+      timeoutId = undefined;
     }, wait);
+  } as DebouncedFunction<T>;
+
+  debounced.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
   };
+
+  return debounced;
 }

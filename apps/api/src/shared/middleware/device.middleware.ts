@@ -43,29 +43,6 @@ export const deviceMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
 		});
 	}
 
-	// TODO: Soft-revoke implementation (future enhancement)
-	// Currently devices are hard-deleted, so this check will never trigger.
-	// When implementing soft-revoke, update handlers to mark devices as revoked instead of deleting them.
-	// This will enable graceful degradation with read-only mode in extensions.
-	/*
-	if (deviceRecord.revoked) {
-		logger.warn('Revoked device access attempt', {
-			userId: user?.id,
-			deviceId: deviceRecord.id,
-			deviceName: deviceRecord.name,
-			revokedAt: deviceRecord.revokedAt?.toISOString(),
-		});
-
-		throw new HTTPException(HTTP_FORBIDDEN, {
-			message: 'Device has been revoked',
-			cause: {
-				error: 'device_revoked',
-				revokedAt: deviceRecord.revokedAt?.toISOString(),
-			},
-		});
-	}
-	*/
-
 	// Attach device to context for audit logging in handlers
 	c.set('device', deviceRecord);
 
