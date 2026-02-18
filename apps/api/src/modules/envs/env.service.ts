@@ -1,6 +1,6 @@
 import { db } from '@envval/db';
 import { environment } from '@envval/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import { CreateEnvBody, UpdateEnvBody } from './env.schemas';
 import { computeEnvId } from '@/shared/utils/id';
 
@@ -11,23 +11,25 @@ export class EnvService {
 			conditions.push(eq(environment.repoId, repoId));
 		}
 
-		const selection: any = {
-			id: environment.id,
-			repoId: environment.repoId,
-			fileName: environment.fileName,
-			envCount: environment.envCount,
-			latestHash: environment.latestHash,
-			lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
-			createdAt: environment.createdAt,
-			updatedAt: environment.updatedAt,
-		};
-
 		if (includeContent) {
-			selection.content = environment.content;
+			const result = await db
+				.select()
+				.from(environment)
+				.where(and(...conditions));
+			return result;
 		}
 
 		const result = await db
-			.select(selection)
+			.select({
+				id: environment.id,
+				repoId: environment.repoId,
+				fileName: environment.fileName,
+				envCount: environment.envCount,
+				latestHash: environment.latestHash,
+				lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
+				createdAt: environment.createdAt,
+				updatedAt: environment.updatedAt,
+			})
 			.from(environment)
 			.where(and(...conditions));
 		return result;
@@ -74,6 +76,14 @@ export class EnvService {
 			.from(environment)
 			.where(and(eq(environment.userId, userId), eq(environment.id, envId)));
 		return result;
+	}
+
+	async getEnvironmentCountByRepo(userId: string, repoId: string) {
+		const [row] = await db
+			.select({ count: count() })
+			.from(environment)
+			.where(and(eq(environment.userId, userId), eq(environment.repoId, repoId)));
+		return row?.count ?? 0;
 	}
 
 	async getEnvironmentByFileName(userId: string, repoId: string, fileName: string) {

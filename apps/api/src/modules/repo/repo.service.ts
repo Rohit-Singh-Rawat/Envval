@@ -133,21 +133,23 @@ export class RepoService {
 	}
 
 	async getEnvironments(userId: string, repoId: string, includeContent = false) {
-		const selection: any = {
-			id: environment.id,
-			fileName: environment.fileName,
-			envCount: environment.envCount,
-			lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
-			createdAt: environment.createdAt,
-			updatedAt: environment.updatedAt,
-		};
-
 		if (includeContent) {
-			selection.content = environment.content;
+			const environments = await db
+				.select()
+				.from(environment)
+				.where(and(eq(environment.repoId, repoId), eq(environment.userId, userId)));
+			return environments;
 		}
 
 		const environments = await db
-			.select(selection)
+			.select({
+				id: environment.id,
+				fileName: environment.fileName,
+				envCount: environment.envCount,
+				lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
+				createdAt: environment.createdAt,
+				updatedAt: environment.updatedAt,
+			})
 			.from(environment)
 			.where(and(eq(environment.repoId, repoId), eq(environment.userId, userId)));
 		return environments;

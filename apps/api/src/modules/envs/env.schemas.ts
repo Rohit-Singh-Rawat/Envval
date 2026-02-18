@@ -6,11 +6,14 @@ import {
 } from '@/shared/constants/system-limits';
 
 /**
- * Matches valid env file names: .env, .env.local, .env.production, .env.staging.local, etc.
- * Allows an optional leading dot, the literal "env", then zero or more dot-separated segments
- * composed of alphanumerics, hyphens, and underscores.
+ * Matches env file names with optional directory prefix for monorepo support.
+ * Accepts bare names (.env, .env.local) and relative paths (apps/api/.env.local).
+ *
+ * Path segments: alphanumerics, hyphens, underscores, dots.
+ * Basename: optional leading dot, literal "env", then optional dot-separated suffixes.
+ * Backslashes and path traversal (..) are rejected for security.
  */
-const ENV_FILE_NAME_PATTERN = /^\.?env(\.[a-zA-Z0-9_-]+)*$/;
+const ENV_FILE_NAME_PATTERN = /^(?:[a-zA-Z0-9_\-.][\w.\-]*\/)*\.?env(\.[a-zA-Z0-9_-]+)*$/;
 
 export const envIdParamSchema = z.object({
 	envId: z.string().min(1, 'Environment ID is required'),
@@ -28,13 +31,19 @@ export const envPaginationSchema = z.object({
 	includeContent: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional(),
 });
 
+/** Reusable fileName validator: accepts bare names and forward-slash relative paths. */
+const envFileNameSchema = z
+	.string()
+	.min(1, 'File name is required')
+	.max(MAX_ENV_FILE_NAME_LENGTH, `File name must be ${MAX_ENV_FILE_NAME_LENGTH} characters or less`)
+	.regex(ENV_FILE_NAME_PATTERN, 'File name must be a valid env file path (e.g. .env, apps/api/.env.local)')
+	.refine((val) => !val.includes('..') && !val.includes('\\'), {
+		message: 'File name must not contain path traversal or backslashes',
+	});
+
 export const createEnvSchema = z.object({
 	repoId: z.string().min(1, 'Repository ID is required'),
-	fileName: z
-		.string()
-		.min(1, 'File name is required')
-		.max(MAX_ENV_FILE_NAME_LENGTH, `File name must be ${MAX_ENV_FILE_NAME_LENGTH} characters or less`)
-		.regex(ENV_FILE_NAME_PATTERN, 'File name must be a valid env file (e.g. .env, .env.local)'),
+	fileName: envFileNameSchema,
 	content: z
 		.string()
 		.max(MAX_ENV_CONTENT_LENGTH, `Content exceeds ${MAX_ENV_CONTENT_LENGTH / 1000}KB limit`),
@@ -44,12 +53,7 @@ export const createEnvSchema = z.object({
 
 export const updateEnvSchema = z.object({
 	baseHash: z.string().min(1, 'Base hash is required for conflict detection'),
-	fileName: z
-		.string()
-		.min(1)
-		.max(MAX_ENV_FILE_NAME_LENGTH)
-		.regex(ENV_FILE_NAME_PATTERN, 'File name must be a valid env file')
-		.optional(),
+	fileName: envFileNameSchema.optional(),
 	content: z
 		.string()
 		.max(MAX_ENV_CONTENT_LENGTH, `Content exceeds ${MAX_ENV_CONTENT_LENGTH / 1000}KB limit`)

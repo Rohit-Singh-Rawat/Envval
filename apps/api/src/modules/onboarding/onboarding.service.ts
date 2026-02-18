@@ -3,6 +3,7 @@ import { user, userAttribution } from '@envval/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/modules/auth/auth.service';
 import { AuthEmailService } from '@/modules/auth/auth-email.service';
+import { logger } from '@/shared/utils/logger';
 
 type UserAttributionData = {
 	source?: string | null;
@@ -50,7 +51,7 @@ export class OnboardingService {
 		if (!userData?.email) {
 			throw new Error('User email not found');
 		}
-		console.log('sendWelcomeEmail', userData.email, name);
+		logger.debug('Sending welcome email', { email: userData.email, name });
 		await emailService.sendWelcomeEmail(userData.email, name);
 		return { success: true };
 	}

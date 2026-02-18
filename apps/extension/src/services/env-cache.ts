@@ -98,9 +98,7 @@ export class EnvCacheService implements Disposable {
 		}
 
 		const envFiles = await getAllEnvFiles(this.logger);
-		const relativePath = envFiles.find(
-			(f) => path.basename(f) === fileName || f === fileName
-		);
+		const relativePath = envFiles.find((f) => f === fileName);
 
 		if (!relativePath) {
 			return;
@@ -115,15 +113,11 @@ export class EnvCacheService implements Disposable {
 	}
 
 	private removeFile(fileName: string): void {
-		const matchingKey = Array.from(this.fileCache.keys()).find(
-			(key) => path.basename(key) === fileName || key === fileName
-		);
-
-		if (!matchingKey) {
+		if (!this.fileCache.has(fileName)) {
 			return;
 		}
 
-		this.fileCache.delete(matchingKey);
+		this.fileCache.delete(fileName);
 		this.rebuildKeyIndex();
 		this._onDidUpdate.fire();
 
@@ -237,16 +231,12 @@ export class EnvCacheService implements Disposable {
 	}
 
 	public getAllFiles(): string[] {
-		return Array.from(this.fileCache.keys()).map((f) => path.basename(f));
+		return Array.from(this.fileCache.keys());
 	}
 
-	public getVariablesFromFile(fileName: string): EnvVariable[] {
-		for (const [key, cache] of this.fileCache.entries()) {
-			if (path.basename(key) === fileName) {
-				return Array.from(cache.values());
-			}
-		}
-		return [];
+	public getVariablesFromFile(relativePath: string): EnvVariable[] {
+		const cache = this.fileCache.get(relativePath);
+		return cache ? Array.from(cache.values()) : [];
 	}
 
 	public dispose(): void {

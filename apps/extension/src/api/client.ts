@@ -5,7 +5,8 @@ import axios, {
 	type InternalAxiosRequestConfig,
 	isAxiosError,
 } from 'axios';
-import { API_BASE_URL, CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_COOLDOWN_MS } from '../lib/constants';
+import { CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_COOLDOWN_MS } from '../lib/constants';
+import { getApiBaseUrl } from '../lib/config';
 import type {
 	EnvExistsResponse,
 	EnvMetadata,
@@ -23,6 +24,7 @@ import type {
 } from './types';
 import type { AuthenticationProvider } from '../providers/auth-provider';
 import type { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 
 const API_V1 = '/api/v1';
 
@@ -93,7 +95,7 @@ class ApiClient {
 	private consecutiveFailures = 0;
 	private circuitOpenedAt = 0;
 
-	constructor(baseURL: string = API_BASE_URL, logger?: Logger) {
+	constructor(baseURL: string = getApiBaseUrl(), logger?: Logger) {
 		this.logger = logger;
 		this.client = axios.create({
 			baseURL,
@@ -293,7 +295,7 @@ class ApiClient {
 			const isRetryable = this.isRetryableError(error);
 			return new ApiError(message, status, context, isRetryable);
 		}
-		const message = error instanceof Error ? error.message : String(error);
+		const message = formatError(error);
 		return new ApiError(message, undefined, context);
 	}
 }
@@ -359,7 +361,7 @@ export class EnvVaultApiClient extends ApiClient {
 	private refreshPromise: Promise<string | null> | null = null;
 
 	private constructor(authProvider: AuthenticationProvider, logger: Logger) {
-		super(API_BASE_URL, logger);
+		super(getApiBaseUrl(), logger);
 		this.authProvider = authProvider;
 		this.setupAuthInterceptors();
 	}

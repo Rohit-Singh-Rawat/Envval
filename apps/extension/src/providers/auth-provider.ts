@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
-import { API_BASE_URL, DEVICE_VERIFICATION_URL, SESSION_REFRESH_PATH } from '../lib/constants';
+import { SESSION_REFRESH_PATH } from '../lib/constants';
+import { getApiBaseUrl, getDeviceVerificationUrl } from '../lib/config';
 import { Logger } from '../utils/logger';
 import { AuthApiClient } from '../api/client';
 import { DeviceCodeResponse, DeviceTokenResponse } from '../api/types';
 import { StatusBar } from '../ui/status-bar';
+import { formatError } from '../utils/format-error';
 
 // Re-export types for external use
 export type { DeviceCodeResponse, DeviceTokenResponse };
@@ -210,9 +212,7 @@ export class AuthenticationProvider {
 					);
 
 					// Success! Store token, device ID, user ID, and wrapped key material
-					this.logger.info('Device authorization successful!');
-					this.logger.info(`Device ID: ${data.device_id}`);
-					this.logger.info(`User ID: ${data.user_id}`);
+					this.logger.info('Device authorization successful');
 
 					await this.secretsManager.setAccessToken(data.access_token);
 					await this.secretsManager.setDeviceId(data.device_id);
@@ -349,7 +349,7 @@ export class AuthenticationProvider {
 
 			vscode.window.showInformationMessage('EnvVault: Logged out successfully.');
 		} catch (error) {
-			this.logger.error(`Logout failed: ${(error as Error).message}`);
+			this.logger.error(`Logout failed: ${formatError(error)}`);
 			vscode.window.showErrorMessage('EnvVault: Failed to logout.');
 		}
 	}
@@ -369,7 +369,7 @@ export class AuthenticationProvider {
 
 		try {
 			const response = await axios.post<{ access_token: string }>(
-				`${API_BASE_URL}${SESSION_REFRESH_PATH}`,
+				`${getApiBaseUrl()}${SESSION_REFRESH_PATH}`,
 				undefined,
 				{
 					headers: {
@@ -391,7 +391,7 @@ export class AuthenticationProvider {
 			this.logger.info('[Auth] Session refresh rejected by server (revoked or expired beyond recovery)');
 			return null;
 		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : String(error);
+			const message = formatError(error);
 			this.logger.error(`[Auth] Session refresh failed: ${message}`);
 			return null;
 		}

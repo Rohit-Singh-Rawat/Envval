@@ -20,6 +20,8 @@ import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from '.
 import { StatusBar } from '../ui/status-bar';
 import { Logger } from '../utils/logger';
 import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
+import { validateFilePath, toWorkspaceRelativePath } from '../utils/path-validator';
+import { formatError } from '../utils/format-error';
 import {
 	showInitPrompt,
 	showRestorePrompt,
@@ -101,12 +103,12 @@ export class EnvInitService {
 			const contextProvider = WorkspaceContextProvider.getInstance();
 			const context = contextProvider.getWorkspaceContext();
 
-			if (context.mode === 'none') {
+			if (context.mode === 'none' || !context.primaryPath) {
 				this.logger.warn('No workspace or file open');
 				return;
 			}
 
-			const workspacePath = context.primaryPath!;
+			const workspacePath = context.primaryPath;
 			const validator = WorkspaceValidator.getInstance(this.logger);
 			const canProceed = await validator.validateAndPromptIfNeeded(workspacePath);
 
@@ -169,7 +171,7 @@ export class EnvInitService {
 						showSuccess(`Project "${nameResult.name}" registered successfully.`);
 					} catch (error) {
 						this.logger.error(
-							`Failed to register repo: ${error instanceof Error ? error.message : String(error)}`
+							`Failed to register repo: ${formatError(error)}`
 						);
 						showError('Failed to register repository. Please try again.');
 						return;
@@ -194,7 +196,7 @@ export class EnvInitService {
 			await migrationManager.handleAutomaticMigrationPrompt(workspacePath);
 		} catch (error: unknown) {
 			this.logger.error(
-				`Initial check failed: ${error instanceof Error ? error.message : String(error)}`
+				`Initial check failed: ${formatError(error)}`
 			);
 		} finally {
 			StatusBar.getInstance().setLoading(false);
@@ -213,7 +215,7 @@ export class EnvInitService {
 			remoteEnvs = await this.apiClient.getEnvs(repoId);
 			this.logger.info(`Found ${remoteEnvs.length} remote env files`);
 		} catch (error) {
-			this.logger.error(`Failed to fetch remote envs: ${(error as Error).message}`);
+			this.logger.error(`Failed to fetch remote envs: ${formatError(error)}`);
 		}
 
 		const remoteEnvMap = new Map<string, Env>();
@@ -223,9 +225,9 @@ export class EnvInitService {
 
 		const localEnvMap = new Map<string, string>();
 		for (const relativePath of localEnvFilePaths) {
-			const fileName = path.basename(relativePath);
+			const normalizedRelPath = relativePath.replace(/\\/g, '/');
 			const fullPath = path.join(workspacePath, relativePath);
-			localEnvMap.set(fileName, fullPath);
+			localEnvMap.set(normalizedRelPath, fullPath);
 		}
 
 		const allEnvFiles = new Set([...localEnvMap.keys(), ...remoteEnvMap.keys()]);
@@ -306,13 +308,20 @@ export class EnvInitService {
 	}
 
 	async maybeInitializeOrRestore(uri: Uri): Promise<void> {
-		const result = await getRepoAndEnvIds(path.basename(uri.fsPath), undefined, this.context);
+		const fileName = toWorkspaceRelativePath(uri);
+		const result = await getRepoAndEnvIds(fileName, undefined, this.context);
 		if (!result) {
 			this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
 			return;
 		}
 
 		const { repoId, envId, workspacePath, gitRemote } = result;
+
+		const pathCheck = validateFilePath(uri.fsPath, workspacePath);
+		if (!pathCheck.isValid) {
+			this.logger.error(`Path validation failed for ${uri.fsPath}: ${pathCheck.error}`);
+			return;
+		}
 
 		const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
 		if (!repoExistsResponse.exists) {
@@ -332,7 +341,7 @@ export class EnvInitService {
 				this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
 				showSuccess(`Project "${nameResult.name}" registered successfully.`);
 			} catch (error) {
-				this.logger.error(`Failed to register repo: ${(error as Error).message}`);
+				this.logger.error(`Failed to register repo: ${formatError(error)}`);
 				return;
 			}
 		}
@@ -342,13 +351,12 @@ export class EnvInitService {
 			return;
 		}
 
-		const fileName = path.basename(uri.fsPath);
 		let remoteEnv: Env | undefined;
 		try {
 			const remoteEnvs = await this.apiClient.getEnvs(repoId);
 			remoteEnv = remoteEnvs.find((e) => e.fileName === fileName);
 		} catch (error) {
-			this.logger.error(`Failed to check remote envs: ${(error as Error).message}`);
+			this.logger.error(`Failed to check remote envs: ${formatError(error)}`);
 		}
 
 		const localExists = fs.existsSync(uri.fsPath);
@@ -408,7 +416,7 @@ export class EnvInitService {
 				await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
 				showSuccess(`${fileName} is now backed up and synced.`);
 			} catch (error) {
-				this.logger.error(`Failed to initialize ${fileName}: ${(error as Error).message}`);
+				this.logger.error(`Failed to initialize ${fileName}: ${formatError(error)}`);
 				showError(`Failed to initialize ${fileName}.`);
 			}
 		}
@@ -438,6 +446,11 @@ export class EnvInitService {
 				}
 
 				const [ciphertext, iv] = remoteEnv.content.split(':');
+				if (!ciphertext || !iv) {
+					this.logger.error(`Invalid remote content format for ${fileName}`);
+					showError(`Failed to restore ${fileName}: invalid remote data.`);
+					return;
+				}
 				const decrypted = decryptEnv(ciphertext, iv, key);
 				const hash = hashEnv(decrypted);
 				const envCount = countEnvVars(decrypted);
@@ -446,7 +459,7 @@ export class EnvInitService {
 				await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
 				showSuccess(`${fileName} restored successfully.`);
 			} catch (error) {
-				this.logger.error(`Failed to restore ${fileName}: ${(error as Error).message}`);
+				this.logger.error(`Failed to restore ${fileName}: ${formatError(error)}`);
 				showError(`Failed to restore ${fileName}.`);
 			}
 		}
@@ -541,7 +554,7 @@ export class EnvInitService {
 			}
 		} catch (error) {
 			this.logger.error(
-				`Failed to handle first time sync for ${fileName}: ${(error as Error).message}`
+				`Failed to handle first time sync for ${fileName}: ${formatError(error)}`
 			);
 		}
 	}

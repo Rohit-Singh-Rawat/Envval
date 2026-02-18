@@ -48,7 +48,9 @@ export const postEnvsHandler = honoFactory.createHandlers(
 
 			return ctx.json(result, HTTP_CREATED);
 		} catch (error) {
-			logger.error('Failed to create environment', { error });
+			logger.error('Failed to create environment', {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			return ctx.json(
 				{ error: 'Failed to create environment' },
 				HTTP_INTERNAL_SERVER_ERROR

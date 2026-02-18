@@ -27,8 +27,6 @@ export type StatusBarState =
   | "Error"
   | "Offline"
   | "Reconnecting";
-  // TODO: Soft-revoke implementation (future enhancement)
-  // | "ReadOnly";
 
 const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
   Unauthenticated: {
@@ -67,14 +65,6 @@ const StatusBarStates: Record<StatusBarState, StatusBarStateConfig> = {
     tooltip: "Attempting to reconnect...",
     color: new ThemeColor('statusBarItem.warningForeground'),
   },
-  // TODO: Soft-revoke implementation (future enhancement)
-  /*
-  ReadOnly: {
-    icon: "$(lock)",
-    tooltip: "Device revoked - Read-only mode",
-    color: new ThemeColor('statusBarItem.errorForeground'),
-  },
-  */
 };
 
 /**
@@ -112,6 +102,9 @@ export class StatusBar implements Disposable {
 
   public setAuthenticationState(authenticated: boolean): void {
     this.lastKnownAuthState = authenticated;
+    this.statusBarItem.command = authenticated
+      ? Commands.SHOW_QUICK_SYNC_ACTION
+      : Commands.SHOW_LOGIN;
     if (this.activeOperationsCount === 0) {
       this.updateBaseState();
     }
@@ -156,26 +149,14 @@ export class StatusBar implements Disposable {
       this.statusBarItem.command = Commands.RETRY_CONNECTION;
     } else {
       this.isOffline = false;
-      this.statusBarItem.command = Commands.SHOW_QUICK_SYNC_ACTION;
+      this.statusBarItem.command = this.lastKnownAuthState
+        ? Commands.SHOW_QUICK_SYNC_ACTION
+        : Commands.SHOW_LOGIN;
       if (this.activeOperationsCount === 0) {
         this.updateBaseState();
       }
     }
   }
-
-  // TODO: Soft-revoke implementation (future enhancement)
-  /*
-  public setReadOnly(readOnly: boolean, revokedAt?: string): void {
-    if (readOnly) {
-      const tooltip = revokedAt
-        ? `EnvVault: Device revoked at ${new Date(revokedAt).toLocaleString()} - Read-only mode`
-        : 'EnvVault: Device revoked - Read-only mode';
-      this.updateState("ReadOnly", tooltip);
-    } else {
-      this.updateBaseState();
-    }
-  }
-  */
 
   private decrementOpCount(lastSyncedAt?: Date): void {
     this.activeOperationsCount = Math.max(0, this.activeOperationsCount - 1);

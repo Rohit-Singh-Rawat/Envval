@@ -43,18 +43,18 @@ export const postRepositoriesHandler = honoFactory.createHandlers(
 				workspacePath,
 			});
 
-			let preferences = (user as Record<string, unknown>).notificationPreferences;
-			if (typeof preferences === 'string') {
-				try {
-					preferences = JSON.parse(preferences);
-				} catch {
-					preferences = { newRepoAdded: true, newDeviceLogin: true };
+			let shouldNotify = true;
+			try {
+				const rawPrefs = (user as Record<string, unknown>).notificationPreferences;
+				const prefs = typeof rawPrefs === 'string' ? JSON.parse(rawPrefs) : rawPrefs;
+				if (prefs && typeof prefs === 'object' && 'newRepoAdded' in prefs) {
+					shouldNotify = Boolean(prefs.newRepoAdded);
 				}
+			} catch {
+				// Default to sending notification on parse failure
 			}
 
-			const prefs = preferences as { newRepoAdded: boolean } | undefined;
-
-			if (prefs?.newRepoAdded) {
+			if (shouldNotify) {
 				emailService.sendNewRepoEmail(user.email, user.name, name, gitRemoteUrl || undefined).catch((err) => {
 					logger.error('Failed to send new repo email', { error: err });
 				});
@@ -62,7 +62,9 @@ export const postRepositoriesHandler = honoFactory.createHandlers(
 
 			return ctx.json({ repository }, HTTP_CREATED);
 		} catch (error) {
-			if (error instanceof Error && error.message.includes('unique')) {
+			// Postgres unique constraint violation (23505)
+			const dbError = error as { code?: string };
+			if (dbError.code === '23505') {
 				return ctx.json({ error: 'Repository already exists' }, HTTP_CONFLICT);
 			}
 

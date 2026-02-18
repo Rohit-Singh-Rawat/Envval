@@ -1,38 +1,31 @@
-import { commands, window } from 'vscode';
+import { commands, window, QuickPickItem } from 'vscode';
 import Commands from './index';
 
-function showQuickSyncAction() {
-	const quickSyncAction = window.createQuickPick();
-	quickSyncAction.items = [
-		{ label: 'Force Sync', description: 'Force sync your environment variables' },
-		{ label: 'Retry Connection', description: 'Test server connectivity' },
-		{ label: 'Show Logs', description: 'Show the logs of your environment variables' },
-		{ label: 'Logout', description: 'Clear credentials and sign out' },
-	];
-
-	return quickSyncAction;
+interface ActionItem extends QuickPickItem {
+	readonly commandId: string;
 }
 
-export async function handleQuickSyncAction() {
-	const quickPick = showQuickSyncAction();
+// Built lazily inside handleQuickSyncAction to avoid the circular import
+// between this file and commands/index.ts — at module-load time, the
+// Commands class has not finished initializing its static properties.
+function getActions(): ActionItem[] {
+	return [
+		{ label: '$(sync) Force Sync', description: 'Force sync your environment variables', commandId: Commands.FORCE_SYNC },
+		{ label: '$(plug) Retry Connection', description: 'Test server connectivity', commandId: Commands.RETRY_CONNECTION },
+		{ label: '$(output) Show Logs', description: 'Open the extension output log', commandId: Commands.SHOW_LOGS },
+		{ label: '$(sign-out) Logout', description: 'Clear credentials and sign out', commandId: Commands.LOGOUT },
+	];
+}
+
+export async function handleQuickSyncAction(): Promise<void> {
+	const quickPick = window.createQuickPick<ActionItem>();
+	quickPick.items = getActions();
+	quickPick.placeholder = 'EnvVault Actions';
 
 	quickPick.onDidAccept(() => {
-		const selection = quickPick.selectedItems[0];
-		if (selection) {
-			switch (selection.label) {
-				case 'Force Sync':
-					commands.executeCommand(Commands.FORCE_SYNC);
-					break;
-				case 'Retry Connection':
-					commands.executeCommand(Commands.RETRY_CONNECTION);
-					break;
-				case 'Show Logs':
-					commands.executeCommand(Commands.SHOW_LOGS);
-					break;
-				case 'Logout':
-					commands.executeCommand(Commands.LOGOUT);
-					break;
-			}
+		const selected = quickPick.selectedItems[0];
+		if (selected) {
+			commands.executeCommand(selected.commandId);
 		}
 		quickPick.dispose();
 	});

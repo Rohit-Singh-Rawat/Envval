@@ -150,16 +150,21 @@ export const extensionApi = new Hono()
 
 			logger.info('Extension device token response sent successfully', { deviceId });
 			return c.json(response);
-		} catch (error: any) {
+		} catch (error: unknown) {
 			// Handle better-auth errors (authorization_pending, slow_down, etc.)
-			const errorCode = error?.error || error?.code || 'invalid_grant';
+			const err = error as Record<string, unknown>;
+			const errorCode = (typeof err?.error === 'string' ? err.error : undefined)
+				|| (typeof err?.code === 'string' ? err.code : undefined)
+				|| 'invalid_grant';
 			const errorDescription =
-				error?.error_description || error?.message || 'Device authorization failed';
+				(typeof err?.error_description === 'string' ? err.error_description : undefined)
+				|| (error instanceof Error ? error.message : undefined)
+				|| 'Device authorization failed';
 
 			logger.error('Extension device token error', {
 				errorCode,
 				errorDescription,
-				error: error?.message,
+				error: error instanceof Error ? error.message : String(error),
 			});
 
 			// Return the same error format as RFC 8628

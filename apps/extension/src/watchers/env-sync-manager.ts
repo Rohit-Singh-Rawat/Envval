@@ -12,9 +12,11 @@ import fs from 'fs';
 import path from 'path';
 import { EnvVaultVsCodeSecrets } from '../utils/secrets';
 import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
+import { validateFilePath, toWorkspaceRelativePath } from '../utils/path-validator';
 import { StatusBar } from '../ui/status-bar';
 import { ConnectionMonitor } from '../services/connection-monitor';
 import { OperationQueueService } from '../services/operation-queue';
+import { formatError } from '../utils/format-error';
 
 /**
  * Service orchestrating the synchronization between local files and EnvVault.
@@ -39,14 +41,6 @@ export class SyncManager implements Disposable {
    * Track in-flight syncs to prevent race conditions (e.g., Save vs Poll).
    */
   private readonly activeSyncs: Set<string> = new Set();
-
-  // TODO: Soft-revoke implementation (future enhancement)
-  // Currently unused because devices are hard-deleted (401 response), not soft-revoked (403 response)
-  // /**
-  //  * Read-only mode flag - set when device is revoked.
-  //  * In read-only mode, user can view files but cannot sync changes.
-  //  */
-  // private readOnlyMode = false;
 
   private constructor(
     context: vscode.ExtensionContext,
@@ -177,13 +171,19 @@ export class SyncManager implements Disposable {
           }
 
           const localFilePath = path.join(workspacePath, localMeta.fileName);
-          if (!fs.existsSync(localFilePath)) {
+          const pathCheck = validateFilePath(localFilePath, workspacePath);
+          if (!pathCheck.isValid) {
+            this.logger.error(`Path validation failed for ${localMeta.fileName}: ${pathCheck.error}`);
+            continue;
+          }
+          let localContent: string;
+          try {
+            localContent = fs.readFileSync(localFilePath, 'utf8');
+          } catch {
             this.logger.info(`Ghost file detected: ${localMeta.fileName}`);
             await this.envInitService.maybeInitializeOrRestore(Uri.file(localFilePath));
             continue;
           }
-
-          const localContent = fs.readFileSync(localFilePath, 'utf8');
           const localHash = hashEnv(localContent);
 
           // Standard three-way reconciliation logic
@@ -193,13 +193,13 @@ export class SyncManager implements Disposable {
             await this.handleConflict(Uri.file(localFilePath), localMeta.envId, localMeta.fileName, localContent, localHash, remoteContent, remoteHash);
           }
         } catch (error: unknown) {
-          this.logger.error(`Error polling ${localMeta.fileName}: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(`Error polling ${localMeta.fileName}: ${formatError(error)}`);
         } finally {
           this.activeSyncs.delete(localMeta.envId);
         }
       }
     } catch (error: unknown) {
-      this.logger.error(`Global sync poll failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Global sync poll failed: ${formatError(error)}`);
     } finally {
       StatusBar.getInstance().setSyncState(false, new Date());
     }
@@ -208,7 +208,7 @@ export class SyncManager implements Disposable {
   private async applyRemoteUpdate(uri: Uri, content: string, hash: string): Promise<void> {
     await this.updateFileInVscode(uri, content);
     const envCount = countEnvVars(content);
-    const fileName = path.basename(uri.fsPath);
+    const fileName = toWorkspaceRelativePath(uri);
     const result = await getRepoAndEnvIds(fileName, undefined, this.context);
     if (result) {
       await this.metadataStore.saveEnvMetadataSync(result.envId, fileName, hash, envCount);
@@ -239,11 +239,12 @@ export class SyncManager implements Disposable {
         await this.applyRemoteUpdate(uri, remoteContent, remoteHash);
       }
     } catch (error: unknown) {
-      this.logger.error(`Conflict resolution failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Conflict resolution failed: ${formatError(error)}`);
     }
   }
 
   public startPolling(): void {
+    this.stopPolling();
     const config = getVSCodeConfig();
     const interval = config.pollIntervalSeconds * 1000;
     this.pollInterval = setInterval(() => this.pollRemoteChanges(), interval);
@@ -257,7 +258,7 @@ export class SyncManager implements Disposable {
   }
 
   public async handleEnvFileSave(uri: Uri): Promise<void> {
-    const fileName = path.basename(uri.fsPath);
+    const fileName = toWorkspaceRelativePath(uri);
     const result = await getRepoAndEnvIds(fileName, undefined, this.context);
     if (!result) {
       return;
@@ -277,17 +278,17 @@ export class SyncManager implements Disposable {
     StatusBar.getInstance().setSyncState(true);
 
     try {
-      if (!fs.existsSync(uri.fsPath)) {
-        return;
+      let content: string;
+      try {
+        const stat = fs.statSync(uri.fsPath);
+        if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+          window.showErrorMessage(`EnvVault: ${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
+          return;
+        }
+        content = fs.readFileSync(uri.fsPath, 'utf8');
+      } catch {
+        return; // File deleted between event and handler
       }
-
-      const stat = fs.statSync(uri.fsPath);
-      if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
-        window.showErrorMessage(`EnvVault: ${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
-        return;
-      }
-
-      const content = fs.readFileSync(uri.fsPath, 'utf8');
       const hash = hashEnv(content);
       const metadata = await this.metadataStore.loadEnvMetadata(envId);
 
@@ -323,23 +324,6 @@ export class SyncManager implements Disposable {
           await this.metadataStore.clearMetadata(envId);
           await this.envInitService.maybeInitializeOrRestore(uri);
         }
-        // TODO: Soft-revoke implementation (future enhancement)
-        // Currently devices are hard-deleted (sessions deleted → 401 response)
-        // When soft-revoke is implemented, this will enable graceful read-only mode
-        /*
-        else if (error instanceof ApiError && error.status === 403) {
-          // Device revoked - enter read-only mode
-          this.enterReadOnlyMode();
-          window.showErrorMessage(
-            'Your device has been revoked. You can view files but cannot sync changes.',
-            'Re-authenticate'
-          ).then(choice => {
-            if (choice === 'Re-authenticate') {
-              vscode.commands.executeCommand('envval.logout');
-            }
-          });
-        }
-        */
         else if (error instanceof ApiError && error.status === 412) {
           // Conflict detected - environment was modified by another device
           this.logger.warn(`Conflict detected for ${fileName} - showing resolution dialog`);
@@ -354,14 +338,9 @@ export class SyncManager implements Disposable {
             // Force push with current hash as baseHash
             await this.pushEnv(envId);
           } else if (choice === 'Use Remote (discard local)') {
-            // Pull latest from remote
-            const remoteEnv = await this.apiClient.getEnv(envId);
-            const key = await this.getEncryptionKey();
-            if (key && remoteEnv) {
-              const [ciphertext, iv] = remoteEnv.content.split(':');
-              const remoteContent = decryptEnv(ciphertext, iv, key);
-              const remoteHash = hashEnv(remoteContent);
-              await this.applyRemoteUpdate(uri, remoteContent, remoteHash);
+            const pulled = await this.pullAndDecrypt(envId);
+            if (pulled) {
+              await this.applyRemoteUpdate(uri, pulled.content, pulled.hash);
             }
           }
         } else {
@@ -369,7 +348,7 @@ export class SyncManager implements Disposable {
         }
       }
     } catch (error: unknown) {
-      this.logger.error(`Auto-sync failed for ${fileName}: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Auto-sync failed for ${fileName}: ${formatError(error)}`);
       window.showErrorMessage(`EnvVault Sync Failed for ${fileName}`);
     } finally {
       this.activeSyncs.delete(envId);
@@ -382,13 +361,14 @@ export class SyncManager implements Disposable {
   }
 
   public async handleDeletedEnvFile(uri: Uri): Promise<void> {
-    const result = await getRepoAndEnvIds(path.basename(uri.fsPath), undefined, this.context);
+    const fileName = toWorkspaceRelativePath(uri);
+    const result = await getRepoAndEnvIds(fileName, undefined, this.context);
     if (!result) {
       return;
     }
     const { envId } = result;
     if (!ConnectionMonitor.getInstance().isOnline) {
-      this.logger.info(`[SyncManager] Offline - skipping remote delete for ${path.basename(uri.fsPath)}`);
+      this.logger.info(`[SyncManager] Offline - skipping remote delete for ${fileName}`);
       return;
     }
     if (await this.metadataStore.loadEnvMetadata(envId)) {
@@ -434,17 +414,17 @@ export class SyncManager implements Disposable {
       }
 
       const filePath = path.join(workspacePath, metadata.fileName);
-      if (!fs.existsSync(filePath)) {
-        return;
+      let content: string;
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+          window.showErrorMessage(`EnvVault: ${metadata.fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
+          return;
+        }
+        content = fs.readFileSync(filePath, 'utf8');
+      } catch {
+        return; // File deleted between event and handler
       }
-
-      const stat = fs.statSync(filePath);
-      if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
-        window.showErrorMessage(`EnvVault: ${metadata.fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`);
-        return;
-      }
-
-      const content = fs.readFileSync(filePath, 'utf8');
       const hash = hashEnv(content);
       const key = await this.getEncryptionKey();
       if (!key) {
@@ -464,21 +444,6 @@ export class SyncManager implements Disposable {
       await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
       window.showInformationMessage(`EnvVault: Pushed ${metadata.fileName}`);
     } catch (error: unknown) {
-      // TODO: Soft-revoke implementation (future enhancement)
-      /*
-      if (error instanceof ApiError && error.status === 403) {
-        // Device revoked - enter read-only mode
-        this.enterReadOnlyMode();
-        window.showErrorMessage(
-          'Your device has been revoked. You can view files but cannot sync changes.',
-          'Re-authenticate'
-        ).then(choice => {
-          if (choice === 'Re-authenticate') {
-            vscode.commands.executeCommand('envval.logout');
-          }
-        });
-      } else
-      */
       if (error instanceof ApiError && error.status === 412) {
         // Conflict detected
         this.logger.warn(`Push conflict for ${metadata.fileName}`);
@@ -493,24 +458,20 @@ export class SyncManager implements Disposable {
           // Retry push - will use current hash
           await this.pushEnv(envId);
         } else if (choice === 'Pull Remote (discard local)') {
-          const remoteEnv = await this.apiClient.getEnv(envId);
-          const key = await this.getEncryptionKey();
-          if (key && remoteEnv) {
-            const [ciphertext, iv] = remoteEnv.content.split(':');
-            const remoteContent = decryptEnv(ciphertext, iv, key);
-            const remoteHash = hashEnv(remoteContent);
+          const pulled = await this.pullAndDecrypt(envId);
+          if (pulled) {
             const workspacePath = await getWorkspacePath();
             if (workspacePath) {
               await this.applyRemoteUpdate(
                 Uri.file(path.join(workspacePath, metadata.fileName)),
-                remoteContent,
-                remoteHash
+                pulled.content,
+                pulled.hash
               );
             }
           }
         }
       } else {
-        this.logger.error(`Manual push failed: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.error(`Manual push failed: ${formatError(error)}`);
         window.showErrorMessage(`EnvVault Push Failed.`);
       }
     } finally {
@@ -549,6 +510,25 @@ export class SyncManager implements Disposable {
     }
   }
 
+  /** Fetches and decrypts remote env content. Returns null if unavailable or malformed. */
+  private async pullAndDecrypt(envId: string): Promise<{ content: string; hash: string } | null> {
+    const remoteEnv = await this.apiClient.getEnv(envId);
+    if (!remoteEnv) {
+      return null;
+    }
+    const parts = remoteEnv.content.split(':');
+    if (parts.length < 2 || !parts[0] || !parts[1]) {
+      this.logger.error(`Invalid remote content format for env ${envId}`);
+      return null;
+    }
+    const key = await this.getEncryptionKey();
+    if (!key) {
+      return null;
+    }
+    const content = decryptEnv(parts[0], parts[1], key);
+    return { content, hash: hashEnv(content) };
+  }
+
   private async getEncryptionKey(): Promise<string | null> {
     if (this.cachedKey) {
       return this.cachedKey;
@@ -570,22 +550,9 @@ export class SyncManager implements Disposable {
     this.logger.debug('Key cache invalidated.');
   }
 
-  // TODO: Soft-revoke implementation (future enhancement)
-  /*
-  private enterReadOnlyMode(revokedAt?: string): void {
-    if (this.readOnlyMode) {
-      return;
-    }
-
-    this.readOnlyMode = true;
-    this.stopPolling();
-    StatusBar.getInstance().setReadOnly(true, revokedAt);
-    vscode.commands.executeCommand('setContext', 'envval:readOnly', true);
-    this.logger.warn(`[SyncManager] Entered read-only mode - device revoked at ${revokedAt || 'unknown time'}`);
-  }
-  */
-
   public dispose(): void {
     this.stopPolling();
+    this.cachedKey = null;
+    SyncManager.instance = undefined!;
   }
 }

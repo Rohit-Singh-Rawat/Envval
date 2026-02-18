@@ -11,6 +11,7 @@ import { env } from '@/config/env';
 import { encryptKeyMaterialWithMaster, generateKeyMaterial } from '@/shared/utils/crypto';
 import { parseDeviceName, formatEmailTimestamp } from '@/shared/utils/user-agent';
 import { rateLimitStorage } from '@/shared/lib/redis/rate-limit-storage';
+import { logger } from '@/shared/utils/logger';
 
 const emailService = new AuthEmailService();
 const deviceService = new DeviceService();
@@ -164,9 +165,9 @@ export const auth = betterAuth({
 								ipAddress: session.ipAddress ?? undefined,
 								revokeUrl: `${env.APP_URL}/devices`,
 							})
-							.catch(console.error);
+							.catch((err: unknown) => logger.error('Failed to send login notification email', { error: err instanceof Error ? err.message : String(err) }));
 					} catch (error) {
-						console.error('Error in session create hook:', error);
+						logger.error('Error in session create hook', { error: error instanceof Error ? error.message : String(error) });
 					}
 				},
 				before: async (data) => {

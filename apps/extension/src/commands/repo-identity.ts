@@ -6,6 +6,7 @@ import { EnvVaultMetadataStore } from '../services/metadata-store';
 import { getCurrentWorkspaceId, detectMonorepoStructure, getAllGitRemotes, getGitRemoteUrl } from '../utils/repo-detection';
 import { EnvVaultApiClient } from '../api/client';
 import type { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 
 /**
  * Command implementations for repository identity management
@@ -114,7 +115,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      this.logger.error(`Error viewing repo identity: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error viewing repo identity: ${formatError(error)}`);
       vscode.window.showErrorMessage('Failed to retrieve repository identity information.');
     }
   }
@@ -189,7 +190,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      this.logger.error(`Error setting manual repo identity: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error setting manual repo identity: ${formatError(error)}`);
       vscode.window.showErrorMessage('Failed to set repository identity.');
     }
   }
@@ -286,7 +287,7 @@ export class RepoIdentityCommands {
       vscode.window.showInformationMessage(`Sub-project path set to: ${selectedPath.trim()}`);
 
     } catch (error) {
-      this.logger.error(`Error setting sub-project path: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error setting sub-project path: ${formatError(error)}`);
       vscode.window.showErrorMessage('Failed to set sub-project path.');
     }
   }
@@ -328,7 +329,7 @@ export class RepoIdentityCommands {
       }
 
     } catch (error) {
-      this.logger.error(`Error resetting repo identity: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error resetting repo identity: ${formatError(error)}`);
       vscode.window.showErrorMessage('Failed to reset repository identity.');
     }
   }
@@ -346,30 +347,24 @@ export class RepoIdentityCommands {
     try {
       const migrationCheck = await this.migrationService.detectMigrationNeeded(workspacePath);
 
-      if (!migrationCheck.needsMigration) {
+      if (!migrationCheck.needsMigration || !migrationCheck.oldRepoId || !migrationCheck.newRepoId || !migrationCheck.reason) {
         vscode.window.showInformationMessage('No migration needed for this workspace.');
         return;
       }
 
-      const userChoice = await this.migrationService.promptUserForMigration(
-        migrationCheck.oldRepoId!,
-        migrationCheck.newRepoId!,
-        migrationCheck.reason!
-      );
+      const { oldRepoId, newRepoId, reason } = migrationCheck;
+
+      const userChoice = await this.migrationService.promptUserForMigration(oldRepoId, newRepoId, reason);
 
       if (userChoice === 'migrate') {
-        await this.migrationService.performMigration(
-          migrationCheck.oldRepoId!,
-          migrationCheck.newRepoId!,
-          workspacePath
-        );
+        await this.migrationService.performMigration(oldRepoId, newRepoId, workspacePath);
       } else if (userChoice === 'keep') {
-        await this.identityStore.setManualIdentity(workspacePath, migrationCheck.oldRepoId!);
+        await this.identityStore.setManualIdentity(workspacePath, oldRepoId);
         vscode.window.showInformationMessage('Current identity preserved as manual override.');
       }
 
     } catch (error) {
-      this.logger.error(`Error during manual migration: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error during manual migration: ${formatError(error)}`);
       vscode.window.showErrorMessage('Migration failed. Please try again.');
     }
   }
@@ -552,7 +547,7 @@ export class RepoIdentityCommands {
       outputChannel.appendLine('='.repeat(60));
 
     } catch (error) {
-      this.logger.error(`Error during repo detection diagnostics: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error during repo detection diagnostics: ${formatError(error)}`);
       vscode.window.showErrorMessage('Failed to generate diagnostic report.');
     }
   }

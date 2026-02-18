@@ -1,5 +1,3 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { createLogger } from './utils/logger';
 import { getLoggingVerbose, onConfigChange } from './lib/config';
@@ -24,12 +22,9 @@ import { NOTIFICATION_DEBOUNCE_MS } from './lib/constants';
 import { WorkspaceValidator } from './services/workspace-validator';
 import { WorkspaceContextProvider } from './services/workspace-context-provider';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
 	const logger = createLogger(context, getLoggingVerbose());
 
-	// Initialize workspace components early for validation
 	const workspaceValidator = WorkspaceValidator.getInstance(logger);
 	const contextProvider = WorkspaceContextProvider.getInstance();
 
@@ -42,7 +37,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	const connectionMonitor = ConnectionMonitor.getInstance(logger);
 	const operationQueue = OperationQueueService.getInstance(context, logger);
 
-	// Initialize env cache and hover provider (works without authentication)
 	const envCache = EnvCacheService.getInstance(envFileWatcher, logger);
 	const hoverProvider = new EnvHoverProvider(envCache, logger);
 	const hoverDisposable = vscode.languages.registerHoverProvider(
@@ -75,7 +69,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	Commands.getInstance().registerCommands(context);
 	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, envInitService, logger);
 
-	// Initialize status calculator for tree view
 	const statusCalculator = EnvStatusCalculator.getInstance(logger);
 	const trackedEnvsProvider = new TrackedEnvsProvider(
 		metadataStore,
@@ -85,34 +78,33 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 	vscode.window.registerTreeDataProvider('envvalTrackedEnvs', trackedEnvsProvider);
 
-	vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
-		trackedEnvsProvider.refresh();
-	});
-
-	// Command to manually re-validate workspace
-	vscode.commands.registerCommand('envval.validateWorkspace', async () => {
-		const wsContext = contextProvider.getWorkspaceContext();
-		if (wsContext.primaryPath) {
-			workspaceValidator.clearCache(wsContext.primaryPath);
-			const result = await workspaceValidator.validateWorkspace(
-				wsContext.primaryPath,
-				{ showPrompts: true, force: true }
-			);
-			if (result.canProceed) {
-				vscode.window.showInformationMessage(
-					`Workspace validation passed. Safe to scan for environment files.`
+	context.subscriptions.push(
+		vscode.commands.registerCommand('envval.refreshTrackedEnvs', () => {
+			trackedEnvsProvider.refresh();
+		}),
+		vscode.commands.registerCommand('envval.validateWorkspace', async () => {
+			const wsContext = contextProvider.getWorkspaceContext();
+			if (wsContext.primaryPath) {
+				workspaceValidator.clearCache(wsContext.primaryPath);
+				const result = await workspaceValidator.validateWorkspace(
+					wsContext.primaryPath,
+					{ showPrompts: true, force: true }
 				);
+				if (result.canProceed) {
+					vscode.window.showInformationMessage(
+						'Workspace validation passed. Safe to scan for environment files.'
+					);
+				}
+			} else {
+				vscode.window.showWarningMessage('No workspace open');
 			}
-		} else {
-			vscode.window.showWarningMessage('No workspace open');
-		}
-	});
+		})
+	);
 
 	const disposeConfigListener = onConfigChange((config) => {
 		logger.setVerbose(config.loggingVerbose);
 	});
 
-	// Throttle connection notifications to prevent spam
 	let lastNotificationAt = 0;
 
 	connectionMonitor.onDidChangeDetailedState((state) => {
@@ -139,7 +131,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	// Function to start all services (only when authenticated)
 	const startServices = async () => {
 		logger.info('Starting EnvVault services...');
 		envFileWatcher.start();
@@ -150,7 +141,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info('EnvVault services started');
 	};
 
-	// Function to stop all services (when logged out)
 	const stopServices = () => {
 		logger.info('Stopping EnvVault services...');
 		syncManager.stopPolling();
@@ -160,15 +150,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger.info('EnvVault services stopped');
 	};
 
-	// Initialize LoginWindow eagerly so it's available for auto-logout
 	const loginWindow = LoginWindow.getInstance(context, authProvider, logger);
 
-	// Check authentication status
 	const isAuthenticated = await authProvider.isAuthenticated();
 	vscode.commands.executeCommand('setContext', 'envval:authenticated', isAuthenticated);
 	vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !isAuthenticated);
 
-	// Single auth state handler for both initial states
 	authProvider.onAuthenticationStateChanged(async (authenticated) => {
 		vscode.commands.executeCommand('setContext', 'envval:authenticated', authenticated);
 		vscode.commands.executeCommand('setContext', 'envval:unauthenticated', !authenticated);
@@ -203,31 +190,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		connectionMonitor,
 		operationQueue,
 		envCache,
-		hoverDisposable
+		hoverDisposable,
+		trackedEnvsProvider
 	);
 }
 
-/**
- * Extension deactivation lifecycle hook.
- *
- * Ensures clean shutdown of all services to prevent:
- * - Memory leaks from active intervals/timers
- * - Orphaned file system watchers
- * - Dangling event listeners
- *
- * Note: VS Code automatically disposes context.subscriptions,
- * but explicit cleanup ensures deterministic shutdown order.
- */
 export function deactivate(): void {
-	// No-op: All cleanup is handled via context.subscriptions disposal
-	// The subscription array ensures proper cleanup order:
-	// 1. Config listener
-	// 2. StatusBar (disposes status bar item)
-	// 3. AuthProvider (clears auth state listeners)
-	// 4. EnvFileWatcher (stops file system watchers)
-	// 5. SyncManager (stops polling interval)
-	// 6. ConnectionMonitor (stops network checks)
-	// 7. OperationQueue (clears pending operations)
-	// 8. EnvCache (clears cache)
-	// 9. Hover provider (unregisters hover handler)
+	// Cleanup handled via context.subscriptions disposal
 }

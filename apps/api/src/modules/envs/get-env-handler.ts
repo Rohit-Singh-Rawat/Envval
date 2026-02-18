@@ -4,6 +4,7 @@ import { authMiddleware } from '@/shared/middleware/auth.middleware';
 import { HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_INTERNAL_SERVER_ERROR } from '@/shared/constants/http-status';
 import { EnvService } from './env.service';
 import { envIdParamSchema } from './env.schemas';
+import { logger } from '@/shared/utils/logger';
 
 const envService = new EnvService();
 
@@ -26,7 +27,7 @@ export const getEnvHandler = honoFactory.createHandlers(
 
 			return ctx.json(result);
 		} catch (error) {
-			console.error('Failed to get environment:', error);
+			logger.error('Failed to get environment', { error: error instanceof Error ? error.message : String(error) });
 			return ctx.json(
 				{ error: 'Failed to retrieve environment' },
 				HTTP_INTERNAL_SERVER_ERROR

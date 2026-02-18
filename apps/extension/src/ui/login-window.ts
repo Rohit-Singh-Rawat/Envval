@@ -5,6 +5,7 @@ import {
 	PollingStatus,
 } from '../providers/auth-provider';
 import { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 import { getLoginWebviewContent } from './webview/template';
 
 export class LoginWindow {
@@ -153,7 +154,7 @@ export class LoginWindow {
 			await this.authProvider.openVerificationUrl(url);
 			this.sendMessage({ command: 'browserOpened' });
 		} catch (error) {
-			this.logger.error(`Failed to open browser: ${error}`);
+			this.logger.error(`Failed to open browser: ${formatError(error)}`);
 		}
 	}
 
@@ -166,7 +167,7 @@ export class LoginWindow {
 			await vscode.env.clipboard.writeText(this.currentDeviceCode.user_code);
 			this.sendMessage({ command: 'codeCopied' });
 		} catch (error) {
-			this.logger.error(`Failed to copy code: ${error}`);
+			this.logger.error(`Failed to copy code: ${formatError(error)}`);
 		}
 	}
 

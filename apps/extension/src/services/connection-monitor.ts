@@ -1,13 +1,14 @@
 import { Disposable, EventEmitter } from 'vscode';
 import { Logger } from '../utils/logger';
 import {
-	API_BASE_URL,
 	CONNECTION_HEALTH_CHECK_INTERVAL_MS,
 	CONNECTION_RECOVERY_CHECK_INTERVAL_MS,
 	CONNECTION_STABILITY_MS,
 	HEALTH_CHECK_TIMEOUT_MS,
 	RECONNECTING_FAILURE_THRESHOLD,
 } from '../lib/constants';
+import { getApiBaseUrl } from '../lib/config';
+import { formatError } from '../utils/format-error';
 
 export type ConnectionState = 'online' | 'offline' | 'reconnecting';
 
@@ -107,7 +108,7 @@ export class ConnectionMonitor implements Disposable {
 			const timeout = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
 
 			try {
-				const response = await fetch(`${API_BASE_URL}/health`, {
+				const response = await fetch(`${getApiBaseUrl()}/health`, {
 					signal: controller.signal,
 				});
 				return response.ok;
@@ -115,7 +116,7 @@ export class ConnectionMonitor implements Disposable {
 				clearTimeout(timeout);
 			}
 		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : String(error);
+			const message = formatError(error);
 
 			// fetch may not be available in Node.js <18
 			if (message.includes('fetch is not defined') || message.includes('fetch is not a function')) {

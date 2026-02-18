@@ -11,6 +11,7 @@ import { RepoIdentityStore } from '../services/repo-identity-store';
 import { WorkspaceContextProvider } from '../services/workspace-context-provider';
 import { WorkspaceValidator } from '../services/workspace-validator';
 import type { Logger } from '../utils/logger';
+import { formatError } from './format-error';
 
 const execAsync = promisify(exec);
 
@@ -33,9 +34,8 @@ function logMessage(message: string, level: 'debug' | 'info' | 'warn' | 'error' 
         logger.error(message);
         break;
     }
-  } else {
-    console.log(`[RepoDetection] ${message}`);
   }
+  // No-op when logger is unavailable — avoids console leaks in production
 }
 
 /**
@@ -737,7 +737,7 @@ export async function getCurrentWorkspaceIdLegacy(
 /**
  * Get repoId and envId for the current workspace and a given file.
  * Returns undefined if no workspace is open.
- * @param fileName The basename of the environment file (e.g. ".env")
+ * @param fileName Workspace-relative path of the env file (e.g. "apps/api/.env" or ".env" for root-level files).
  * @param userId Optional userId to include in ID computation
  * @param context Extension context for persistent storage access
  */
@@ -778,12 +778,12 @@ export async function getAllEnvFiles(logger?: Logger): Promise<string[]> {
   const contextProvider = WorkspaceContextProvider.getInstance();
   const context = contextProvider.getWorkspaceContext();
 
-  if (context.mode === 'none') {
+  if (context.mode === 'none' || !context.primaryPath) {
     logger?.debug('No workspace open, skipping env file scan');
     return [];
   }
 
-  const workspacePath = context.primaryPath!;
+  const workspacePath = context.primaryPath;
 
   // Validate workspace safety (warns users about Desktop, C:\, etc.)
   if (logger) {
@@ -840,7 +840,7 @@ export async function getAllEnvFiles(logger?: Logger): Promise<string[]> {
     return relativePaths;
 
   } catch (error) {
-    logger?.error(`Failed to scan workspace: ${error instanceof Error ? error.message : String(error)}`);
+    logger?.error(`Failed to scan workspace: ${formatError(error)}`);
     return [];
   }
 }

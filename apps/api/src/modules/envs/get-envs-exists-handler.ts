@@ -4,6 +4,7 @@ import { authMiddleware } from '@/shared/middleware/auth.middleware';
 import { HTTP_UNAUTHORIZED, HTTP_INTERNAL_SERVER_ERROR } from '@/shared/constants/http-status';
 import { EnvService } from './env.service';
 import { envExistsQuerySchema } from './env.schemas';
+import { logger } from '@/shared/utils/logger';
 
 const envService = new EnvService();
 
@@ -21,7 +22,7 @@ export const getEnvExistsHandler = honoFactory.createHandlers(
 			const result = await envService.getEnvironmentByFileName(user.id, repoId, fileName);
 			return ctx.json({ exists: !!result });
 		} catch (error) {
-			console.error('Failed to check environment existence:', error);
+			logger.error('Failed to check environment existence', { error: error instanceof Error ? error.message : String(error) });
 			return ctx.json(
 				{ error: 'Failed to check environment' },
 				HTTP_INTERNAL_SERVER_ERROR

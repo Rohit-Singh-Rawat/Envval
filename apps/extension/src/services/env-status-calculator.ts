@@ -5,6 +5,7 @@ import { EnvMetadata } from './metadata-store';
 import { hashEnv } from '../utils/crypto';
 import { EnvSyncStatus } from '../views/tracked-envs';
 import { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 
 interface StatusCacheEntry {
 	status: EnvSyncStatus;
@@ -42,13 +43,7 @@ export class EnvStatusCalculator {
 		}
 		
 		const fileUri = this.getFileUri(metadata.fileName);
-		
-		// Handle missing files gracefully
-		if (!fs.existsSync(fileUri.fsPath)) {
-			this.logger.debug(`File not found: ${fileUri.fsPath}, treating as synced`);
-			return 'synced';
-		}
-		
+
 		try {
 			const stats = fs.statSync(fileUri.fsPath);
 			const mtime = stats.mtimeMs;
@@ -74,7 +69,7 @@ export class EnvStatusCalculator {
 			
 			return status;
 		} catch (error) {
-			const errorMsg = error instanceof Error ? error.message : String(error);
+			const errorMsg = formatError(error);
 			this.logger.error(`Failed to calculate status for ${metadata.fileName}: ${errorMsg}`);
 			// Graceful degradation: assume synced if we can't determine status
 			return 'synced';

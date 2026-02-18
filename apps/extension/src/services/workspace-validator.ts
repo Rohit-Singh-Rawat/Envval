@@ -65,7 +65,7 @@ export class WorkspaceValidator {
 		const warnings: string[] = [];
 
 		// Path safety check - prevent scanning overly broad directories
-		const safetyResult = isPathSafe(workspacePath);
+		const safetyResult = isPathSafe(workspacePath, {}, this.logger);
 		if (!safetyResult.isSafe) {
 			this.logger.warn(`Unsafe path detected: ${workspacePath} (${safetyResult.reason})`);
 

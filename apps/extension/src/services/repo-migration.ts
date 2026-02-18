@@ -4,6 +4,7 @@ import { EnvVaultMetadataStore } from './metadata-store';
 import { EnvVaultApiClient } from '../api/client';
 import { getCurrentWorkspaceId, getGitRemoteUrl } from '../utils/repo-detection';
 import type { Logger } from '../utils/logger';
+import { formatError } from '../utils/format-error';
 
 /**
  * Service for handling repo identity migrations when Git remotes are detected
@@ -41,7 +42,7 @@ export class RepoMigrationService {
         reason: identity.suggestedMigration.reason
       };
     } catch (error) {
-      console.error('[RepoMigration] Error detecting migration need:', error);
+      this.logger.error(`Error detecting migration need: ${formatError(error)}`);
       return { needsMigration: false };
     }
   }
@@ -77,7 +78,7 @@ export class RepoMigrationService {
    */
   async performMigration(oldRepoId: string, newRepoId: string, workspacePath: string): Promise<{ success: boolean; migratedCount: number }> {
     try {
-      console.log(`[RepoMigration] Starting migration from ${oldRepoId} to ${newRepoId}`);
+      this.logger.info(`Starting migration from ${oldRepoId} to ${newRepoId}`);
 
       // Migrate metadata store entries
       const migratedCount = await this.metadataStore.migrateRepoId(oldRepoId, newRepoId);
@@ -96,11 +97,11 @@ export class RepoMigrationService {
            vscode.window.showWarningMessage(`Local migration successful, but server sync failed: ${result.message}`);
         }
       } catch (error) {
-        console.warn('[RepoMigration] Server migration failed:', error);
+        this.logger.warn(`Server migration failed: ${formatError(error)}`);
          vscode.window.showWarningMessage('Local migration successful, but server sync failed. Please check your connection.');
       }
 
-      console.log(`[RepoMigration] Successfully migrated ${migratedCount} metadata entries`);
+      this.logger.info(`Successfully migrated ${migratedCount} metadata entries`);
 
       // Show success message
       vscode.window.showInformationMessage(
@@ -109,7 +110,7 @@ export class RepoMigrationService {
 
       return { success: true, migratedCount };
     } catch (error) {
-      console.error('[RepoMigration] Migration failed:', error);
+      this.logger.error(`Migration failed: ${formatError(error)}`);
       vscode.window.showErrorMessage('Repository identity migration failed. Please try again.');
 
       return { success: false, migratedCount: 0 };
@@ -128,23 +129,21 @@ export class RepoMigrationService {
     }
 
     const migrationCheck = await this.detectMigrationNeeded(workspacePath);
-    if (!migrationCheck.needsMigration) {
+    if (!migrationCheck.needsMigration || !migrationCheck.oldRepoId || !migrationCheck.newRepoId || !migrationCheck.reason) {
       return false;
     }
 
-    const userChoice = await this.promptUserForMigration(
-      migrationCheck.oldRepoId!,
-      migrationCheck.newRepoId!,
-      migrationCheck.reason!
-    );
+    const { oldRepoId, newRepoId, reason } = migrationCheck;
+
+    const userChoice = await this.promptUserForMigration(oldRepoId, newRepoId, reason);
 
     switch (userChoice) {
       case 'migrate':
-        await this.performMigration(migrationCheck.oldRepoId!, migrationCheck.newRepoId!, workspacePath);
+        await this.performMigration(oldRepoId, newRepoId, workspacePath);
         return true;
       case 'keep':
         // Set manual override to keep current identity
-        await this.identityStore.setManualIdentity(workspacePath, migrationCheck.oldRepoId!);
+        await this.identityStore.setManualIdentity(workspacePath, oldRepoId);
         return false;
       case 'later':
         // Do nothing, user will be prompted again later
