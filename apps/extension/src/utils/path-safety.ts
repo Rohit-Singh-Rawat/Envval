@@ -2,222 +2,228 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import {
-	WINDOWS_UNSAFE_PATHS,
 	USER_HOME_SUBDIRS,
-	SYSTEM_DIRECTORIES,
-	PATH_TRAVERSAL_PATTERNS
+	WINDOWS_SYSTEM_DIRECTORIES,
+	UNIX_SYSTEM_DIRECTORIES,
+	PATH_TRAVERSAL_PATTERNS,
 } from '../lib/workspace-limits';
+import type { Logger } from './logger';
+
+
+export type UnsafeReason =
+	| 'root_drive'
+	| 'user_home_top'
+	| 'user_home_subdir'
+	| 'system_directory'
+	| 'safe';
 
 export interface PathSafetyResult {
 	isSafe: boolean;
-	reason?: 'root_drive' | 'user_home_top' | 'user_home_subdir' | 'system_directory' | 'safe';
+	reason: UnsafeReason;
 	suggestedAction?: string;
 	estimatedFiles?: number;
 }
 
 export interface PathValidationOptions {
+	/** Allow paths that are (or contain) a known user home subdirectory. Defaults to false. */
 	allowUserHomeSubdirs?: boolean;
-	maxDepthToCheck?: number;
+}
+
+
+function log(message: string, level: 'debug' | 'info' | 'warn' | 'error', logger: Logger | undefined): void {
+	logger?.[level](message);
+}
+
+function getHomeDir(): string {
+	return path.normalize(os.homedir());
+}
+
+function pathsEqual(a: string, b: string): boolean {
+	if (process.platform === 'win32' || process.platform === 'darwin') {
+		return a.toLowerCase() === b.toLowerCase();
+	}
+	return a === b;
+}
+
+function isInsideOrEqual(fsPath: string, ancestor: string): boolean {
+	const sep = path.sep;
+	const normalize = (p: string) =>
+		process.platform === 'win32' || process.platform === 'darwin' ? p.toLowerCase() : p;
+
+	const a = normalize(fsPath);
+	const b = normalize(ancestor);
+	return a === b || a.startsWith(b.endsWith(sep) ? b : b + sep);
+}
+
+function isRootDrive(normalized: string): boolean {
+	if (process.platform === 'win32') {
+		return /^[A-Za-z]:\\$/.test(normalized);
+	}
+	return normalized === '/';
+}
+
+function isUserHomeRoot(normalized: string): boolean {
+	return pathsEqual(normalized, getHomeDir());
 }
 
 /**
- * Validates workspace path safety to prevent performance issues from scanning broad directories.
- * Detects unsafe paths like Desktop, Documents, C:\, etc. that contain many unrelated files.
+ * Returns true only if the path IS exactly a known broad directory.
+ * Any named folder inside it is treated as a valid project workspace.
+ *
+ * Walks every segment so cloud-sync redirects are caught at any depth:
+ *   ~/Desktop                    → unsafe (is the broad dir)
+ *   ~/OneDrive/Desktop           → unsafe (cloud-redirected broad dir)
+ *   ~/Desktop/rsrCrafts          → safe   (named project folder)
+ *   ~/Desktop/rsrCrafts/Env0     → safe   (specific project folder)
+ *   ~/OneDrive/Desktop/proj/app  → safe   (specific project folder)
+ *   ~/OneDrive/Projects/myapp    → safe   (no broad dir in chain)
+ */
+function isAncestorUnsafeSubdir(normalized: string): boolean {
+	const homeDir = getHomeDir();
+	const rel = path.relative(homeDir, normalized);
+
+	if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+		return false;
+	}
+
+	const segments = rel.split(path.sep);
+
+	for (let i = 0; i < segments.length; i++) {
+		const isBroadDir = USER_HOME_SUBDIRS.some(
+			(dir) => dir.toLowerCase() === segments[i].toLowerCase()
+		);
+
+		if (isBroadDir) {
+			// Only unsafe if the path ends exactly at the broad dir itself.
+			// Any named folder inside it is a valid project workspace.
+			return segments.length - i - 1 === 0;
+		}
+	}
+
+	return false;
+}
+
+function isSystemDirectory(normalized: string): boolean {
+	const dirs = process.platform === 'win32' ? WINDOWS_SYSTEM_DIRECTORIES : UNIX_SYSTEM_DIRECTORIES;
+	return dirs.some((sysDir) => isInsideOrEqual(normalized, path.normalize(sysDir)));
+}
+
+
+/**
+ * Validates a workspace path for safety before file scanning.
+ *
+ * Check pipeline (in order of severity):
+ *   1. Root drive  (C:\, /, etc.)
+ *   2. User home root
+ *   3. Broad user-home subdirectory — walks the full ancestor chain so
+ *      cloud-sync redirects (OneDrive\Desktop, Dropbox\Documents, …) are caught
+ *   4. OS system directory
  */
 export function isPathSafe(
 	fsPath: string,
-	options: PathValidationOptions = {}
+	options: PathValidationOptions = {},
+	logger?: Logger
 ): PathSafetyResult {
 	const { allowUserHomeSubdirs = false } = options;
+	log(`[path-safety] isPathSafe — "${fsPath}"`, 'debug', logger);
 
+	let normalized: string;
 	try {
-		const normalized = normalizeAndValidatePath(fsPath);
-
-		// Check 1: Root drives (C:\, D:\, /, etc.)
-		if (isRootDrive(normalized)) {
-			return {
-				isSafe: false,
-				reason: 'root_drive',
-				suggestedAction: 'Select a specific project folder instead of the entire drive',
-				estimatedFiles: 100000
-			};
-		}
-
-		// Check 2: User home root
-		if (isUserHomeRoot(normalized)) {
-			return {
-				isSafe: false,
-				reason: 'user_home_top',
-				suggestedAction: 'Select a specific project folder instead of your home directory',
-				estimatedFiles: 50000
-			};
-		}
-
-		// Check 3: User home subdirs (Desktop, Documents, etc.)
-		if (isUserHomeSubdir(normalized)) {
-			if (!allowUserHomeSubdirs) {
-				return {
-					isSafe: false,
-					reason: 'user_home_subdir',
-					suggestedAction: 'This directory may contain many files. Consider selecting a specific project folder.',
-					estimatedFiles: 10000
-				};
-			}
-		}
-
-		// Check 4: System directories
-		if (isSystemDirectory(normalized)) {
-			return {
-				isSafe: false,
-				reason: 'system_directory',
-				suggestedAction: 'System directories cannot be scanned for security reasons'
-			};
-		}
-
-		return { isSafe: true, reason: 'safe' };
-	} catch (error) {
-		// If we can't normalize/validate the path, consider it unsafe
+		normalized = normalizeAndValidatePath(fsPath, logger);
+	} catch (err) {
+		log(`[path-safety] validation error: ${err}`, 'error', logger);
 		return {
 			isSafe: false,
 			reason: 'system_directory',
-			suggestedAction: 'Invalid or inaccessible path'
+			suggestedAction: 'Invalid or inaccessible path',
 		};
 	}
+
+	if (isRootDrive(normalized)) {
+		log(`[path-safety] UNSAFE root_drive: "${normalized}"`, 'warn', logger);
+		return {
+			isSafe: false,
+			reason: 'root_drive',
+			suggestedAction: 'Select a specific project folder instead of the entire drive',
+			estimatedFiles: 100_000,
+		};
+	}
+
+	if (isUserHomeRoot(normalized)) {
+		log(`[path-safety] UNSAFE user_home_top: "${normalized}"`, 'warn', logger);
+		return {
+			isSafe: false,
+			reason: 'user_home_top',
+			suggestedAction: 'Select a specific project folder instead of your home directory',
+			estimatedFiles: 50_000,
+		};
+	}
+
+	if (isAncestorUnsafeSubdir(normalized)) {
+		if (!allowUserHomeSubdirs) {
+			log(`[path-safety] UNSAFE user_home_subdir: "${normalized}"`, 'warn', logger);
+			return {
+				isSafe: false,
+				reason: 'user_home_subdir',
+				suggestedAction: 'This directory may contain many unrelated files. Open a specific project folder instead.',
+				estimatedFiles: 10_000,
+			};
+		}
+		log(`[path-safety] user_home_subdir allowed by options: "${normalized}"`, 'debug', logger);
+	}
+
+	if (isSystemDirectory(normalized)) {
+		log(`[path-safety] UNSAFE system_directory: "${normalized}"`, 'warn', logger);
+		return {
+			isSafe: false,
+			reason: 'system_directory',
+			suggestedAction: 'System directories cannot be scanned for security reasons',
+		};
+	}
+
+	log(`[path-safety] SAFE: "${normalized}"`, 'debug', logger);
+	return { isSafe: true, reason: 'safe' };
 }
 
 /**
- * Normalizes path and validates it doesn't contain traversal sequences.
- * Throws error if path contains suspicious patterns.
+ * Normalises a raw path and validates it against traversal/injection patterns.
+ * Throws on empty input, null bytes, or any traversal sequence.
  */
-export function normalizeAndValidatePath(fsPath: string): string {
-	
-	// Check for path traversal patterns
+export function normalizeAndValidatePath(fsPath: string, logger?: Logger): string {
+	if (!fsPath || typeof fsPath !== 'string') {
+		throw new Error('Path must be a non-empty string');
+	}
+
 	for (const pattern of PATH_TRAVERSAL_PATTERNS) {
-		if (fsPath.includes(pattern)) {
-			throw new Error(`Path contains traversal sequence: ${pattern}`);
+		if (fsPath.toLowerCase().includes(pattern.toLowerCase())) {
+			log(`[path-safety] traversal pattern detected: "${pattern}"`, 'warn', logger);
+			throw new Error(`Path contains unsafe sequence: ${pattern}`);
 		}
 	}
-// Normalize using path.normalize and path.resolve for consistent format
-	const normalized = path.normalize(path.resolve(fsPath));
 
+	const normalized = path.normalize(path.resolve(fsPath));
+	log(`[path-safety] normalized: "${fsPath}" → "${normalized}"`, 'debug', logger);
 	return normalized;
 }
 
 /**
- * Detects if a path is likely part of a symlink loop by checking visited paths.
- * Must be used with a Set that persists across recursive calls.
+ * Detects symlink loops during recursive directory traversal.
+ * Pass the same `visitedRealPaths` Set across all recursive calls.
+ * Returns true (treat as loop) if the symlink target cannot be resolved.
  */
 export function isSymlinkLoop(
 	targetPath: string,
-	visitedPaths: Set<string>
+	visitedRealPaths: Set<string>,
+	logger?: Logger
 ): boolean {
+	log(`[path-safety] isSymlinkLoop — "${targetPath}"`, 'debug', logger);
 	try {
 		const realPath = fs.realpathSync(targetPath);
-		return visitedPaths.has(realPath);
-	} catch {
-		// If we can't resolve the symlink, treat it as potentially unsafe
+		const isLoop = visitedRealPaths.has(realPath);
+		log(`[path-safety] realPath="${realPath}" loop=${isLoop}`, 'debug', logger);
+		return isLoop;
+	} catch (err) {
+		log(`[path-safety] cannot resolve symlink "${targetPath}": ${err}`, 'warn', logger);
 		return true;
 	}
-}
-
-/**
- * Gets user's home directory in a cross-platform way.
- */
-export function getUserHomeDirectory(): string {
-	return os.homedir();
-}
-
-/**
- * Checks if a path is a descendant of any unsafe paths.
- * Used as a secondary check for paths that might bypass direct detection.
- */
-export function isDescendantOfUnsafePath(fsPath: string): boolean {
-	const normalized = path.normalize(path.resolve(fsPath));
-	const homeDir = getUserHomeDirectory();
-
-	// Check against root drives
-	if (isRootDrive(normalized)) {
-		return true;
-	}
-
-	// Check if it's directly under home directory
-	const relativePath = path.relative(homeDir, normalized);
-	if (relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-		const parts = relativePath.split(path.sep);
-		if (parts.length === 1) {
-			// Direct subdirectory of home (Desktop, Documents, etc.)
-			return USER_HOME_SUBDIRS.includes(parts[0] as typeof USER_HOME_SUBDIRS[number]);
-		}
-	}
-
-	return false;
-}
-
-/**
- * Detects if path is a root drive (C:\, D:\, /, etc.)
- */
-function isRootDrive(fsPath: string): boolean {
-	const normalized = path.normalize(fsPath);
-
-	// Windows: C:\, D:\, etc.
-	if (process.platform === 'win32') {
-		for (const unsafePath of WINDOWS_UNSAFE_PATHS) {
-			if (normalized === path.normalize(unsafePath)) {
-				return true;
-			}
-		}
-		// Also check generic pattern: single letter followed by :\ or :/
-		if (/^[A-Za-z]:[\\\/]?$/.test(normalized)) {
-			return true;
-		}
-	}
-
-	// Unix: Root directory
-	if (normalized === '/' || normalized === path.sep) {
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * Checks if path is the user's home directory root.
- */
-function isUserHomeRoot(fsPath: string): boolean {
-	const normalized = path.normalize(fsPath);
-	const homeDir = path.normalize(getUserHomeDirectory());
-	return normalized === homeDir;
-}
-
-/**
- * Checks if path is a common user subdirectory (Desktop, Documents, Downloads, etc.)
- */
-function isUserHomeSubdir(fsPath: string): boolean {
-	const normalized = path.normalize(fsPath);
-	const homeDir = getUserHomeDirectory();
-
-	for (const subdir of USER_HOME_SUBDIRS) {
-		const unsafePath = path.normalize(path.join(homeDir, subdir));
-		if (normalized === unsafePath) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
- * Checks if path is a system directory that should never be scanned.
- */
-function isSystemDirectory(fsPath: string): boolean {
-	const normalized = path.normalize(fsPath).toLowerCase();
-
-	for (const sysDir of SYSTEM_DIRECTORIES) {
-		const normalizedSysDir = path.normalize(sysDir).toLowerCase();
-		if (normalized === normalizedSysDir || normalized.startsWith(normalizedSysDir + path.sep)) {
-			return true;
-		}
-	}
-
-	return false;
 }
