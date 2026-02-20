@@ -83,34 +83,6 @@ function Button({
 				transition: { duration: 0.2, ease: 'easeInOut' as const },
 			};
 
-	// #region agent log
-	const isNarrow = typeof window !== 'undefined' && window.innerWidth < 768;
-	React.useLayoutEffect(() => {
-		const w = typeof window !== 'undefined' ? window.innerWidth : 0;
-		fetch('http://127.0.0.1:7242/ingest/98ed4269-d2f9-46e6-b407-f649eea16e88', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ec5fbd' },
-			body: JSON.stringify({
-				sessionId: 'ec5fbd',
-				location: 'button.tsx',
-				message: 'button mount/render',
-				data: {
-					innerWidth: w,
-					isNarrow,
-					shouldReduceMotion,
-					useSimpleAnimation,
-					pending,
-					hasAnimated,
-					hoverAnimate,
-					branch: hoverAnimate && !pending ? 'hover' : 'animatePresence',
-				},
-				timestamp: Date.now(),
-				hypothesisId: 'H1',
-			}),
-		}).catch(() => {});
-	}, [pending, hasAnimated, hoverAnimate, isNarrow, shouldReduceMotion, useSimpleAnimation]);
-	// #endregion
-
 	return (
 		<ButtonPrimitive
 			data-slot='button'
