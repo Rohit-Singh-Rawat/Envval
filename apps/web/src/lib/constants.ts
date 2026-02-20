@@ -1,4 +1,6 @@
-export const EXTENSION_URL = '/extension';
+import { env } from '@/env';
+
+export const EXTENSION_URL = env.VITE_EXTENSION_URL;
 
 export const DEVICE_KEYS_DB = {
 	name: 'device-auth-db',
