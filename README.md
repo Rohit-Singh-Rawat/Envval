@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/web/public/favicon.svg" alt="EnvVault Logo" width="60" />
+  <img src="apps/web/public/favicon.svg" alt="Envval Logo" width="60" />
 </p>
 
-<h1 align="center">EnvVault</h1>
+<h1 align="center">Envval</h1>
 
 <p align="center">
   <strong>Zero-knowledge environment variable management — encrypted, synced, everywhere.</strong>
@@ -33,14 +33,14 @@
 ---
 
 <p align="center">
-  <img src="apps/web/public/images/open-graph.png" alt="EnvVault Dashboard" width="800" />
+  <img src="apps/web/public/images/open-graph.png" alt="Envval Dashboard" width="800" />
 </p>
 
 ---
 
-## What is EnvVault?
+## What is Envval?
 
-EnvVault is a **zero-knowledge**, **end-to-end encrypted** environment variable manager that keeps your `.env` files secure and synced across your entire team and all your devices. The server **never** sees your plaintext secrets.
+Envval is a **zero-knowledge**, **end-to-end encrypted** environment variable manager that keeps your `.env` files secure and synced across your entire team and all your devices. The server **never** sees your plaintext secrets.
 
 It ships as three interconnected surfaces — a **web dashboard**, a **REST API**, and a **VS Code extension** — all orchestrated in a single Turborepo monorepo.
 
@@ -48,23 +48,23 @@ It ships as three interconnected surfaces — a **web dashboard**, a **REST API*
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| **End-to-End Encryption** | AES-256-GCM encryption with PBKDF2 key derivation — secrets are encrypted client-side before leaving your machine |
-| **Zero-Knowledge Architecture** | The server stores only encrypted blobs; it can never read your environment variables |
-| **Cross-Device Sync** | Seamlessly sync `.env` files between your editor, dashboard, and teammates |
-| **Device Authorization** | OAuth 2.0 Device Flow (RFC 8628) for secure VS Code extension authentication |
-| **Device Isolation** | Each device holds its own RSA-wrapped copy of encryption keys — revoke one without affecting others |
-| **Web Dashboard** | Full-featured React 19 UI for managing repositories, environments, and team settings |
-| **VS Code Extension** | Inline hover previews, one-click sync, tracked environment tree view, and smart monorepo detection |
-| **Transactional Email** | Resend-powered email service with React-based templates and BullMQ background processing |
-| **Type-Safe API Client** | Hono RPC client (`hc`) for fully typed frontend-backend communication |
+| Feature                         | Description                                                                                                       |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **End-to-End Encryption**       | AES-256-GCM encryption with PBKDF2 key derivation — secrets are encrypted client-side before leaving your machine |
+| **Zero-Knowledge Architecture** | The server stores only encrypted blobs; it can never read your environment variables                              |
+| **Cross-Device Sync**           | Seamlessly sync `.env` files between your editor, dashboard, and teammates                                        |
+| **Device Authorization**        | OAuth 2.0 Device Flow (RFC 8628) for secure VS Code extension authentication                                      |
+| **Device Isolation**            | Each device holds its own RSA-wrapped copy of encryption keys — revoke one without affecting others               |
+| **Web Dashboard**               | Full-featured React 19 UI for managing repositories, environments, and team settings                              |
+| **VS Code Extension**           | Inline hover previews, one-click sync, tracked environment tree view, and smart monorepo detection                |
+| **Transactional Email**         | Resend-powered email service with React-based templates and BullMQ background processing                          |
+| **Type-Safe API Client**        | Hono RPC client (`hc`) for fully typed frontend-backend communication                                             |
 
 ---
 
 ## Architecture
 
-EnvVault follows a client-server model where **all cryptographic operations happen on the client**. The API server acts as an encrypted blob store with an authentication and authorization layer.
+Envval follows a client-server model where **all cryptographic operations happen on the client**. The API server acts as an encrypted blob store with an authentication and authorization layer.
 
 ```mermaid
 graph TB
@@ -125,13 +125,13 @@ graph LR
 
 ### Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Node.js** | >= 18 | Runtime for the API server and build tooling |
-| **Bun** | >= 1.2.8 | Workspace package manager |
-| **PostgreSQL** | >= 14 | Primary data store |
-| **Redis** | >= 6 | Job queue (BullMQ) and rate limiting (Upstash) |
-| **VS Code** | >= 1.106 | Required only for extension development |
+| Tool           | Version  | Purpose                                        |
+| -------------- | -------- | ---------------------------------------------- |
+| **Node.js**    | >= 18    | Runtime for the API server and build tooling   |
+| **Bun**        | >= 1.2.8 | Workspace package manager                      |
+| **PostgreSQL** | >= 14    | Primary data store                             |
+| **Redis**      | >= 6     | Job queue (BullMQ) and rate limiting (Upstash) |
+| **VS Code**    | >= 1.106 | Required only for extension development        |
 
 ### Quick Start
 
@@ -197,22 +197,22 @@ envval/
 
 ### Apps
 
-| App | Stack | Description |
-|-----|-------|-------------|
-| **`apps/web`** | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion, Better Auth | Primary web dashboard for managing repositories, environments, and devices |
-| **`apps/api`** | Hono, Drizzle ORM, Better Auth, Zod, Upstash | RESTful API with typed RPC client exports for the frontend |
-| **`apps/extension`** | VS Code API, esbuild, Axios | Editor extension with env hover previews, tree view, and device-flow auth |
-| **`apps/email-worker`** | BullMQ, Winston, Bun runtime | Background worker that processes the email job queue |
+| App                     | Stack                                                                        | Description                                                                |
+| ----------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **`apps/web`**          | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion, Better Auth | Primary web dashboard for managing repositories, environments, and devices |
+| **`apps/api`**          | Hono, Drizzle ORM, Better Auth, Zod, Upstash                                 | RESTful API with typed RPC client exports for the frontend                 |
+| **`apps/extension`**    | VS Code API, esbuild, Axios                                                  | Editor extension with env hover previews, tree view, and device-flow auth  |
+| **`apps/email-worker`** | BullMQ, Winston, Bun runtime                                                 | Background worker that processes the email job queue                       |
 
 ### Packages
 
-| Package | Stack | Description |
-|---------|-------|-------------|
-| **`@envval/db`** | Drizzle ORM, PostgreSQL (`pg`) | Database schema definitions, migration tooling, and the shared DB client |
-| **`@envval/ui`** | React 19 | Shared UI primitives (Button, Card, Code, etc.) used across surfaces |
-| **`@envval/email`** | Resend, Zod | Email service abstraction with React-based templates |
-| **`@envval/queue`** | BullMQ, ioredis | Redis-backed job queue for async operations (email dispatch, etc.) |
-| **`@envval/typescript-config`** | TypeScript 5.9 | Reusable `tsconfig` presets for apps, libraries, and Next.js projects |
+| Package                         | Stack                          | Description                                                              |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------ |
+| **`@envval/db`**                | Drizzle ORM, PostgreSQL (`pg`) | Database schema definitions, migration tooling, and the shared DB client |
+| **`@envval/ui`**                | React 19                       | Shared UI primitives (Button, Card, Code, etc.) used across surfaces     |
+| **`@envval/email`**             | Resend, Zod                    | Email service abstraction with React-based templates                     |
+| **`@envval/queue`**             | BullMQ, ioredis                | Redis-backed job queue for async operations (email dispatch, etc.)       |
+| **`@envval/typescript-config`** | TypeScript 5.9                 | Reusable `tsconfig` presets for apps, libraries, and Next.js projects    |
 
 ---
 
@@ -222,25 +222,25 @@ envval/
 
 Create an `.env` file in `apps/api/` with the following:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `KEY_MATERIAL_MASTER_KEY` | Yes | 32-byte hex string for server-side envelope encryption |
-| `GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 client ID |
-| `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth 2.0 client secret |
-| `GITHUB_CLIENT_ID` | Yes | GitHub OAuth app client ID |
-| `GITHUB_CLIENT_SECRET` | Yes | GitHub OAuth app client secret |
-| `RESEND_API_KEY` | Yes | Resend API key for transactional email |
-| `UPSTASH_REDIS_REST_URL` | Yes | Upstash Redis URL for rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | Yes | Upstash Redis token |
-| `PORT` | No | API server port (default: `8080`) |
+| Variable                   | Required | Description                                            |
+| -------------------------- | -------- | ------------------------------------------------------ |
+| `DATABASE_URL`             | Yes      | PostgreSQL connection string                           |
+| `KEY_MATERIAL_MASTER_KEY`  | Yes      | 32-byte hex string for server-side envelope encryption |
+| `GOOGLE_CLIENT_ID`         | Yes      | Google OAuth 2.0 client ID                             |
+| `GOOGLE_CLIENT_SECRET`     | Yes      | Google OAuth 2.0 client secret                         |
+| `GITHUB_CLIENT_ID`         | Yes      | GitHub OAuth app client ID                             |
+| `GITHUB_CLIENT_SECRET`     | Yes      | GitHub OAuth app client secret                         |
+| `RESEND_API_KEY`           | Yes      | Resend API key for transactional email                 |
+| `UPSTASH_REDIS_REST_URL`   | Yes      | Upstash Redis URL for rate limiting                    |
+| `UPSTASH_REDIS_REST_TOKEN` | Yes      | Upstash Redis token                                    |
+| `PORT`                     | No       | API server port (default: `8080`)                      |
 
 ### Email Worker (`apps/email-worker`)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `REDIS_URL` | Yes | Redis connection string for BullMQ |
-| `RESEND_API_KEY` | Yes | Resend API key |
+| Variable         | Required | Description                        |
+| ---------------- | -------- | ---------------------------------- |
+| `REDIS_URL`      | Yes      | Redis connection string for BullMQ |
+| `RESEND_API_KEY` | Yes      | Resend API key                     |
 
 ---
 
@@ -248,16 +248,16 @@ Create an `.env` file in `apps/api/` with the following:
 
 ### Common Commands
 
-| Action | Command | Description |
-|--------|---------|-------------|
-| Dev (all) | `bun run dev` | Start all services in watch mode |
-| Build (all) | `bun run build` | Production build for all workspaces |
-| Type check | `bun run check-types` | Run `tsc --noEmit` across all packages |
-| Lint | `bun run lint` | Lint all workspaces |
-| Format | `bun run format` | Format all TS/MD files with Prettier |
-| DB push | `bun run --filter=@envval/db db:push` | Push schema changes to the database |
-| DB studio | `bun run --filter=@envval/db db:studio` | Open Drizzle Studio GUI |
-| DB migrate | `bun run --filter=@envval/api db:migrate` | Run database migrations |
+| Action      | Command                                   | Description                            |
+| ----------- | ----------------------------------------- | -------------------------------------- |
+| Dev (all)   | `bun run dev`                             | Start all services in watch mode       |
+| Build (all) | `bun run build`                           | Production build for all workspaces    |
+| Type check  | `bun run check-types`                     | Run `tsc --noEmit` across all packages |
+| Lint        | `bun run lint`                            | Lint all workspaces                    |
+| Format      | `bun run format`                          | Format all TS/MD files with Prettier   |
+| DB push     | `bun run --filter=@envval/db db:push`     | Push schema changes to the database    |
+| DB studio   | `bun run --filter=@envval/db db:studio`   | Open Drizzle Studio GUI                |
+| DB migrate  | `bun run --filter=@envval/api db:migrate` | Run database migrations                |
 
 ### Turbo Tips
 
@@ -267,19 +267,19 @@ Create an `.env` file in `apps/api/` with the following:
 
 ### Tech Stack Summary
 
-| Layer | Technology |
-|-------|-----------|
-| Language | TypeScript 5.9 (strict mode) |
-| Monorepo | Turborepo 2.x + Bun workspaces |
-| Frontend | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion |
-| Backend | Hono 4.x, Drizzle ORM, PostgreSQL, BullMQ, ioredis |
-| Auth | Better Auth (OAuth + session + device flow) |
-| Encryption | AES-256-GCM, PBKDF2, RSA-OAEP (Web Crypto API) |
-| Email | Resend + React Email templates |
-| Extension | VS Code API, esbuild |
-| Linting | ESLint 9 + Biome 2.x |
-| Formatting | Prettier 3 + Biome |
-| Testing | Vitest, @vscode/test-cli |
+| Layer      | Technology                                                      |
+| ---------- | --------------------------------------------------------------- |
+| Language   | TypeScript 5.9 (strict mode)                                    |
+| Monorepo   | Turborepo 2.x + Bun workspaces                                  |
+| Frontend   | React 19, Vite 7, TanStack Router/Query, Tailwind CSS 4, Motion |
+| Backend    | Hono 4.x, Drizzle ORM, PostgreSQL, BullMQ, ioredis              |
+| Auth       | Better Auth (OAuth + session + device flow)                     |
+| Encryption | AES-256-GCM, PBKDF2, RSA-OAEP (Web Crypto API)                  |
+| Email      | Resend + React Email templates                                  |
+| Extension  | VS Code API, esbuild                                            |
+| Linting    | ESLint 9 + Biome 2.x                                            |
+| Formatting | Prettier 3 + Biome                                              |
+| Testing    | Vitest, @vscode/test-cli                                        |
 
 ---
 
@@ -373,23 +373,23 @@ Contributions are welcome. Whether it is a bug fix, feature, or documentation im
 
 ## Security
 
-EnvVault takes security seriously. The entire system is built on a **zero-knowledge architecture** — the server never has access to plaintext secrets.
+Envval takes security seriously. The entire system is built on a **zero-knowledge architecture** — the server never has access to plaintext secrets.
 
 ### Security Model
 
-| Threat | Mitigation |
-|--------|-----------|
-| Server database breach | Key material is encrypted at rest using envelope encryption |
-| Network interception | HTTPS + RSA-OAEP wrapped key material |
-| Device compromise | Per-device key wrapping; revoke one device without affecting others |
-| Replay attacks | Short-lived JWTs (15 min) + session validation |
-| Key material leak | Master key rotation re-encrypts all user key materials |
+| Threat                 | Mitigation                                                          |
+| ---------------------- | ------------------------------------------------------------------- |
+| Server database breach | Key material is encrypted at rest using envelope encryption         |
+| Network interception   | HTTPS + RSA-OAEP wrapped key material                               |
+| Device compromise      | Per-device key wrapping; revoke one device without affecting others |
+| Replay attacks         | Short-lived JWTs (15 min) + session validation                      |
+| Key material leak      | Master key rotation re-encrypts all user key materials              |
 
 ### Reporting Vulnerabilities
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
-If you discover a security vulnerability, please report it responsibly by emailing **security@envvault.io** (or contacting the maintainer directly). We will acknowledge receipt within 48 hours and work on a fix promptly.
+If you discover a security vulnerability, please report it responsibly by emailing **security@envval.io** (or contacting the maintainer directly). We will acknowledge receipt within 48 hours and work on a fix promptly.
 
 ---
 

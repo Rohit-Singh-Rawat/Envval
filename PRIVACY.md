@@ -4,7 +4,7 @@
 
 ## Our Commitment
 
-EnvVault is built with security and privacy as core principles. We believe that your environment variables and secrets should remain **yours** — encrypted, private, and under your control.
+Envval is built with security and privacy as core principles. We believe that your environment variables and secrets should remain **yours** — encrypted, private, and under your control.
 
 ---
 
@@ -70,7 +70,7 @@ EnvVault is built with security and privacy as core principles. We believe that 
 
 ### Why This Is Secure
 
-1. **Zero-Knowledge Architecture**: EnvVault servers store only ciphertext — decryption is impossible without your key material
+1. **Zero-Knowledge Architecture**: Envval servers store only ciphertext — decryption is impossible without your key material
 2. **Client-Side Encryption**: All encryption/decryption happens locally in the extension
 3. **Key Isolation**: Encryption keys never leave your machine or touch the network
 4. **Forward Secrecy**: Revoking a device immediately invalidates its sessions
@@ -151,14 +151,14 @@ The following metadata is stored to enable synchronization:
 
 All API endpoints are protected by Redis-backed rate limiting:
 
-| Tier           | Rate Limit       | Applies To                          |
-|----------------|------------------|-------------------------------------|
-| Global         | 100 req/min      | All unauthenticated endpoints       |
-| API            | 60 req/min       | General authenticated endpoints     |
-| Auth           | 20 req/min       | Login, device authorization         |
-| Mutation       | 30 req/min       | Create/Update/Delete operations     |
-| Sensitive      | 10 req/min       | Device revocation, account changes  |
-| Email          | 5 req/10min      | Email sending (OTP, notifications)  |
+| Tier      | Rate Limit  | Applies To                         |
+| --------- | ----------- | ---------------------------------- |
+| Global    | 100 req/min | All unauthenticated endpoints      |
+| API       | 60 req/min  | General authenticated endpoints    |
+| Auth      | 20 req/min  | Login, device authorization        |
+| Mutation  | 30 req/min  | Create/Update/Delete operations    |
+| Sensitive | 10 req/min  | Device revocation, account changes |
+| Email     | 5 req/10min | Email sending (OTP, notifications) |
 
 **Protection Against**: Brute force attacks, DDoS, credential stuffing, email spam
 
@@ -168,11 +168,11 @@ All API endpoints are protected by Redis-backed rate limiting:
 
 ### Services We Use
 
-| Service               | Purpose                         | Data Shared                         |
-|-----------------------|---------------------------------|-------------------------------------|
-| **PostgreSQL (Neon)** | Database                        | Encrypted env data, metadata, auth  |
-| **Redis (Upstash)**   | Rate limiting, sessions         | IP addresses (temporary), tokens    |
-| **Resend**            | Transactional emails            | Email addresses, magic links        |
+| Service               | Purpose                 | Data Shared                        |
+| --------------------- | ----------------------- | ---------------------------------- |
+| **PostgreSQL (Neon)** | Database                | Encrypted env data, metadata, auth |
+| **Redis (Upstash)**   | Rate limiting, sessions | IP addresses (temporary), tokens   |
+| **Resend**            | Transactional emails    | Email addresses, magic links       |
 
 ### Data Not Shared With Third Parties
 
@@ -230,6 +230,7 @@ In the unlikely event of a data breach:
 **Because of end-to-end encryption, even in a worst-case breach scenario where an attacker gains full database access, they CANNOT decrypt your environment variables without your encryption key material (which never leaves your machine).**
 
 The maximum damage would be:
+
 - ✅ Metadata exposure (repo names, file names, update times)
 - ❌ **NOT** decryption of your secrets
 
@@ -258,7 +259,7 @@ The maximum damage would be:
 If you discover a security vulnerability:
 
 1. **DO NOT** open a public GitHub issue
-2. **Email**: security@envvault.com (PGP key available on request)
+2. **Email**: security@envval.com (PGP key available on request)
 3. **Include**: Steps to reproduce, impact assessment, suggested fix
 4. **Response Time**: We aim to respond within 48 hours
 
@@ -273,7 +274,7 @@ If you discover a security vulnerability:
 
 For privacy-related questions (not security vulnerabilities):
 
-- **Email**: privacy@envvault.com
+- **Email**: privacy@envval.com
 - **Response Time**: 5-7 business days
 
 ---
@@ -287,6 +288,7 @@ We may update this privacy statement to reflect:
 - Legal or regulatory requirements
 
 **Change Notification**: Major changes will be announced via:
+
 - Extension update notification
 - Email to registered users
 - GitHub release notes
@@ -297,10 +299,10 @@ We may update this privacy statement to reflect:
 
 ## Open Source Transparency
 
-EnvVault is committed to transparency:
+Envval is committed to transparency:
 
-- **Extension Source Code**: Available at [github.com/envvault/extension](https://github.com/envvault/extension)
-- **API Source Code**: Available at [github.com/envvault/api](https://github.com/envvault/api)
+- **Extension Source Code**: Available at [github.com/envval/extension](https://github.com/envval/extension)
+- **API Source Code**: Available at [github.com/envval/api](https://github.com/envval/api)
 - **Encryption Implementation**: Auditable in `/apps/extension/src/utils/crypto.ts`
 
 You can verify our encryption claims by inspecting the source code directly.
@@ -309,16 +311,16 @@ You can verify our encryption claims by inspecting the source code directly.
 
 ## Summary
 
-| Question                                  | Answer                                                                 |
-|-------------------------------------------|------------------------------------------------------------------------|
-| Can EnvVault see my secrets?              | **No** — End-to-end encryption prevents server-side decryption        |
-| Are encryption keys stored on servers?    | **No** — Keys remain in your OS-encrypted Secret Storage              |
-| Does EnvVault track my usage?             | **No** — Zero telemetry or analytics                                   |
-| Can I export my data?                     | **Yes** — Download encrypted backups anytime                           |
-| What happens if servers are compromised?  | Attackers get ciphertext only (useless without your keys)             |
-| How do I delete all my data?              | Account deletion → immediate permanent removal                        |
+| Question                                 | Answer                                                         |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| Can Envval see my secrets?               | **No** — End-to-end encryption prevents server-side decryption |
+| Are encryption keys stored on servers?   | **No** — Keys remain in your OS-encrypted Secret Storage       |
+| Does Envval track my usage?              | **No** — Zero telemetry or analytics                           |
+| Can I export my data?                    | **Yes** — Download encrypted backups anytime                   |
+| What happens if servers are compromised? | Attackers get ciphertext only (useless without your keys)      |
+| How do I delete all my data?             | Account deletion → immediate permanent removal                 |
 
 ---
 
-**Questions?** Contact privacy@envvault.com
+**Questions?** Contact privacy@envval.com
 **Last Updated:** February 16, 2026
