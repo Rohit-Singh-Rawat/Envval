@@ -103,7 +103,7 @@ export class OperationQueueService implements Disposable {
 		await this.persist();
 		this._onDidChange.fire();
 
-		this.logger.info(`OperationQueueService: Enqueued ${operation.id}`);
+		this.logger.debug(`OperationQueueService: Enqueued ${operation.id}`);
 	}
 
 	public async processAll(

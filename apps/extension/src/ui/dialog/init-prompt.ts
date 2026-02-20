@@ -34,10 +34,14 @@ export function extractFolderName(workspacePath: string): string {
 
 export async function showInitPrompt(fileName: string): Promise<'initialize' | 'cancel'> {
 	const result = await showModalQuickPick<'initialize' | 'cancel'>(
-		'EnvVault: New Environment File',
-		`Initialize ${fileName} with EnvVault?`,
+		'Envval: New Environment File',
+		`Initialize ${fileName} with Envval?`,
 		[
-			{ label: '$(cloud-upload) Initialize', description: 'Start syncing this file', value: 'initialize' },
+			{
+				label: '$(cloud-upload) Initialize',
+				description: 'Start syncing this file',
+				value: 'initialize',
+			},
 			{ label: '$(x) Cancel', description: 'Skip for now', value: 'cancel' },
 		]
 	);
@@ -46,37 +50,53 @@ export async function showInitPrompt(fileName: string): Promise<'initialize' | '
 
 export async function showRestorePrompt(fileName: string): Promise<'restore' | 'cancel'> {
 	const result = await showModalQuickPick<'restore' | 'cancel'>(
-		'EnvVault: Remote File Found',
+		'Envval: Remote File Found',
 		`${fileName} exists remotely but not locally`,
 		[
-			{ label: '$(cloud-download) Restore', description: 'Download from EnvVault', value: 'restore' },
+			{ label: '$(cloud-download) Restore', description: 'Download from Envval', value: 'restore' },
 			{ label: '$(x) Cancel', description: 'Skip', value: 'cancel' },
 		]
 	);
 	return result ?? 'cancel';
 }
 
-export async function showFirstTimeSyncPrompt(fileName: string): Promise<'useLocal' | 'useRemote' | 'cancel'> {
+export async function showFirstTimeSyncPrompt(
+	fileName: string
+): Promise<'useLocal' | 'useRemote' | 'cancel'> {
 	const result = await showModalQuickPick<'useLocal' | 'useRemote' | 'cancel'>(
-		'EnvVault: Version Conflict',
+		'Envval: Version Conflict',
 		`Both local and remote versions of ${fileName} exist`,
 		[
-			{ label: '$(file) Use Local', description: 'Keep local version, overwrite remote', value: 'useLocal' },
-			{ label: '$(cloud) Use Remote', description: 'Download remote, overwrite local', value: 'useRemote' },
+			{
+				label: '$(file) Use Local',
+				description: 'Keep local version, overwrite remote',
+				value: 'useLocal',
+			},
+			{
+				label: '$(cloud) Use Remote',
+				description: 'Download remote, overwrite local',
+				value: 'useRemote',
+			},
 			{ label: '$(x) Cancel', description: 'Decide later', value: 'cancel' },
 		]
 	);
 	return result ?? 'cancel';
 }
 
-export async function showZombiePrompt(fileName: string): Promise<'reinitialize' | 'deleteLocal' | 'skip'> {
+export async function showZombiePrompt(
+	fileName: string
+): Promise<'reinitialize' | 'deleteLocal' | 'skip'> {
 	const result = await showModalQuickPick<'reinitialize' | 'deleteLocal' | 'skip'>(
-		'EnvVault: Remote Environment Missing',
+		'Envval: Remote Environment Missing',
 		`${fileName} was deleted from the server but still exists locally.`,
 		[
-			{ label: '$(cloud-upload) Re-initialize', description: 'Upload local version to server', value: 'reinitialize' },
+			{
+				label: '$(cloud-upload) Re-initialize',
+				description: 'Upload local version to server',
+				value: 'reinitialize',
+			},
 			{ label: '$(trash) Delete Local', description: 'Remove local file', value: 'deleteLocal' },
-			{ label: '$(history) Skip', description: 'Don\'t ask again for 24 hours', value: 'skip' },
+			{ label: '$(history) Skip', description: "Don't ask again for 24 hours", value: 'skip' },
 		]
 	);
 	return result ?? 'skip';
@@ -84,10 +104,10 @@ export async function showZombiePrompt(fileName: string): Promise<'reinitialize'
 
 export async function showRepoRegistrationPrompt(): Promise<'register' | 'skip'> {
 	const result = await showModalQuickPick<'register' | 'skip'>(
-		'EnvVault: Repository Setup',
+		'Envval: Repository Setup',
 		'Register this repository for syncing?',
 		[
-			{ label: '$(repo) Register', description: 'Enable EnvVault for this repo', value: 'register' },
+			{ label: '$(repo) Register', description: 'Enable Envval for this repo', value: 'register' },
 			{ label: '$(circle-slash) Skip', description: 'Not now', value: 'skip' },
 		]
 	);
@@ -107,11 +127,19 @@ export async function showRepoNamePrompt(workspacePath: string): Promise<RepoNam
 	const defaultName = extractFolderName(workspacePath);
 
 	const choice = await showModalQuickPick<'custom' | 'auto' | 'skip'>(
-		'EnvVault: Name Your Project',
+		'Envval: Name Your Project',
 		'Choose how to identify this project',
 		[
-			{ label: `$(folder) Use "${defaultName}"`, description: 'Auto-generate from folder name', value: 'auto' },
-			{ label: '$(edit) Enter Custom Name', description: 'Choose your own project name', value: 'custom' },
+			{
+				label: `$(folder) Use "${defaultName}"`,
+				description: 'Auto-generate from folder name',
+				value: 'auto',
+			},
+			{
+				label: '$(edit) Enter Custom Name',
+				description: 'Choose your own project name',
+				value: 'custom',
+			},
 			{ label: '$(x) Skip', description: 'Cancel registration', value: 'skip' },
 		]
 	);
@@ -125,7 +153,7 @@ export async function showRepoNamePrompt(workspacePath: string): Promise<RepoNam
 	}
 
 	const customName = await vscode.window.showInputBox({
-		title: 'EnvVault: Project Name',
+		title: 'Envval: Project Name',
 		prompt: 'Enter a name for this project',
 		value: defaultName,
 		validateInput: (value) => {
@@ -149,7 +177,7 @@ export async function showRepoNamePrompt(workspacePath: string): Promise<RepoNam
 
 export async function showEmptyFileConfirmation(fileName: string): Promise<'yes' | 'no'> {
 	const result = await showModalQuickPick<'yes' | 'no'>(
-		'EnvVault: Empty File',
+		'Envval: Empty File',
 		`${fileName} is empty. Initialize anyway?`,
 		[
 			{ label: '$(check) Yes', description: 'Initialize empty file', value: 'yes' },
@@ -164,7 +192,7 @@ export function showSuccess(message: string): void {
 	vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: `EnvVault: ${message}`,
+			title: `Envval: ${message}`,
 			cancellable: false,
 		},
 		async () => {
@@ -175,5 +203,5 @@ export function showSuccess(message: string): void {
 
 /** Show error notification - stays until dismissed */
 export function showError(message: string): void {
-	vscode.window.showErrorMessage(`EnvVault: ${message}`, { modal: false });
+	vscode.window.showErrorMessage(`Envval: ${message}`, { modal: false });
 }

@@ -9,7 +9,6 @@ import {
 } from '../lib/workspace-limits';
 import type { Logger } from './logger';
 
-
 export type UnsafeReason =
 	| 'root_drive'
 	| 'user_home_top'
@@ -29,8 +28,11 @@ export interface PathValidationOptions {
 	allowUserHomeSubdirs?: boolean;
 }
 
-
-function log(message: string, level: 'debug' | 'info' | 'warn' | 'error', logger: Logger | undefined): void {
+function log(
+	message: string,
+	level: 'debug' | 'info' | 'warn' | 'error',
+	logger: Logger | undefined
+): void {
 	logger?.[level](message);
 }
 
@@ -108,7 +110,6 @@ function isSystemDirectory(normalized: string): boolean {
 	return dirs.some((sysDir) => isInsideOrEqual(normalized, path.normalize(sysDir)));
 }
 
-
 /**
  * Validates a workspace path for safety before file scanning.
  *
@@ -165,7 +166,8 @@ export function isPathSafe(
 			return {
 				isSafe: false,
 				reason: 'user_home_subdir',
-				suggestedAction: 'This directory may contain many unrelated files. Open a specific project folder instead.',
+				suggestedAction:
+					'This directory may contain many unrelated files. Open a specific project folder instead.',
 				estimatedFiles: 10_000,
 			};
 		}

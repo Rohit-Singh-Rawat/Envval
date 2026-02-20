@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 import { createLogger } from './utils/logger';
-import { getLoggingVerbose, onConfigChange } from './lib/config';
+import { getRuntimeConfig, onConfigChange } from './lib/config';
 import { Commands } from './commands';
 import { StatusBar } from './ui/status-bar';
 import { LoginWindow } from './ui/login-window';
-import { EnvVaultVsCodeSecrets } from './utils/secrets';
+import { EnvvalVsCodeSecrets } from './utils/secrets';
 import { AuthenticationProvider } from './providers/auth-provider';
-import { EnvVaultApiClient } from './api/client';
+import { EnvvalApiClient } from './api/client';
 import { EnvFileWatcher } from './watchers/env-file-watcher';
 import { SyncManager } from './watchers/env-sync-manager';
-import { EnvVaultMetadataStore } from './services/metadata-store';
+import { EnvvalMetadataStore } from './services/metadata-store';
 import { EnvInitService } from './services/env-init';
 import { RepoIdentityCommands } from './commands/repo-identity';
 import { TrackedEnvsProvider } from './views/tracked-envs';
@@ -23,16 +23,16 @@ import { WorkspaceValidator } from './services/workspace-validator';
 import { WorkspaceContextProvider } from './services/workspace-context-provider';
 
 export async function activate(context: vscode.ExtensionContext) {
-	const logger = createLogger(context, getLoggingVerbose());
+	const logger = createLogger(context, getRuntimeConfig());
 
 	const workspaceValidator = WorkspaceValidator.getInstance(logger);
 	const contextProvider = WorkspaceContextProvider.getInstance();
 
 	const statusBar = StatusBar.getInstance();
-	const secrets = EnvVaultVsCodeSecrets.getInstance(context);
+	const secrets = EnvvalVsCodeSecrets.getInstance(context);
 	const authProvider = AuthenticationProvider.getInstance(secrets, logger);
-	const apiClient = EnvVaultApiClient.getInstance(authProvider, logger);
-	const metadataStore = EnvVaultMetadataStore.getInstance(context);
+	const apiClient = EnvvalApiClient.getInstance(authProvider, logger);
+	const metadataStore = EnvvalMetadataStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context, logger);
 	const connectionMonitor = ConnectionMonitor.getInstance(logger);
 	const operationQueue = OperationQueueService.getInstance(context, logger);
@@ -40,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const envCache = EnvCacheService.getInstance(envFileWatcher, logger);
 	const hoverProvider = new EnvHoverProvider(envCache, logger);
 	const hoverDisposable = vscode.languages.registerHoverProvider(
-		SUPPORTED_LANGUAGES.map(lang => ({ scheme: 'file', language: lang })),
+		SUPPORTED_LANGUAGES.map((lang) => ({ scheme: 'file', language: lang })),
 		hoverProvider
 	);
 
@@ -64,10 +64,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		logger
 	);
 
-	logger.info('EnvVault extension is now active!');
+	logger.info('Envval extension is now active!');
 
 	Commands.getInstance().registerCommands(context);
-	Commands.getInstance().registerHandlers(context, authProvider, syncManager, repoIdentityCommands, envInitService, logger);
+	Commands.getInstance().registerHandlers(
+		context,
+		authProvider,
+		syncManager,
+		repoIdentityCommands,
+		envInitService,
+		logger
+	);
 
 	const statusCalculator = EnvStatusCalculator.getInstance(logger);
 	const trackedEnvsProvider = new TrackedEnvsProvider(
@@ -86,10 +93,10 @@ export async function activate(context: vscode.ExtensionContext) {
 			const wsContext = contextProvider.getWorkspaceContext();
 			if (wsContext.primaryPath) {
 				workspaceValidator.clearCache(wsContext.primaryPath);
-				const result = await workspaceValidator.validateWorkspace(
-					wsContext.primaryPath,
-					{ showPrompts: true, force: true }
-				);
+				const result = await workspaceValidator.validateWorkspace(wsContext.primaryPath, {
+					showPrompts: true,
+					force: true,
+				});
 				if (result.canProceed) {
 					vscode.window.showInformationMessage(
 						'Workspace validation passed. Safe to scan for environment files.'
@@ -102,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	const disposeConfigListener = onConfigChange((config) => {
-		logger.setVerbose(config.loggingVerbose);
+		logger.setRuntimeConfig(config);
 	});
 
 	let lastNotificationAt = 0;
@@ -125,29 +132,30 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		} else {
 			if (canNotify) {
-				vscode.window.showWarningMessage('EnvVault: Connection lost. Changes will be queued.');
+				vscode.window.showWarningMessage('Envval: Connection lost. Changes will be queued.');
 				lastNotificationAt = now;
 			}
 		}
 	});
 
 	const startServices = async () => {
-		logger.info('Starting EnvVault services...');
+		logger.info('Starting Envval services...');
 		envFileWatcher.start();
 		connectionMonitor.start();
 		await envInitService.performInitialCheck();
 		syncManager.startPolling();
 		trackedEnvsProvider.refresh();
-		logger.info('EnvVault services started');
+		logger.info('Envval services started');
 	};
 
 	const stopServices = () => {
-		logger.info('Stopping EnvVault services...');
+		logger.info('Stopping Envval services...');
 		syncManager.stopPolling();
 		connectionMonitor.stop();
 		envFileWatcher.stop();
-		operationQueue.clear();
-		logger.info('EnvVault services stopped');
+		// Do NOT clear the operation queue here. Queued offline changes must
+		// survive a logout so they can be replayed when the user signs back in.
+		logger.info('Envval services stopped');
 	};
 
 	const loginWindow = LoginWindow.getInstance(context, authProvider, logger);

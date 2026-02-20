@@ -19,11 +19,6 @@ export const envIdParamSchema = z.object({
 	envId: z.string().min(1, 'Environment ID is required'),
 });
 
-export const envExistsQuerySchema = z.object({
-	repoId: z.string().min(1, 'Repository ID is required'),
-	fileName: z.string().min(1, 'File name is required'),
-});
-
 export const envPaginationSchema = z.object({
 	repoId: z.string().optional(),
 	page: z.coerce.number().int().positive().default(1),
@@ -31,7 +26,10 @@ export const envPaginationSchema = z.object({
 	includeContent: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional(),
 });
 
-/** Reusable fileName validator: accepts bare names and forward-slash relative paths. */
+/**
+ * Reusable fileName validator: accepts bare names and forward-slash relative paths.
+ * Defined before any schema that references it so TypeScript sees the type.
+ */
 const envFileNameSchema = z
 	.string()
 	.min(1, 'File name is required')
@@ -40,6 +38,11 @@ const envFileNameSchema = z
 	.refine((val) => !val.includes('..') && !val.includes('\\'), {
 		message: 'File name must not contain path traversal or backslashes',
 	});
+
+export const envExistsQuerySchema = z.object({
+	repoId: z.string().min(1, 'Repository ID is required'),
+	fileName: envFileNameSchema,
+});
 
 export const createEnvSchema = z.object({
 	repoId: z.string().min(1, 'Repository ID is required'),

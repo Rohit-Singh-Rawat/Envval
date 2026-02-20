@@ -77,7 +77,7 @@ export class WorkspaceValidator {
 						canProceed: false,
 						warnings: [`Unsafe workspace path: ${safetyResult.suggestedAction}`],
 						workspacePath,
-						validationTime: Date.now() - startTime
+						validationTime: Date.now() - startTime,
 					};
 					this.cacheResult(workspacePath, result);
 					this.updateStatusBar(result);
@@ -96,7 +96,7 @@ export class WorkspaceValidator {
 			canProceed: true,
 			warnings,
 			workspacePath,
-			validationTime: Date.now() - startTime
+			validationTime: Date.now() - startTime,
 		};
 
 		this.logger.info(`Validation completed in ${result.validationTime}ms`);
@@ -134,26 +134,21 @@ export class WorkspaceValidator {
 	 */
 	private updateStatusBar(result: ValidationResult): void {
 		if (!this.statusBarItem) {
-			this.statusBarItem = vscode.window.createStatusBarItem(
-				vscode.StatusBarAlignment.Right,
-				100
-			);
+			this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 		}
 
 		const folderName = path.basename(result.workspacePath);
 
 		if (!result.isValid || !result.canProceed) {
 			// Unsafe workspace - show warning in status bar
-			this.statusBarItem.text = `$(warning) EnvVault: Unsafe workspace`;
-			this.statusBarItem.tooltip = `Workspace "${folderName}" is not recommended for EnvVault.\nClick to validate again.`;
+			this.statusBarItem.text = `$(warning) Envval: Unsafe workspace`;
+			this.statusBarItem.tooltip = `Workspace "${folderName}" is not recommended for Envval.\nClick to validate again.`;
 			this.statusBarItem.command = 'envval.validateWorkspace';
-			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-				'statusBarItem.warningBackground'
-			);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
 			this.statusBarItem.show();
 		} else {
 			// Valid workspace - show checkmark briefly then hide
-			this.statusBarItem.text = `$(check) EnvVault: Ready`;
+			this.statusBarItem.text = `$(check) Envval: Ready`;
 			this.statusBarItem.tooltip = `Workspace validated successfully`;
 			this.statusBarItem.backgroundColor = undefined;
 			this.statusBarItem.show();
@@ -182,10 +177,10 @@ export class WorkspaceValidator {
 		// Critical paths: Block completely, no option to continue
 		if (safetyResult.reason === 'root_drive' || safetyResult.reason === 'system_directory') {
 			const result = await vscode.window.showErrorMessage(
-				`EnvVault: Cannot Use ${reasonText}`,
+				`Envval: Cannot Use ${reasonText}`,
 				{
 					modal: true,
-					detail: `You've opened "${folderName}" as a workspace.\n\nEnvVault cannot scan ${reasonText} for security and performance reasons.\n\nPlease:\n1. Open a specific project folder instead\n2. Avoid opening system directories\n\nExample: Open "C:\\Projects\\MyApp" instead of "C:\\"`
+					detail: `You've opened "${folderName}" as a workspace.\n\nEnvval cannot scan ${reasonText} for security and performance reasons.\n\nPlease:\n1. Open a specific project folder instead\n2. Avoid opening system directories\n\nExample: Open "C:\\Projects\\MyApp" instead of "C:\\"`,
 				},
 				'Open Project Folder',
 				'Close'
@@ -201,10 +196,10 @@ export class WorkspaceValidator {
 
 		// User folders (Desktop, Documents): Strongly discourage but allow with warning
 		const result = await vscode.window.showWarningMessage(
-			`EnvVault: Unsafe Workspace Location`,
+			`Envval: Unsafe Workspace Location`,
 			{
 				modal: true,
-				detail: `You've opened "${folderName}" (${reasonText}) as a workspace.\n\nEnvVault works best with specific project folders.\n\nScanning "${folderName}" may:\n• Take 30-60 seconds on startup\n• Slow down VS Code\n• Find unrelated .env files\n• Drain laptop battery\n\nRecommended: Open your project folder directly.`
+				detail: `You've opened "${folderName}" (${reasonText}) as a workspace.\n\nEnvval works best with specific project folders.\n\nScanning "${folderName}" may:\n• Take 30-60 seconds on startup\n• Slow down VS Code\n• Find unrelated .env files\n• Drain laptop battery\n\nRecommended: Open your project folder directly.`,
 			},
 			'Open Project Folder',
 			'Scan Anyway (Not Recommended)',
@@ -220,14 +215,13 @@ export class WorkspaceValidator {
 		return result === 'Scan Anyway (Not Recommended)';
 	}
 
-
 	/**
 	 * Caches validation result with timestamp
 	 */
 	private cacheResult(workspacePath: string, result: ValidationResult): void {
 		this.validationCache.set(workspacePath, {
 			result,
-			timestamp: Date.now()
+			timestamp: Date.now(),
 		});
 	}
 

@@ -1,5 +1,5 @@
 /**
- * API response and request types for the EnvVault extension.
+ * API response and request types for the Envval extension.
  * All types use readonly modifiers for immutable fields to prevent accidental mutation.
  */
 

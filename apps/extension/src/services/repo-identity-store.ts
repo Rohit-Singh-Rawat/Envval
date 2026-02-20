@@ -1,5 +1,6 @@
 // repo-identity-store.ts
 import * as vscode from 'vscode';
+import { REPO_IDENTITIES_STORAGE_KEY } from '../lib/constants';
 
 /**
  * Data structure for storing repo identity information
@@ -31,7 +32,7 @@ interface RepoIdentityData {
  * Uses VSCode's globalState for persistence and cross-device sync when VSCode settings sync is enabled.
  */
 export class RepoIdentityStore {
-  private static readonly STORAGE_KEY = 'envval.repoIdentities';
+  private static readonly STORAGE_KEY = REPO_IDENTITIES_STORAGE_KEY;
 
   constructor(private context: vscode.ExtensionContext) {}
 

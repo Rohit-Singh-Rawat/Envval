@@ -97,18 +97,18 @@ export class EnvCacheService implements Disposable {
 			return;
 		}
 
-		const envFiles = await getAllEnvFiles(this.logger);
-		const relativePath = envFiles.find((f) => f === fileName);
+		// Remove stale cache entry without firing a premature update event.
+		// (The public removeFile() also fires _onDidUpdate, which would cause
+		// consumers to see a half-updated state before re-parsing is done.)
+		this.fileCache.delete(fileName);
 
-		if (!relativePath) {
-			return;
-		}
+		// Rebuild the key index to clear stale variable entries for this file,
+		// then re-parse and add the fresh entries back in one pass.
+		this.rebuildKeyIndex();
+		await this.parseAndCacheFile(fileName, path.join(workspacePath, fileName));
 
-		const fullPath = path.join(workspacePath, relativePath);
-		this.removeFile(relativePath);
-		await this.parseAndCacheFile(relativePath, fullPath);
+		// Single consolidated notification after all state is updated.
 		this._onDidUpdate.fire();
-
 		this.logger.debug(`EnvCacheService: Refreshed ${fileName}`);
 	}
 
@@ -126,7 +126,7 @@ export class EnvCacheService implements Disposable {
 
 	private async parseAndCacheFile(relativePath: string, fullPath: string): Promise<void> {
 		try {
-			const content = fs.readFileSync(fullPath, 'utf-8');
+			const content = await fs.promises.readFile(fullPath, 'utf-8');
 			const variables = this.parseEnvContent(content, relativePath, fullPath);
 			this.fileCache.set(relativePath, variables);
 			this.addToKeyIndex(variables);
@@ -152,7 +152,7 @@ export class EnvCacheService implements Disposable {
 				variables.set(parsed.key, {
 					key: parsed.key,
 					value: parsed.value,
-					fileName: path.basename(fileName),
+					fileName,
 					filePath,
 					lineNumber: i + 1,
 				});

@@ -179,14 +179,20 @@ class ApiClient {
 	private extractErrorMessage(error: AxiosError): string {
 		if (error.response?.data && typeof error.response.data === 'object') {
 			const data = error.response.data as Record<string, unknown>;
-			if (typeof data.error === 'string') { return data.error; }
-			if (typeof data.message === 'string') { return data.message; }
+			if (typeof data.error === 'string') {
+				return data.error;
+			}
+			if (typeof data.message === 'string') {
+				return data.message;
+			}
 		}
 		return error.message;
 	}
 
 	private sleep(ms: number): Promise<void> {
-		return new Promise((resolve) => { setTimeout(resolve, ms); });
+		return new Promise((resolve) => {
+			setTimeout(resolve, ms);
+		});
 	}
 
 	/**
@@ -206,12 +212,7 @@ class ApiClient {
 				this.logger?.info('[API] Circuit breaker HALF-OPEN - testing connection');
 				return;
 			}
-			throw new ApiError(
-				'Service temporarily unavailable',
-				undefined,
-				'circuit-breaker',
-				true
-			);
+			throw new ApiError('Service temporarily unavailable', undefined, 'circuit-breaker', true);
 		}
 		// half-open: allow request through for testing
 	}
@@ -226,7 +227,10 @@ class ApiClient {
 
 	private recordFailure(): void {
 		this.consecutiveFailures++;
-		if (this.consecutiveFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD && this.circuitState === 'closed') {
+		if (
+			this.consecutiveFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD &&
+			this.circuitState === 'closed'
+		) {
 			this.circuitState = 'open';
 			this.circuitOpenedAt = Date.now();
 			this.logger?.warn(
@@ -321,11 +325,15 @@ export class AuthApiClient extends ApiClient {
 
 	/** Initiates device code flow by requesting a code for the user to authorize. */
 	public async requestDeviceCode(): Promise<DeviceCodeResponse> {
-		return this.post<DeviceCodeResponse>('/api/auth/device/code', {
-			client_id: 'envval-extension',
-		}, {
-			headers: { 'User-Agent': 'envval-extension' },
-		});
+		return this.post<DeviceCodeResponse>(
+			'/api/auth/device/code',
+			{
+				client_id: 'envval-extension',
+			},
+			{
+				headers: { 'User-Agent': 'envval-extension' },
+			}
+		);
 	}
 
 	/**
@@ -339,15 +347,19 @@ export class AuthApiClient extends ApiClient {
 		publicKeyPem: string,
 		signal?: AbortSignal
 	): Promise<DeviceTokenResponse> {
-		return this.post<DeviceTokenResponse>('/api/auth/extension/device/token', {
-			grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-			device_code: deviceCode,
-			client_id: 'envval-extension',
-			public_key: publicKeyPem,
-		}, {
-			headers: { 'User-Agent': 'envval-extension' },
-			signal,
-		});
+		return this.post<DeviceTokenResponse>(
+			'/api/auth/extension/device/token',
+			{
+				grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+				device_code: deviceCode,
+				client_id: 'envval-extension',
+				public_key: publicKeyPem,
+			},
+			{
+				headers: { 'User-Agent': 'envval-extension' },
+				signal,
+			}
+		);
 	}
 }
 
@@ -355,8 +367,8 @@ export class AuthApiClient extends ApiClient {
  * Authenticated API client for repository and environment operations.
  * Automatically attaches bearer tokens and handles session expiry.
  */
-export class EnvVaultApiClient extends ApiClient {
-	private static instance: EnvVaultApiClient;
+export class EnvvalApiClient extends ApiClient {
+	private static instance: EnvvalApiClient;
 	private readonly authProvider: AuthenticationProvider;
 	private refreshPromise: Promise<string | null> | null = null;
 
@@ -398,7 +410,9 @@ export class EnvVaultApiClient extends ApiClient {
 
 				// Prevent infinite refresh loops: if this is already a retried request, give up
 				if (config.__isAuthRetry) {
-					this.logger?.error('[API] Session refresh succeeded but request still unauthorized — logging out');
+					this.logger?.error(
+						'[API] Session refresh succeeded but request still unauthorized — logging out'
+					);
 					await this.authProvider.handleTokenRefreshFailure();
 					return Promise.reject(error);
 				}
@@ -442,14 +456,16 @@ export class EnvVaultApiClient extends ApiClient {
 	public static getInstance(
 		authProvider?: AuthenticationProvider,
 		logger?: Logger
-	): EnvVaultApiClient {
-		if (!EnvVaultApiClient.instance) {
+	): EnvvalApiClient {
+		if (!EnvvalApiClient.instance) {
 			if (!authProvider || !logger) {
-				throw new Error('EnvVaultApiClient requires AuthenticationProvider and Logger for initialization');
+				throw new Error(
+					'EnvvalApiClient requires AuthenticationProvider and Logger for initialization'
+				);
 			}
-			EnvVaultApiClient.instance = new EnvVaultApiClient(authProvider, logger);
+			EnvvalApiClient.instance = new EnvvalApiClient(authProvider, logger);
 		}
-		return EnvVaultApiClient.instance;
+		return EnvvalApiClient.instance;
 	}
 
 	/** Checks if a repository exists on the server. */
@@ -470,7 +486,11 @@ export class EnvVaultApiClient extends ApiClient {
 	}
 
 	/** Migrates environments from an old repo ID to a new one. Returns success status. */
-	public async migrateRepo(oldRepoId: string, newRepoId: string, gitRemoteUrl?: string): Promise<MigrateRepoResponse> {
+	public async migrateRepo(
+		oldRepoId: string,
+		newRepoId: string,
+		gitRemoteUrl?: string
+	): Promise<MigrateRepoResponse> {
 		try {
 			await this.post<void, MigrateRepoData>(`${API_V1}/repos/migrate`, {
 				oldRepoId,
@@ -479,7 +499,9 @@ export class EnvVaultApiClient extends ApiClient {
 			});
 			return { success: true };
 		} catch (error: unknown) {
-			this.logger?.error(`[API] Repository migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			this.logger?.error(
+				`[API] Repository migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
 			return {
 				success: false,
 				message: error instanceof Error ? error.message : 'Unknown error during migration',

@@ -1,14 +1,24 @@
 import { ExtensionContext } from 'vscode';
 import { generateKeyPair, unwrapKeyMaterial } from './crypto';
 
+/** Single source of truth for VS Code secret storage keys. */
+const SecretKeys = {
+	accessToken: 'envval.accessToken',
+	deviceId: 'envval.deviceId',
+	userId: 'envval.userId',
+	privateKey: 'envval.privateKey',
+	publicKey: 'envval.publicKey',
+	wrappedKeyMaterial: 'envval.wrappedKeyMaterial',
+} as const;
+
 /**
  * Manages secure storage of sensitive credentials using VS Code's SecretStorage API.
  * Handles access tokens, device IDs, and cryptographic keys required for end-to-end encryption.
  *
  * Uses the singleton pattern to ensure consistent access across the extension.
  */
-export class EnvVaultVsCodeSecrets {
-	private static instance: EnvVaultVsCodeSecrets;
+export class EnvvalVsCodeSecrets {
+	private static instance: EnvvalVsCodeSecrets;
 	private ctx: ExtensionContext;
 
 	private constructor(ctx: ExtensionContext) {
@@ -20,74 +30,74 @@ export class EnvVaultVsCodeSecrets {
 	 * @param ctx - Required on first call to initialize the secret storage.
 	 * @throws Error if ctx is not provided on first initialization.
 	 */
-	public static getInstance(ctx?: ExtensionContext): EnvVaultVsCodeSecrets {
-		if (!EnvVaultVsCodeSecrets.instance) {
+	public static getInstance(ctx?: ExtensionContext): EnvvalVsCodeSecrets {
+		if (!EnvvalVsCodeSecrets.instance) {
 			if (!ctx) {
 				throw new Error('ExtensionContext is required for first initialization');
 			}
-			EnvVaultVsCodeSecrets.instance = new EnvVaultVsCodeSecrets(ctx);
+			EnvvalVsCodeSecrets.instance = new EnvvalVsCodeSecrets(ctx);
 		}
-		return EnvVaultVsCodeSecrets.instance;
+		return EnvvalVsCodeSecrets.instance;
 	}
 
 	/** Retrieves the stored JWT access token for API authentication. */
 	public getAccessToken(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.accessToken');
+		return this.ctx.secrets.get(SecretKeys.accessToken);
 	}
 
 	/** Stores the JWT access token received after successful authentication. */
 	public async setAccessToken(token: string): Promise<void> {
-		await this.ctx.secrets.store('envval.accessToken', token);
+		await this.ctx.secrets.store(SecretKeys.accessToken, token);
 	}
 
 	/** Retrieves the unique device identifier assigned during authentication. */
 	public getDeviceId(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.deviceId');
+		return this.ctx.secrets.get(SecretKeys.deviceId);
 	}
 
 	/** Stores the device ID used to identify this VS Code instance. */
 	public async setDeviceId(id: string): Promise<void> {
-		await this.ctx.secrets.store('envval.deviceId', id);
+		await this.ctx.secrets.store(SecretKeys.deviceId, id);
 	}
 
 	/** Retrieves the user ID for use in key derivation (PBKDF2 salt). */
 	public getUserId(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.userId');
+		return this.ctx.secrets.get(SecretKeys.userId);
 	}
 
 	/** Stores the user ID received during authentication. */
 	public async setUserId(id: string): Promise<void> {
-		await this.ctx.secrets.store('envval.userId', id);
+		await this.ctx.secrets.store(SecretKeys.userId, id);
 	}
 
 	/** Retrieves the RSA private key (PEM format) used for decrypting environment secrets. */
 	public getPrivateKey(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.privateKey');
+		return this.ctx.secrets.get(SecretKeys.privateKey);
 	}
 
 	/** Stores the RSA private key (PEM format) for local decryption operations. */
 	public async setPrivateKey(privateKeyPem: string): Promise<void> {
-		await this.ctx.secrets.store('envval.privateKey', privateKeyPem);
+		await this.ctx.secrets.store(SecretKeys.privateKey, privateKeyPem);
 	}
 
 	/** Retrieves the RSA public key (PEM format) shared with the server. */
 	public getPublicKey(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.publicKey');
+		return this.ctx.secrets.get(SecretKeys.publicKey);
 	}
 
 	/** Stores the RSA public key (PEM format) sent to server during authentication. */
 	public async setPublicKey(publicKeyPem: string): Promise<void> {
-		await this.ctx.secrets.store('envval.publicKey', publicKeyPem);
+		await this.ctx.secrets.store(SecretKeys.publicKey, publicKeyPem);
 	}
 
 	/** Retrieves the server-encrypted key material (base64) for decryption. */
 	public getWrappedKeyMaterial(): Thenable<string | undefined> {
-		return this.ctx.secrets.get('envval.wrappedKeyMaterial');
+		return this.ctx.secrets.get(SecretKeys.wrappedKeyMaterial);
 	}
 
 	/** Stores the wrapped key material received from the server. */
 	public async setWrappedKeyMaterial(wrappedKey: string): Promise<void> {
-		await this.ctx.secrets.store('envval.wrappedKeyMaterial', wrappedKey);
+		await this.ctx.secrets.store(SecretKeys.wrappedKeyMaterial, wrappedKey);
 	}
 
 	/**
@@ -139,13 +149,6 @@ export class EnvVaultVsCodeSecrets {
 
 	/** Removes all stored secrets. Used during logout or credential reset. */
 	public async clearAll(): Promise<void> {
-		await Promise.all([
-			this.ctx.secrets.delete('envval.accessToken'),
-			this.ctx.secrets.delete('envval.deviceId'),
-			this.ctx.secrets.delete('envval.userId'),
-			this.ctx.secrets.delete('envval.privateKey'),
-			this.ctx.secrets.delete('envval.publicKey'),
-			this.ctx.secrets.delete('envval.wrappedKeyMaterial'),
-		]);
+		await Promise.all(Object.values(SecretKeys).map((key) => this.ctx.secrets.delete(key)));
 	}
 }

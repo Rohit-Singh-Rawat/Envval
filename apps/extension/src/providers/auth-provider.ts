@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { EnvVaultVsCodeSecrets } from '../utils/secrets';
+import { EnvvalVsCodeSecrets } from '../utils/secrets';
 import { SESSION_REFRESH_PATH } from '../lib/constants';
 import { getApiBaseUrl, getDeviceVerificationUrl } from '../lib/config';
 import { Logger } from '../utils/logger';
@@ -41,7 +41,7 @@ const DEFAULT_POLLING_CONFIG: PollingConfig = {
 export class AuthenticationProvider {
 	private static instance: AuthenticationProvider;
 	private readonly logger: Logger;
-	private readonly secretsManager: EnvVaultVsCodeSecrets;
+	private readonly secretsManager: EnvvalVsCodeSecrets;
 	private readonly authClient: AuthApiClient;
 
 	private authenticationStateEmitter = new vscode.EventEmitter<boolean>();
@@ -55,14 +55,14 @@ export class AuthenticationProvider {
 	private isPolling = false;
 	private pollAbortController: AbortController | null = null;
 
-	private constructor(secretsManager: EnvVaultVsCodeSecrets, logger: Logger) {
+	private constructor(secretsManager: EnvvalVsCodeSecrets, logger: Logger) {
 		this.logger = logger;
 		this.secretsManager = secretsManager;
 		this.authClient = AuthApiClient.getInstance();
 	}
 
 	public static getInstance(
-		secretsManager: EnvVaultVsCodeSecrets,
+		secretsManager: EnvvalVsCodeSecrets,
 		logger?: Logger
 	): AuthenticationProvider {
 		if (!AuthenticationProvider.instance) {
@@ -86,7 +86,7 @@ export class AuthenticationProvider {
 	 * Returns the device code response so the UI can display the user code.
 	 */
 	public async initiateLogin(): Promise<DeviceCodeResponse> {
-		this.logger.info('Initiating EnvVault device authorization flow');
+		this.logger.info('Initiating Envval device authorization flow');
 		StatusBar.getInstance().setLoading(true, 'Requesting device code...');
 		this.pollingStatusEmitter.fire({ state: 'requesting_code' });
 
@@ -245,8 +245,8 @@ export class AuthenticationProvider {
 					const errorDescription = axios.isAxiosError(error)
 						? error.response?.data?.error_description || error.message
 						: error instanceof Error
-						? error.message
-						: 'Unknown error';
+							? error.message
+							: 'Unknown error';
 
 					switch (errorCode) {
 						case 'authorization_pending':
@@ -341,16 +341,16 @@ export class AuthenticationProvider {
 
 	public async logout(): Promise<void> {
 		try {
-			this.logger.info('EnvVault: Logging out');
+			this.logger.info('Envval: Logging out');
 			this.cancelPolling();
 
 			await this.secretsManager.clearAll();
 			this.authenticationStateEmitter.fire(false);
 
-			vscode.window.showInformationMessage('EnvVault: Logged out successfully.');
+			vscode.window.showInformationMessage('Envval: Logged out successfully.');
 		} catch (error) {
 			this.logger.error(`Logout failed: ${formatError(error)}`);
-			vscode.window.showErrorMessage('EnvVault: Failed to logout.');
+			vscode.window.showErrorMessage('Envval: Failed to logout.');
 		}
 	}
 
@@ -388,7 +388,9 @@ export class AuthenticationProvider {
 			}
 
 			// 401 = session revoked or doesn't exist
-			this.logger.info('[Auth] Session refresh rejected by server (revoked or expired beyond recovery)');
+			this.logger.info(
+				'[Auth] Session refresh rejected by server (revoked or expired beyond recovery)'
+			);
 			return null;
 		} catch (error: unknown) {
 			const message = formatError(error);
@@ -398,9 +400,9 @@ export class AuthenticationProvider {
 	}
 
 	public async handleTokenRefreshFailure(): Promise<void> {
-		this.logger.info('EnvVault: Token refresh failed, logging out');
+		this.logger.info('Envval: Token refresh failed, logging out');
 		await this.logout();
-		vscode.window.showWarningMessage('EnvVault: Session expired. Please log in again.');
+		vscode.window.showWarningMessage('Envval: Session expired. Please log in again.');
 	}
 
 	public dispose(): void {

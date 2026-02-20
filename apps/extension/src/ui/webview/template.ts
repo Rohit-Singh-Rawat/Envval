@@ -42,7 +42,7 @@ export function getLoginWebviewContent(): string {
 			</div>
 			
 			<p class="verification-url">
-				Go to <a href="#" id="verificationLink" onclick="openBrowser(); return false;">envval.app/device</a>
+				Go to <a href="#" id="verificationLink" onclick="openBrowser(); return false;">envval.com/device</a>
 			</p>
 			
 			<div class="button-row">

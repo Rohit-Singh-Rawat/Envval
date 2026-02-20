@@ -9,13 +9,13 @@ import {
 	getWorkspacePath,
 } from '../utils/repo-detection';
 import type { Env } from '../api/types';
-import { EnvVaultMetadataStore } from './metadata-store';
+import { EnvvalMetadataStore } from './metadata-store';
 import { RepoMigrationService } from './repo-migration';
 import { RepoIdentityStore } from './repo-identity-store';
 import { WorkspaceContextProvider } from './workspace-context-provider';
 import { WorkspaceValidator } from './workspace-validator';
-import { EnvVaultApiClient } from '../api/client';
-import { EnvVaultVsCodeSecrets } from '../utils/secrets';
+import { EnvvalApiClient } from '../api/client';
+import { EnvvalVsCodeSecrets } from '../utils/secrets';
 import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from '../utils/crypto';
 import { StatusBar } from '../ui/status-bar';
 import { Logger } from '../utils/logger';
@@ -43,16 +43,16 @@ import {
 export class EnvInitService {
 	private static instance: EnvInitService;
 	private readonly context: vscode.ExtensionContext;
-	private readonly metadataStore: EnvVaultMetadataStore;
-	private readonly apiClient: EnvVaultApiClient;
-	private readonly secretsManager: EnvVaultVsCodeSecrets;
+	private readonly metadataStore: EnvvalMetadataStore;
+	private readonly apiClient: EnvvalApiClient;
+	private readonly secretsManager: EnvvalVsCodeSecrets;
 	private readonly logger: Logger;
 
 	private constructor(
 		context: vscode.ExtensionContext,
-		metadataStore: EnvVaultMetadataStore,
-		apiClient: EnvVaultApiClient,
-		secretsManager: EnvVaultVsCodeSecrets,
+		metadataStore: EnvvalMetadataStore,
+		apiClient: EnvvalApiClient,
+		secretsManager: EnvvalVsCodeSecrets,
 		logger: Logger
 	) {
 		this.context = context;
@@ -64,9 +64,9 @@ export class EnvInitService {
 
 	public static getInstance(
 		context: vscode.ExtensionContext,
-		metadataStore: EnvVaultMetadataStore,
-		apiClient: EnvVaultApiClient,
-		secretsManager: EnvVaultVsCodeSecrets,
+		metadataStore: EnvvalMetadataStore,
+		apiClient: EnvvalApiClient,
+		secretsManager: EnvvalVsCodeSecrets,
 		logger: Logger
 	): EnvInitService {
 		if (!EnvInitService.instance) {
@@ -170,9 +170,7 @@ export class EnvInitService {
 						this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
 						showSuccess(`Project "${nameResult.name}" registered successfully.`);
 					} catch (error) {
-						this.logger.error(
-							`Failed to register repo: ${formatError(error)}`
-						);
+						this.logger.error(`Failed to register repo: ${formatError(error)}`);
 						showError('Failed to register repository. Please try again.');
 						return;
 					}
@@ -195,9 +193,7 @@ export class EnvInitService {
 			);
 			await migrationManager.handleAutomaticMigrationPrompt(workspacePath);
 		} catch (error: unknown) {
-			this.logger.error(
-				`Initial check failed: ${formatError(error)}`
-			);
+			this.logger.error(`Initial check failed: ${formatError(error)}`);
 		} finally {
 			StatusBar.getInstance().setLoading(false);
 		}
@@ -553,9 +549,7 @@ export class EnvInitService {
 				showSuccess(`Conflict resolved using remote ${fileName}.`);
 			}
 		} catch (error) {
-			this.logger.error(
-				`Failed to handle first time sync for ${fileName}: ${formatError(error)}`
-			);
+			this.logger.error(`Failed to handle first time sync for ${fileName}: ${formatError(error)}`);
 		}
 	}
 }

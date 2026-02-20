@@ -1,69 +1,84 @@
-import { ExtensionContext, OutputChannel, window } from "vscode";
-import { VSCODE_CONFIG_SECTION } from "../lib/constants";
-import { getLoggingVerbose } from "../lib/config";
+import { ExtensionContext, OutputChannel, window } from 'vscode';
+import { VSCODE_CONFIG_SECTION } from '../lib/constants';
+import { getRuntimeConfig, type RuntimeConfig } from '../lib/config';
 
 export class Logger {
-  private static instance: Logger;
-  private readonly channel: OutputChannel;
-  private verbose: boolean;
+	private static instance: Logger;
+	private readonly channel: OutputChannel;
+	private runtimeConfig: RuntimeConfig;
 
-  private constructor(ctx: ExtensionContext, verbose: boolean) {
-    this.channel = window.createOutputChannel(VSCODE_CONFIG_SECTION);
-    this.verbose = verbose;
-    ctx.subscriptions.push(this.channel);
-  }
+	private constructor(ctx: ExtensionContext, runtimeConfig: RuntimeConfig) {
+		this.channel = window.createOutputChannel(VSCODE_CONFIG_SECTION);
+		this.runtimeConfig = runtimeConfig;
+		ctx.subscriptions.push(this.channel);
+	}
 
-  public static getInstance(
-    ctx: ExtensionContext,
-    verbose?: boolean
-  ): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger(ctx, verbose ?? getLoggingVerbose());
-    }
-    return Logger.instance;
-  }
+	public static getInstance(ctx: ExtensionContext, runtimeConfig?: RuntimeConfig): Logger {
+		if (!Logger.instance) {
+			Logger.instance = new Logger(ctx, runtimeConfig ?? getRuntimeConfig());
+		}
+		return Logger.instance;
+	}
 
-  private write(level: string, message: string): void {
-    const timestamp = new Date().toISOString();
-    this.channel.appendLine(`${timestamp} [${level}] ${message}`);
-  }
+	private write(level: string, message: string): void {
+		const timestamp = new Date().toISOString();
+		this.channel.appendLine(`${timestamp} [${level}] ${message}`);
+	}
 
-  public log(message: string): void {
-    if (this.verbose) {
-      this.write("LOG", message);
-    }
-  }
+	private shouldWrite(level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'): boolean {
+		// Production logging policy is intentionally strict to avoid noisy output channels.
+		if (this.runtimeConfig.environment === 'production') {
+			return level === 'INFO' || level === 'ERROR';
+		}
 
-  public debug(message: string): void {
-    if (this.verbose) {
-      this.write("DEBUG", message);
-    }
-  }
+		if (level === 'DEBUG') {
+			return this.runtimeConfig.loggingVerbose;
+		}
+		return true;
+	}
 
-  public info(message: string): void {
-    this.write("INFO", message);
-  }
+	public log(message: string): void {
+		if (this.runtimeConfig.loggingVerbose) {
+			this.write('LOG', message);
+		}
+	}
 
-  public warn(message: string): void {
-    this.write("WARN", message);
-  }
+	public debug(message: string): void {
+		if (this.shouldWrite('DEBUG')) {
+			this.write('DEBUG', message);
+		}
+	}
 
-  public error(message: string): void {
-    this.write("ERROR", message);
-  }
+	public info(message: string): void {
+		if (this.shouldWrite('INFO')) {
+			this.write('INFO', message);
+		}
+	}
 
-  public show(): void {
-    this.channel.show();
-  }
+	public warn(message: string): void {
+		if (this.shouldWrite('WARN')) {
+			this.write('WARN', message);
+		}
+	}
 
-  public setVerbose(verbose: boolean): void {
-    this.verbose = verbose;
-  }
+	public error(message: string): void {
+		if (this.shouldWrite('ERROR')) {
+			this.write('ERROR', message);
+		}
+	}
+
+	public show(): void {
+		this.channel.show();
+	}
+
+	public setRuntimeConfig(runtimeConfig: RuntimeConfig): void {
+		this.runtimeConfig = runtimeConfig;
+	}
 }
 
 export function createLogger(
-  ctx: ExtensionContext,
-  verbose?: boolean
+	ctx: ExtensionContext,
+	runtimeConfig?: RuntimeConfig
 ): Logger {
-  return Logger.getInstance(ctx, verbose);
+	return Logger.getInstance(ctx, runtimeConfig);
 }

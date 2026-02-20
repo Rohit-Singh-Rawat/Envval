@@ -2,9 +2,9 @@
 import * as vscode from 'vscode';
 import { RepoIdentityStore } from '../services/repo-identity-store';
 import { RepoMigrationService } from '../services/repo-migration';
-import { EnvVaultMetadataStore } from '../services/metadata-store';
+import { EnvvalMetadataStore } from '../services/metadata-store';
 import { getCurrentWorkspaceId, detectMonorepoStructure, getAllGitRemotes, getGitRemoteUrl } from '../utils/repo-detection';
-import { EnvVaultApiClient } from '../api/client';
+import { EnvvalApiClient } from '../api/client';
 import type { Logger } from '../utils/logger';
 import { formatError } from '../utils/format-error';
 
@@ -17,7 +17,7 @@ export class RepoIdentityCommands {
 
   constructor(
     private context: vscode.ExtensionContext,
-    private metadataStore: EnvVaultMetadataStore,
+    private metadataStore: EnvvalMetadataStore,
     private logger: Logger
   ) {}
 
@@ -41,8 +41,8 @@ export class RepoIdentityCommands {
     return this._migrationService;
   }
 
-  private get apiClient(): EnvVaultApiClient {
-    return EnvVaultApiClient.getInstance();
+  private get apiClient(): EnvvalApiClient {
+    return EnvvalApiClient.getInstance();
   }
 
   /**

@@ -2,11 +2,28 @@ export const DEFAULT_POLL_INTERVAL_SECONDS = 60;
 export const DEFAULT_LOGGING_VERBOSE = false;
 export const VSCODE_CONFIG_SECTION = 'envval';
 
-// API endpoints — pinned to production; not user-configurable
-export const API_BASE_URL = 'http://localhost:8080';
-export const DEVICE_VERIFICATION_URL = 'http://localhost:3001/device';
+export type ExtensionEnvironment = 'development' | 'production';
+
+export const DEFAULT_ENVIRONMENT: ExtensionEnvironment = 'production';
+
+export interface RuntimeEndpoints {
+	readonly apiBaseUrl: string;
+	readonly deviceVerificationUrl: string;
+}
+
+export const RUNTIME_ENDPOINTS: Readonly<Record<ExtensionEnvironment, RuntimeEndpoints>> = {
+	development: {
+		apiBaseUrl: 'http://localhost:8080',
+		deviceVerificationUrl: 'http://localhost:3001/device',
+	},
+	production: {
+		apiBaseUrl: 'https://api.envval.com',
+		deviceVerificationUrl: 'https://envval.com/device',
+	},
+};
 
 export const METADATA_STORAGE_KEY = 'envval.metadata';
+export const REPO_IDENTITIES_STORAGE_KEY = 'envval.repoIdentities';
 export const IGNORED_ENV_FILES: readonly string[] = [
 	'.env.example',
 	'.env.sample',

@@ -72,9 +72,10 @@ export class ConnectionMonitor implements Disposable {
 			clearInterval(this.checkTimer);
 		}
 
-		const interval = this._state === 'online'
-			? CONNECTION_HEALTH_CHECK_INTERVAL_MS
-			: CONNECTION_RECOVERY_CHECK_INTERVAL_MS;
+		const interval =
+			this._state === 'online'
+				? CONNECTION_HEALTH_CHECK_INTERVAL_MS
+				: CONNECTION_RECOVERY_CHECK_INTERVAL_MS;
 
 		this.checkTimer = setInterval(() => this.performCheck(), interval);
 	}
@@ -100,7 +101,7 @@ export class ConnectionMonitor implements Disposable {
 		}
 	}
 
-	// Uses raw fetch instead of EnvVaultApiClient to avoid circular dependencies
+	// Uses raw fetch instead of EnvvalApiClient to avoid circular dependencies
 	// and to keep health checks independent of auth state.
 	private async checkHealth(): Promise<boolean> {
 		try {
@@ -120,7 +121,9 @@ export class ConnectionMonitor implements Disposable {
 
 			// fetch may not be available in Node.js <18
 			if (message.includes('fetch is not defined') || message.includes('fetch is not a function')) {
-				this.logger.warn('ConnectionMonitor: fetch() unavailable in this Node.js version, assuming online');
+				this.logger.warn(
+					'ConnectionMonitor: fetch() unavailable in this Node.js version, assuming online'
+				);
 				return true;
 			}
 

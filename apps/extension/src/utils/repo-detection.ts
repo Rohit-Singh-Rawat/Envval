@@ -1,6 +1,6 @@
 // repoDetector.ts
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -14,6 +14,9 @@ import type { Logger } from '../utils/logger';
 import { formatError } from './format-error';
 
 const execAsync = promisify(exec);
+// execFile avoids shell interpolation — used wherever a remote name (user-
+// controlled data) is passed as an argument to prevent command injection.
+const execFileAsync = promisify(execFile);
 
 /**
  * Helper function to log messages using logger or console as fallback
@@ -88,7 +91,7 @@ export async function getAllGitRemotes(workspacePath: string): Promise<Map<strin
 
     for (const name of remoteNames) {
       try {
-        const { stdout: url } = await execAsync(`git remote get-url ${name}`, { cwd: workspacePath });
+        const { stdout: url } = await execFileAsync('git', ['remote', 'get-url', name], { cwd: workspacePath });
         remotes.set(name, url.trim());
       } catch {
         // Skip remotes that can't be read
@@ -195,6 +198,13 @@ function selectBestRemote(remotes: Map<string, string>): { name: string; url: st
  * Enhanced Git remote detection with support for multiple remotes, submodules, and worktrees
  */
 export async function getGitRemote(workspacePath: string): Promise<GitRemoteResult | undefined> {
+  // Only proceed if .git exists directly in this folder — prevents git from
+  // walking up to a parent repo when the user opens a subdirectory.
+  const gitDir = path.join(workspacePath, '.git');
+  if (!fs.existsSync(gitDir)) {
+    return undefined;
+  }
+
   // Check if this is a submodule
   const submoduleInfo = detectSubmodule(workspacePath);
   if (submoduleInfo.isSubmodule && submoduleInfo.parentPath) {
@@ -821,7 +831,7 @@ export async function getAllEnvFiles(logger?: Logger): Promise<string[]> {
       undefined
     );
 
-    logger?.info(`Found ${envFileUris.length} environment files in workspace`);
+    logger?.debug(`Found ${envFileUris.length} environment files in workspace`);
 
     // Convert URIs to relative paths and filter out ignored files
     const relativePaths = envFileUris
