@@ -17,3 +17,4 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 TODO.md
 CHANGELOG.md
+.env

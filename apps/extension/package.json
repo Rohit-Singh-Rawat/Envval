@@ -2,7 +2,7 @@
 	"name": "Envval-ext",
 	"displayName": "EnvVal",
 	"description": "Securely sync, back up, and manage your .env files across machines and teammates — powered by Envval.",
-	"version": "1.0.0",
+	"version": "1.0.3",
 	"publisher": "Envval-ext",
 	"icon": "./assets/icons/envval.png",
 	"keywords": [
@@ -20,7 +20,7 @@
 		"theme": "dark"
 	},
 	"engines": {
-		"vscode": "^1.107.0"
+		"vscode": "^1.94.0"
 	},
 	"repository": {
 		"type": "git",
@@ -121,7 +121,7 @@
 		"viewsWelcome": [
 			{
 				"view": "envvalTrackedEnvs",
-				"contents": "Envval helps you securely sync and back up your environment variables.\n[Sign In to Start Syncing](command:envval.showLogin)\nLearn more about [Envval](https://envval.com)",
+				"contents": "Sign in to EnvVal to sync your `.env` files across machines and teammates.\n\n[$(sign-in) Sign in to EnvVal](command:envval.showLogin)\n\n[Learn more](https://envval.com)",
 				"when": "envval:unauthenticated"
 			},
 			{
@@ -178,7 +178,7 @@
 			"envval.loggingVerbose": {
 				"type": "boolean",
 				"default": false,
-				"description": "Enable verbose debug logging (ignored in production)"
+				"description": "Enable verbose debug logging in the EnvVal output channel"
 			},
 			"envval.pollIntervalSeconds": {
 				"type": "number",
@@ -235,13 +235,13 @@
 	},
 	"scripts": {
 		"clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.readdirSync('.').filter(f=>f.endsWith('.vsix')).forEach(f=>fs.unlinkSync(f));console.log('Cleaned dist/ and *.vsix files')\"",
-		"vscode:prepublish": "bun run clean && bun run check-types && bun run lint && node esbuild.js --production",
+		"vscode:prepublish": "bun run check-types && bun run lint && node esbuild.js --production",
 		"compile": "bun run check-types && bun run lint && node esbuild.js",
 		"watch": "npm-run-all -p watch:*",
 		"watch:esbuild": "node esbuild.js --watch",
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
 		"package": "bun run clean && bun run check-types && bun run lint && node esbuild.js --production && bun x @vscode/vsce package --no-dependencies",
-		"publish": "npx @vscode/vsce publish --no-dependencies",
+		"publish": "node scripts/publish.js",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "bun run compile-tests && bun run compile && bun run lint",
@@ -252,7 +252,7 @@
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^22.19.11",
-		"@types/vscode": "1.107.0",
+		"@types/vscode": "1.94.0",
 		"@vscode/test-cli": "^0.0.12",
 		"@vscode/test-electron": "^2.5.2",
 		"esbuild": "^0.27.3",
