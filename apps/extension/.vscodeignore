@@ -1,8 +1,11 @@
 .vscode/**
 .vscode-test/**
+.vscode-test.mjs
+.turbo/**
 out/**
 node_modules/**
 src/**
+scripts/**
 .gitignore
 .yarnrc
 esbuild.js
@@ -12,3 +15,5 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+TODO.md
+CHANGELOG.md

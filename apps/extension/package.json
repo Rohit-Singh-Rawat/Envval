@@ -1,10 +1,24 @@
 {
-	"name": "envval",
-	"displayName": "envval",
-	"description": "",
-	"version": "1.0.3",
-	"publisher": "envval",
+	"name": "Envval-ext",
+	"displayName": "EnvVal",
+	"description": "Securely sync, back up, and manage your .env files across machines and teammates — powered by Envval.",
+	"version": "1.0.0",
+	"publisher": "Envval-ext",
 	"icon": "./assets/icons/envval.png",
+	"keywords": [
+		"env",
+		"environment variables",
+		"dotenv",
+		"sync",
+		"secrets",
+		"vault",
+		"backup",
+		"team"
+	],
+	"galleryBanner": {
+		"color": "#0f172a",
+		"theme": "dark"
+	},
 	"engines": {
 		"vscode": "^1.107.0"
 	},
@@ -14,7 +28,8 @@
 		"directory": "apps/extension"
 	},
 	"categories": [
-		"Other"
+		"Other",
+		"SCM Providers"
 	],
 	"activationEvents": [
 		"onStartupFinished",
@@ -88,7 +103,7 @@
 			"activitybar": [
 				{
 					"id": "envval-explorer",
-					"title": "EnvVault",
+					"title": "Envval",
 					"icon": "assets/icons/envval.svg"
 				}
 			]
@@ -106,7 +121,7 @@
 		"viewsWelcome": [
 			{
 				"view": "envvalTrackedEnvs",
-				"contents": "EnvVault helps you securely sync and back up your environment variables.\n[Sign In to Start Syncing](command:envval.showLogin)\nLearn more about [EnvVault](https://envvault.io)",
+				"contents": "Envval helps you securely sync and back up your environment variables.\n[Sign In to Start Syncing](command:envval.showLogin)\nLearn more about [Envval](https://envval.com)",
 				"when": "envval:unauthenticated"
 			},
 			{
@@ -141,6 +156,36 @@
 		"type": "object",
 		"title": "EnvVal",
 		"properties": {
+			"envval.environment": {
+				"type": "string",
+				"default": "production",
+				"enum": [
+					"development",
+					"production"
+				],
+				"description": "Runtime environment used to resolve API and authentication endpoints"
+			},
+			"envval.apiBaseUrlOverride": {
+				"type": "string",
+				"default": "",
+				"description": "Optional API base URL override (advanced)"
+			},
+			"envval.deviceVerificationUrlOverride": {
+				"type": "string",
+				"default": "",
+				"description": "Optional device verification URL override (advanced)"
+			},
+			"envval.loggingVerbose": {
+				"type": "boolean",
+				"default": false,
+				"description": "Enable verbose debug logging (ignored in production)"
+			},
+			"envval.pollIntervalSeconds": {
+				"type": "number",
+				"default": 60,
+				"minimum": 15,
+				"description": "Polling interval used for remote environment synchronization"
+			},
 			"envval.autoDetectMonorepo": {
 				"type": "boolean",
 				"default": true,
@@ -149,7 +194,11 @@
 			"envval.preferredRemote": {
 				"type": "string",
 				"default": "origin",
-				"enum": ["origin", "upstream", "any"],
+				"enum": [
+					"origin",
+					"upstream",
+					"any"
+				],
 				"enumDescriptions": [
 					"Use 'origin' remote for repo identification",
 					"Use 'upstream' remote for repo identification",
@@ -185,15 +234,17 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run package",
-		"compile": "npm run check-types && npm run lint && node esbuild.js",
+		"clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.readdirSync('.').filter(f=>f.endsWith('.vsix')).forEach(f=>fs.unlinkSync(f));console.log('Cleaned dist/ and *.vsix files')\"",
+		"vscode:prepublish": "bun run clean && bun run check-types && bun run lint && node esbuild.js --production",
+		"compile": "bun run check-types && bun run lint && node esbuild.js",
 		"watch": "npm-run-all -p watch:*",
 		"watch:esbuild": "node esbuild.js --watch",
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-		"package": "npm run check-types && npm run lint && node esbuild.js --production",
+		"package": "bun run clean && bun run check-types && bun run lint && node esbuild.js --production && bun x @vscode/vsce package --no-dependencies",
+		"publish": "npx @vscode/vsce publish --no-dependencies",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
-		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"pretest": "bun run compile-tests && bun run compile && bun run lint",
 		"check-types": "tsc --noEmit",
 		"lint": "eslint src",
 		"test": "vscode-test"
@@ -201,7 +252,7 @@
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^22.19.11",
-		"@types/vscode": "^1.107.0",
+		"@types/vscode": "1.107.0",
 		"@vscode/test-cli": "^0.0.12",
 		"@vscode/test-electron": "^2.5.2",
 		"esbuild": "^0.27.3",
