@@ -28,28 +28,30 @@ export const putEnvsHandler = honoFactory.createHandlers(
 			const body = ctx.req.valid('json');
 			const result = await envService.updateEnvironment(user.id, envId, body);
 
-			if (!result.success) {
-				if (result.conflict) {
-					return ctx.json(
-						{
-							error: 'precondition_failed',
-							message: 'Environment was modified by another device',
-							current: {
-								latestHash: result.current.latestHash,
-								updatedAt: result.current.updatedAt,
-								lastUpdatedByDeviceId: result.current.lastUpdatedByDeviceId,
-							},
-							requested: {
-								baseHash: body.baseHash,
-							},
-						},
-						HTTP_PRECONDITION_FAILED
-					);
-				}
+			if (!result) {
 				return ctx.json({ error: 'Environment not found' }, HTTP_NOT_FOUND);
 			}
 
-			return ctx.json(result.env);
+			if (!result.success && result.conflict) {
+				return ctx.json(
+					{
+						error: 'precondition_failed',
+						message: 'Environment was modified by another device',
+						current: {
+							latestHash: result.current.latestHash,
+							updatedAt: result.current.updatedAt,
+							lastUpdatedByDeviceId: result.current.lastUpdatedByDeviceId,
+						},
+						requested: { baseHash: body.baseHash },
+					},
+					HTTP_PRECONDITION_FAILED
+				);
+			}
+
+			if (result.success) {
+				return ctx.json(result.env);
+			}
+			return ctx.json({ error: 'Environment not found' }, HTTP_NOT_FOUND);
 		} catch (error) {
 			logger.error('Failed to update environment', { error });
 			return ctx.json({ error: 'Failed to update environment' }, HTTP_INTERNAL_SERVER_ERROR);

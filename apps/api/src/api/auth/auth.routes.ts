@@ -7,6 +7,8 @@ import { keyMaterialApi } from './key-material.api';
 
 export const authRoutes = honoFactory
 	.createApp()
+	// Device flow is a one-time user action — mutation tier takes precedence over auth catch-all
+	.use('/device/*', rateLimitMiddleware({ tier: 'mutation', by: 'ip', methods: ['POST'] }))
 	.use('*', rateLimitMiddleware({ tier: 'auth', by: 'ip', methods: ['POST'] }))
 	.route('/session', sessionApi)
 	.route('/extension', extensionApi)

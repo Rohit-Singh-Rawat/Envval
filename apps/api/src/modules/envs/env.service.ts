@@ -1,8 +1,35 @@
 import { db } from '@envval/db';
 import { environment } from '@envval/db/schema';
 import { eq, and, count } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import { CreateEnvBody, UpdateEnvBody } from './env.schemas';
 import { computeEnvId } from '@/shared/utils/id';
+
+export type EnvironmentRow = InferSelectModel<typeof environment>;
+
+export type UpdateEnvResult =
+	| { success: true; env: EnvironmentRow }
+	| { success: false; conflict: true; current: { latestHash: string; updatedAt: Date; lastUpdatedByDeviceId: string | null } }
+	| undefined;
+
+function buildUpdatePayload(data: UpdateEnvBody): Partial<InferSelectModel<typeof environment>> & { updatedAt: Date } {
+	const payload: Partial<InferSelectModel<typeof environment>> & { updatedAt: Date } = {
+		updatedAt: new Date(),
+	};
+	if (data.content !== undefined) {
+		payload.content = data.content;
+	}
+	if (data.latestHash !== undefined) {
+		payload.latestHash = data.latestHash;
+	}
+	if (data.envCount !== undefined) {
+		payload.envCount = data.envCount;
+	}
+	if (data.fileName !== undefined) {
+		payload.fileName = data.fileName;
+	}
+	return payload;
+}
 
 export class EnvService {
 	async getAllEnvironments(userId: string, repoId?: string, includeContent = false) {
@@ -36,7 +63,6 @@ export class EnvService {
 	}
 
 	async createEnvironment(userId: string, data: CreateEnvBody) {
-		// Use deterministic ID based on repoId + fileName 
 		const id = computeEnvId(data.repoId, data.fileName);
 		const [result] = await db
 			.insert(environment)
@@ -100,16 +126,43 @@ export class EnvService {
 		return result;
 	}
 
-	async updateEnvironment(userId: string, envId: string, data: UpdateEnvBody) {
-		const [result] = await db
-			.update(environment)
-			.set({
-				...data,
-				updatedAt: new Date(),
+	async updateEnvironment(
+		userId: string,
+		envId: string,
+		data: UpdateEnvBody
+	): Promise<UpdateEnvResult> {
+		const [current] = await db
+			.select({
+				latestHash: environment.latestHash,
+				updatedAt: environment.updatedAt,
+				lastUpdatedByDeviceId: environment.lastUpdatedByDeviceId,
 			})
+			.from(environment)
+			.where(and(eq(environment.userId, userId), eq(environment.id, envId)));
+
+		if (!current) {
+			return undefined;
+		}
+
+		if (current.latestHash !== data.baseHash) {
+			return {
+				success: false,
+				conflict: true,
+				current: {
+					latestHash: current.latestHash,
+					updatedAt: current.updatedAt,
+					lastUpdatedByDeviceId: current.lastUpdatedByDeviceId ?? null,
+				},
+			};
+		}
+
+		const [updated] = await db
+			.update(environment)
+			.set(buildUpdatePayload(data))
 			.where(and(eq(environment.userId, userId), eq(environment.id, envId)))
 			.returning();
-		return result;
+
+		return updated ? { success: true, env: updated } : undefined;
 	}
 
 	async deleteEnvironment(userId: string, envId: string) {
