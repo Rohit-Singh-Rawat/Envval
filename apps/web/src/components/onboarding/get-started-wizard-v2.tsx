@@ -31,7 +31,7 @@ const STEP_CONFIG: Record<StepId, StepConfig> = {
 	1: {
 		title: 'Install the Extension',
 		description:
-			'Get EnvVault for VS Code to sync and secure your environment variables across devices.',
+			'Get Envval for VS Code to sync and secure your environment variables across devices.',
 	},
 	2: {
 		title: 'Secure Your Repository',
@@ -77,7 +77,7 @@ export function GetStartedWizard({ onComplete }: GetStartedWizardProps) {
 	return (
 		<LayoutGroup>
 			<motion.section
-				aria-label='Get started with EnvVault'
+				aria-label='Get started with Envval'
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.4, ease: EASE_OUT }}
@@ -91,7 +91,10 @@ export function GetStartedWizard({ onComplete }: GetStartedWizardProps) {
 						aria-valuemax={TOTAL_STEPS}
 						aria-label={`Step ${activeStep} of ${TOTAL_STEPS}`}
 					>
-						<StepIndicator totalSteps={TOTAL_STEPS} currentStep={activeStep} />
+						<StepIndicator
+							totalSteps={TOTAL_STEPS}
+							currentStep={activeStep}
+						/>
 					</div>
 				</div>
 
@@ -106,7 +109,10 @@ export function GetStartedWizard({ onComplete }: GetStartedWizardProps) {
 							</div>
 						</motion.div>
 
-						<motion.div layoutId='wizard-text-container' className='mt-6 max-w-md text-center'>
+						<motion.div
+							layoutId='wizard-text-container'
+							className='mt-6 max-w-md text-center'
+						>
 							<AnimatePresence mode='wait'>
 								<motion.h3
 									key={`title-${activeStep}`}
@@ -126,7 +132,12 @@ export function GetStartedWizard({ onComplete }: GetStartedWizardProps) {
 									initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
 									animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
 									exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }}
-									transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.06, exit: { duration: 0.15, delay: 0 } }}
+									transition={{
+										duration: 0.3,
+										ease: EASE_OUT,
+										delay: 0.06,
+										exit: { duration: 0.15, delay: 0 },
+									}}
 									className='mt-1.5 text-sm leading-relaxed text-muted-foreground max-sm:text-xs'
 								>
 									{currentConfig.description}
@@ -140,7 +151,12 @@ export function GetStartedWizard({ onComplete }: GetStartedWizardProps) {
 										initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
 										animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
 										exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-										transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.12, exit: { duration: 0.15, delay: 0 } }}
+										transition={{
+											duration: 0.3,
+											ease: EASE_OUT,
+											delay: 0.12,
+											exit: { duration: 0.15, delay: 0 },
+										}}
 										className='flex flex-wrap items-center justify-center gap-3'
 									>
 										<StepActions
@@ -175,7 +191,11 @@ function StepActions({
 		case 1:
 			return (
 				<>
-					<Button size='sm' onClick={() => onAdvance(2)} disabled={isTransitioning}>
+					<Button
+						size='sm'
+						onClick={() => onAdvance(2)}
+						disabled={isTransitioning}
+					>
 						<CheckIcon />
 						I've installed it
 					</Button>
@@ -191,14 +211,21 @@ function StepActions({
 			);
 		case 2:
 			return (
-				<Button size='sm' onClick={() => onAdvance(3)} disabled={isTransitioning}>
+				<Button
+					size='sm'
+					onClick={() => onAdvance(3)}
+					disabled={isTransitioning}
+				>
 					<CheckIcon />
 					I've pushed it
 				</Button>
 			);
 		case 3:
 			return (
-				<Button size='sm' onClick={onFinish}>
+				<Button
+					size='sm'
+					onClick={onFinish}
+				>
 					Finish Setup
 				</Button>
 			);
@@ -231,7 +258,14 @@ function StepIndicator({ totalSteps, currentStep }: { totalSteps: number; curren
 
 function CheckIcon() {
 	return (
-		<svg width='14' height='14' viewBox='0 0 14 14' fill='none' className='mr-1.5' aria-hidden='true'>
+		<svg
+			width='14'
+			height='14'
+			viewBox='0 0 14 14'
+			fill='none'
+			className='mr-1.5'
+			aria-hidden='true'
+		>
 			<path
 				d='M2 7L5.5 10.5L12 3.5'
 				stroke='currentColor'
@@ -245,8 +279,18 @@ function CheckIcon() {
 
 function DownloadIcon(props: SVGProps<SVGSVGElement>) {
 	return (
-		<svg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' viewBox='0 0 24 24' {...props}>
-			<g fill='currentColor' fillRule='evenodd' clipRule='evenodd'>
+		<svg
+			xmlns='http://www.w3.org/2000/svg'
+			width='1em'
+			height='1em'
+			viewBox='0 0 24 24'
+			{...props}
+		>
+			<g
+				fill='currentColor'
+				fillRule='evenodd'
+				clipRule='evenodd'
+			>
 				<path
 					d='M3 14.25a.75.75 0 0 1 .75.75c0 1.435.002 2.436.103 3.192c.099.734.28 1.122.556 1.399c.277.277.665.457 1.4.556c.754.101 1.756.103 3.191.103h6c1.435 0 2.436-.002 3.192-.103c.734-.099 1.122-.28 1.399-.556c.277-.277.457-.665.556-1.4c.101-.755.103-1.756.103-3.191a.75.75 0 0 1 1.5 0v.055c0 1.367 0 2.47-.116 3.337c-.122.9-.38 1.658-.982 2.26s-1.36.86-2.26.982c-.867.116-1.97.116-3.337.116h-6.11c-1.367 0-2.47 0-3.337-.116c-.9-.122-1.658-.38-2.26-.982s-.86-1.36-.981-2.26c-.117-.867-.117-1.97-.117-3.337V15a.75.75 0 0 1 .75-.75'
 					opacity='.5'

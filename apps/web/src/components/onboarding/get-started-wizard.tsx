@@ -173,7 +173,7 @@ export function GetStartedWizard({ repos, onHide }: GetStartedWizardProps) {
 
 	return (
 		<motion.section
-			aria-label='Get started with EnvVault'
+			aria-label='Get started with Envval'
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.4, ease: EASE_OUT }}
@@ -277,7 +277,7 @@ function StepInstallExtension({ onIveInstalledIt }: { onIveInstalledIt: () => vo
 		<StepLayout
 			illustration={<VSCodeExtensionIllustration />}
 			title='Install the Extension'
-			description='Get EnvVault for VS Code to sync and secure your environment variables across devices.'
+			description='Get Envval for VS Code to sync and secure your environment variables across devices.'
 			actions={
 				<>
 					<Button

@@ -14,10 +14,13 @@ type UnifiedIllustrationProps = {
 };
 
 /** Title bar text per step — steps 1-2 show VS Code title, step 3 shows browser URL bar */
-const TITLE_BAR_CONFIG: Record<StepId, { type: 'text'; label: string } | { type: 'url'; url: string }> = {
-	1: { type: 'text', label: 'EnvVault — Visual Studio Code' },
+const TITLE_BAR_CONFIG: Record<
+	StepId,
+	{ type: 'text'; label: string } | { type: 'url'; url: string }
+> = {
+	1: { type: 'text', label: 'Envval — Visual Studio Code' },
 	2: { type: 'text', label: '.env — my-saas-app' },
-	3: { type: 'url', url: 'app.envvault.dev/repos/my-saas-app' },
+	3: { type: 'url', url: 'app.envval.dev/repos/my-saas-app' },
 };
 
 /**
@@ -73,7 +76,11 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 								</span>
 							) : (
 								<div className='flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-[2px] max-w-[220px]'>
-									<LockIcon size={8} className='text-emerald-500 shrink-0' strokeWidth={2.5} />
+									<LockIcon
+										size={8}
+										className='text-emerald-500 shrink-0'
+										strokeWidth={2.5}
+									/>
 									<span className='text-[9px] text-muted-foreground/70 truncate'>
 										{titleConfig.url}
 									</span>
@@ -82,7 +89,10 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 						</motion.div>
 					</AnimatePresence>
 
-					<ReplayButton onClick={handleReplay} visible={animationDone} />
+					<ReplayButton
+						onClick={handleReplay}
+						visible={animationDone}
+					/>
 				</div>
 
 				{/* Inner content — smoother transitions with blur bridge */}
@@ -99,7 +109,10 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 								exit: { duration: 0.2 },
 							}}
 						>
-							<StepVSCodeInner step={activeStep as 1 | 2} onComplete={handleAnimationComplete} />
+							<StepVSCodeInner
+								step={activeStep as 1 | 2}
+								onComplete={handleAnimationComplete}
+							/>
 						</motion.div>
 					) : (
 						<motion.div

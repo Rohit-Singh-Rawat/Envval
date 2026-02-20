@@ -23,7 +23,7 @@ const ENV_LINES = [
 	{ key: 'STRIPE_KEY', value: 'pk_live_51HG8k2e', encrypted: '82d4•••1fa6' },
 ];
 
-const PALETTE_ITEMS = ['EnvVault: Push', 'EnvVault: Pull', 'EnvVault: Compare'];
+const PALETTE_ITEMS = ['Envval: Push', 'Envval: Pull', 'Envval: Compare'];
 
 export function LockSecureIllustration() {
 	const [scope, animate] = useAnimate();
@@ -77,7 +77,7 @@ export function LockSecureIllustration() {
 		);
 		await new Promise((r) => setTimeout(r, 200));
 
-		// 3. Type "> EnvVault: Push"
+		// 3. Type "> Envval: Push"
 		await animate(
 			'.palette-char',
 			{ opacity: 1 },
@@ -93,7 +93,7 @@ export function LockSecureIllustration() {
 		);
 		await new Promise((r) => setTimeout(r, 200));
 
-		// 5. Cursor moves to "EnvVault: Push"
+		// 5. Cursor moves to "Envval: Push"
 		await animate('.cursor', { x: pushItem.x, y: pushItem.y }, { duration: 0.4, ease: easeOut });
 
 		// 6. Highlight
@@ -390,14 +390,25 @@ export function LockSecureIllustration() {
 							</div>
 						</div>
 					</div>
-
 				</div>
 
 				{/* Cursor */}
-				<div className='cursor pointer-events-none absolute left-0 top-0 z-30' aria-hidden='true'>
+				<div
+					className='cursor pointer-events-none absolute left-0 top-0 z-30'
+					aria-hidden='true'
+				>
 					<div className='cursor-ring absolute -left-2.5 -top-2.5 size-6 rounded-full border-2 border-primary/60' />
-					<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 28 28' className='drop-shadow-md'>
-						<path fill='currentColor' d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z' />
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						width='16'
+						height='16'
+						viewBox='0 0 28 28'
+						className='drop-shadow-md'
+					>
+						<path
+							fill='currentColor'
+							d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z'
+						/>
 					</svg>
 				</div>
 			</div>

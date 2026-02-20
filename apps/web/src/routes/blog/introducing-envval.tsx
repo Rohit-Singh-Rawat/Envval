@@ -169,7 +169,7 @@ function IntroducingEnvval() {
 			<BlogImage
 				src='/images/blog/introducing-envval/sync-flow.png'
 				alt='Diagram showing how Envval syncs environment variables between devices'
-				caption='Your secrets are encrypted locally before being synced through EnvVault'
+				caption='Your secrets are encrypted locally before being synced through Envval'
 			/>
 
 			<Prose>
@@ -182,7 +182,7 @@ function IntroducingEnvval() {
 
 				<Paragraph>
 					<strong>Secure Sync</strong> is the core of everything. Your env files are encrypted on
-					your device before they leave. They sync through our relay server (EnvVault), which
+					your device before they leave. They sync through our relay server (Envval), which
 					coordinates the sync but never sees the actual values. End-to-end encrypted, always.
 				</Paragraph>
 

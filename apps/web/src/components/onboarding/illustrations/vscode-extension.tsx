@@ -39,7 +39,7 @@ export function VSCodeExtensionIllustration() {
 		};
 
 		const search = getPos(scope.current?.querySelector('.search-input-container') as HTMLElement);
-		const envVaultItem = getPos(scope.current?.querySelector('.envvault-list-item') as HTMLElement);
+		const envvalItem = getPos(scope.current?.querySelector('.envval-list-item') as HTMLElement);
 		const installBtn = getPos(scope.current?.querySelector('.install-btn') as HTMLElement);
 		const away = { x: installBtn.x + 120, y: installBtn.y + 50 };
 
@@ -60,7 +60,7 @@ export function VSCodeExtensionIllustration() {
 		await animate('.cursor', { opacity: 1 }, { duration: 0.25 });
 		await new Promise((r) => setTimeout(r, 200));
 
-		// 2. Type "envvault" in search bar
+		// 2. Type "envval" in search bar
 		await animate(
 			'.search-char',
 			{ opacity: 1 },
@@ -68,7 +68,7 @@ export function VSCodeExtensionIllustration() {
 		);
 		await new Promise((r) => setTimeout(r, 300));
 
-		// 3. EnvVault extension items appear
+		// 3. Envval extension items appear
 		await animate(
 			'.extension-item',
 			{ opacity: 1, x: 0 },
@@ -76,18 +76,18 @@ export function VSCodeExtensionIllustration() {
 		);
 		await new Promise((r) => setTimeout(r, 400));
 
-		// 4. Cursor moves to EnvVault list item, clicks
+		// 4. Cursor moves to Envval list item, clicks
 		await animate(
 			'.cursor',
-			{ x: envVaultItem.x, y: envVaultItem.y },
+			{ x: envvalItem.x, y: envvalItem.y },
 			{ duration: 0.45, ease: easeOut }
 		);
 		await animate('.cursor', { scale: 0.85 }, { duration: 0.06 });
 		await animate('.cursor-ring', { scale: 1, opacity: 0.6 }, { duration: 0.08 });
-		await animate('.envvault-list-item', { scale: 0.98 }, { duration: 0.06 });
+		await animate('.envval-list-item', { scale: 0.98 }, { duration: 0.06 });
 		await animate('.cursor', { scale: 1 }, { duration: 0.1 });
 		await animate('.cursor-ring', { scale: 1.6, opacity: 0 }, { duration: 0.25 });
-		await animate('.envvault-list-item', { scale: 1 }, { duration: 0.1 });
+		await animate('.envval-list-item', { scale: 1 }, { duration: 0.1 });
 
 		// 5. Detail panel opens, placeholder fades out
 		await Promise.all([
@@ -159,7 +159,7 @@ export function VSCodeExtensionIllustration() {
 
 						{/* Window title */}
 						<span className='text-[10px] text-muted-foreground/50 hidden sm:block'>
-							EnvVault — Visual Studio Code
+							Envval — Visual Studio Code
 						</span>
 
 						{/* Redo animation button */}
@@ -235,11 +235,11 @@ export function VSCodeExtensionIllustration() {
 							{/* Extension items */}
 							<div className='px-1 space-y-0.5 flex-1 overflow-hidden'>
 								<ExtensionListItem
-									name='EnvVault'
-									publisher='EnvVault'
+									name='Envval'
+									publisher='Envval'
 									downloads='156k'
 									active
-									className='envvault-list-item'
+									className='envval-list-item'
 								/>
 								<ExtensionListItem
 									name='.ENV'
@@ -303,14 +303,14 @@ export function VSCodeExtensionIllustration() {
 									{/* Icon */}
 									<div className='relative shrink-0'>
 										<div className='flex size-7 items-center justify-center rounded-lg  text-foreground'>
-											<EnvVaultIcon size={18} />
+											<EnvvalIcon size={18} />
 										</div>
 									</div>
 
 									{/* Meta info */}
 									<div className='flex-1 min-w-0 '>
 										<div className='flex items-center gap-1.5'>
-											<h3 className='text-xs font-semibold text-foreground'>EnvVault</h3>
+											<h3 className='text-xs font-semibold text-foreground'>Envval</h3>
 											<span className='rounded bg-muted px-1 py-px text-[8px] font-medium text-muted-foreground'>
 												v2.4.1
 											</span>
@@ -326,7 +326,7 @@ export function VSCodeExtensionIllustration() {
 											/>
 											<span className='text-[9px] text-muted-foreground/70'>156,234</span>
 											<span className='text-[9px] text-muted-foreground/40'>|</span>
-											<span className='text-[9px] text-muted-foreground/70'>EnvVault Inc.</span>
+											<span className='text-[9px] text-muted-foreground/70'>Envval Inc.</span>
 										</div>
 
 										{/* Install Button */}
@@ -428,10 +428,22 @@ export function VSCodeExtensionIllustration() {
 				</div>
 
 				{/* Cursor with click ring - left/top 0 anchors to illustration scope */}
-				<div className='cursor pointer-events-none absolute left-0 top-0 z-30' aria-hidden='true'>
+				<div
+					className='cursor pointer-events-none absolute left-0 top-0 z-30'
+					aria-hidden='true'
+				>
 					<div className='cursor-ring absolute -left-2.5 -top-2.5 size-6 rounded-full border-2 border-primary/60' />
-					<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 28 28' className='drop-shadow-md'>
-						<path fill='currentColor' d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z' />
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						width='16'
+						height='16'
+						viewBox='0 0 28 28'
+						className='drop-shadow-md'
+					>
+						<path
+							fill='currentColor'
+							d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z'
+						/>
 					</svg>
 				</div>
 			</div>
@@ -441,7 +453,7 @@ export function VSCodeExtensionIllustration() {
 
 // ── Sub-components ──────────────────────────────────
 
-function EnvVaultIcon({ size = 24 }: { size?: number }) {
+function EnvvalIcon({ size = 24 }: { size?: number }) {
 	return (
 		<svg
 			width={size}
@@ -532,7 +544,7 @@ function ExtensionListItem({
 	active?: boolean;
 	className?: string;
 }) {
-	const isEnvVault = name === 'EnvVault';
+	const isEnvval = name === 'Envval';
 
 	return (
 		<div
@@ -542,7 +554,7 @@ function ExtensionListItem({
 				className
 			)}
 		>
-			{isEnvVault ? (
+			{isEnvval ? (
 				<div className='flex size-5 shrink-0 items-center justify-center rounded-[3px]'>
 					<svg
 						width='10'

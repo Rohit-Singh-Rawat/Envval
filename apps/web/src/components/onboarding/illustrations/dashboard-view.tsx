@@ -23,7 +23,7 @@ const easeOut = [0.32, 0.72, 0, 1] as const;
 const ENV_VARS = [
 	{ key: 'DATABASE_URL', masked: '••••••••••••••••••', value: 'postgresql://user:pass@db.io' },
 	{ key: 'API_SECRET', masked: '••••••••••••', value: 'sk_live_7f3a9b2c8d' },
-	{ key: 'NEXT_PUBLIC_URL', masked: '••••••••••••••••••••', value: 'https://app.envvault.dev' },
+	{ key: 'NEXT_PUBLIC_URL', masked: '••••••••••••••••••••', value: 'https://app.envval.dev' },
 	{ key: 'STRIPE_KEY', masked: '••••••••••••', value: 'pk_live_51HG8k2e' },
 ];
 
@@ -63,7 +63,11 @@ export function DashboardViewIllustration() {
 		await animate('.env-card-header', { opacity: 0 }, { duration: 0 });
 		await animate('.repo-heading', { opacity: 0 }, { duration: 0 });
 		await animate('.decrypt-badge', { opacity: 0, scale: 0.8 }, { duration: 0 });
-		await animate('.cursor', { x: eyeBtn.x - 80, y: eyeBtn.y - 30, opacity: 0, scale: 1 }, { duration: 0 });
+		await animate(
+			'.cursor',
+			{ x: eyeBtn.x - 80, y: eyeBtn.y - 30, opacity: 0, scale: 1 },
+			{ duration: 0 }
+		);
 		await animate('.cursor-ring', { scale: 0, opacity: 0 }, { duration: 0 });
 		await animate('.success-flash', { opacity: 0 }, { duration: 0 });
 		await animate('.reveal-check', { opacity: 0, scale: 0.5 }, { duration: 0 });
@@ -93,11 +97,7 @@ export function DashboardViewIllustration() {
 
 		// 5. Cursor appears and moves to first eye toggle
 		await animate('.cursor', { opacity: 1 }, { duration: 0.2 });
-		await animate(
-			'.cursor',
-			{ x: eyeBtn.x, y: eyeBtn.y },
-			{ duration: 0.45, ease: easeOut }
-		);
+		await animate('.cursor', { x: eyeBtn.x, y: eyeBtn.y }, { duration: 0.45, ease: easeOut });
 
 		// 6. Click the eye toggle
 		await animate('.cursor', { scale: 0.85 }, { duration: 0.06 });
@@ -165,7 +165,9 @@ export function DashboardViewIllustration() {
 								className='text-emerald-500 shrink-0'
 								strokeWidth={2.5}
 							/>
-							<span className='text-[9px] text-muted-foreground/70 truncate'>app.envvault.dev/repos/my-saas-app</span>
+							<span className='text-[9px] text-muted-foreground/70 truncate'>
+								app.envval.dev/repos/my-saas-app
+							</span>
 						</div>
 
 						<motion.button
@@ -191,8 +193,8 @@ export function DashboardViewIllustration() {
 					{/* App Header Bar */}
 					<div className='flex items-center justify-between border-b border-border bg-background px-3 py-1'>
 						<div className='flex items-center gap-1.5'>
-							<EnvVaultIcon size={14} />
-							<span className='text-[9px] font-semibold text-foreground'>EnvVault</span>
+							<EnvvalIcon size={14} />
+							<span className='text-[9px] font-semibold text-foreground'>Envval</span>
 						</div>
 						<div className='flex items-center gap-2'>
 							<div className='decrypt-badge flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5'>
@@ -242,7 +244,9 @@ export function DashboardViewIllustration() {
 							{/* Repo Heading */}
 							<div className='repo-heading flex items-center gap-2 mb-2'>
 								<span className='text-[10px] font-semibold text-foreground'>my-saas-app</span>
-								<span className='text-[8px] text-muted-foreground/60'>github.com/user/my-saas-app</span>
+								<span className='text-[8px] text-muted-foreground/60'>
+									github.com/user/my-saas-app
+								</span>
 							</div>
 
 							{/* Env File Card */}
@@ -257,11 +261,17 @@ export function DashboardViewIllustration() {
 									</div>
 									<div className='flex items-center gap-2 text-[7px] text-muted-foreground/50'>
 										<span className='flex items-center gap-0.5'>
-											<Key01Icon size={7} strokeWidth={2} />
+											<Key01Icon
+												size={7}
+												strokeWidth={2}
+											/>
 											4 vars
 										</span>
 										<span className='flex items-center gap-0.5'>
-											<Clock01Icon size={7} strokeWidth={2} />
+											<Clock01Icon
+												size={7}
+												strokeWidth={2}
+											/>
 											2m ago
 										</span>
 									</div>
@@ -280,10 +290,14 @@ export function DashboardViewIllustration() {
 											<span className='text-primary/80 font-medium shrink-0'>{env.key}</span>
 											<span className='text-muted-foreground/40 mx-0.5'>=</span>
 											<div className='flex-1 relative overflow-hidden min-w-0'>
-												<span className={`env-masked env-masked-${i} text-muted-foreground/30 absolute truncate`}>
+												<span
+													className={`env-masked env-masked-${i} text-muted-foreground/30 absolute truncate`}
+												>
 													{env.masked}
 												</span>
-												<span className={`env-revealed env-revealed-${i} text-muted-foreground truncate block`}>
+												<span
+													className={`env-revealed env-revealed-${i} text-muted-foreground truncate block`}
+												>
 													{env.value}
 												</span>
 											</div>
@@ -299,17 +313,31 @@ export function DashboardViewIllustration() {
 													{i === 0 && (
 														<>
 															<span className='eye-icon-off absolute inset-0 flex items-center justify-center'>
-																<ViewOffSlashIcon size={8} strokeWidth={2} />
+																<ViewOffSlashIcon
+																	size={8}
+																	strokeWidth={2}
+																/>
 															</span>
 															<span className='eye-icon-on absolute inset-0 flex items-center justify-center'>
-																<ViewIcon size={8} strokeWidth={2} />
+																<ViewIcon
+																	size={8}
+																	strokeWidth={2}
+																/>
 															</span>
 														</>
 													)}
-													{i !== 0 && <ViewOffSlashIcon size={8} strokeWidth={2} />}
+													{i !== 0 && (
+														<ViewOffSlashIcon
+															size={8}
+															strokeWidth={2}
+														/>
+													)}
 												</div>
 												<div className='size-3 flex items-center justify-center text-muted-foreground/40'>
-													<Copy01Icon size={8} strokeWidth={2} />
+													<Copy01Icon
+														size={8}
+														strokeWidth={2}
+													/>
 												</div>
 											</div>
 										</div>
@@ -330,10 +358,22 @@ export function DashboardViewIllustration() {
 				</div>
 
 				{/* Cursor */}
-				<div className='cursor pointer-events-none absolute left-0 top-0 z-30' aria-hidden='true'>
+				<div
+					className='cursor pointer-events-none absolute left-0 top-0 z-30'
+					aria-hidden='true'
+				>
 					<div className='cursor-ring absolute -left-2.5 -top-2.5 size-6 rounded-full border-2 border-primary/60' />
-					<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 28 28' className='drop-shadow-md'>
-						<path fill='currentColor' d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z' />
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						width='16'
+						height='16'
+						viewBox='0 0 28 28'
+						className='drop-shadow-md'
+					>
+						<path
+							fill='currentColor'
+							d='M6 3.604c0-1.346 1.56-2.09 2.607-1.243l16.88 13.669c1.018.824.435 2.47-.875 2.47h-9.377a2.25 2.25 0 0 0-1.749.835l-4.962 6.134C7.682 26.51 6 25.915 6 24.576z'
+						/>
 					</svg>
 				</div>
 			</div>
@@ -343,7 +383,7 @@ export function DashboardViewIllustration() {
 
 // ── Sub-components ──────────────────────────────────
 
-function EnvVaultIcon({ size = 24 }: { size?: number }) {
+function EnvvalIcon({ size = 24 }: { size?: number }) {
 	return (
 		<svg
 			width={size}
@@ -366,10 +406,34 @@ function EnvVaultIcon({ size = 24 }: { size?: number }) {
 function SidebarNavIcon({ type, active }: { type: string; active?: boolean }) {
 	const cls = active ? 'text-primary' : 'text-muted-foreground';
 	const iconMap: Record<string, React.ReactNode> = {
-		dashboard: <DashboardSquare01Icon size={10} className={cls} strokeWidth={1.5} />,
-		integrations: <Link01Icon size={10} className={cls} strokeWidth={1.5} />,
-		devices: <DeviceAccessIcon size={10} className={cls} strokeWidth={1.5} />,
-		settings: <Settings02Icon size={10} className={cls} strokeWidth={1.5} />,
+		dashboard: (
+			<DashboardSquare01Icon
+				size={10}
+				className={cls}
+				strokeWidth={1.5}
+			/>
+		),
+		integrations: (
+			<Link01Icon
+				size={10}
+				className={cls}
+				strokeWidth={1.5}
+			/>
+		),
+		devices: (
+			<DeviceAccessIcon
+				size={10}
+				className={cls}
+				strokeWidth={1.5}
+			/>
+		),
+		settings: (
+			<Settings02Icon
+				size={10}
+				className={cls}
+				strokeWidth={1.5}
+			/>
+		),
 	};
 	return iconMap[type] || null;
 }

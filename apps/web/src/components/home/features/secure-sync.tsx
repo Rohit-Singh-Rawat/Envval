@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { motion, useAnimate, useInView } from 'motion/react';
-import { EnvVaultIcon } from '@/components/onboarding/get-started-illustration/shared';
+import { EnvvalIcon } from '@/components/onboarding/get-started-illustration/shared';
 import { EASE_OUT } from '@/lib/animation';
 
 const SHARED_ENVS = [
@@ -407,9 +407,7 @@ function EnvEditorWindow({
 	children: React.ReactNode;
 }) {
 	const isLeft = side === 'left';
-	const cornerClass = isLeft
-		? 'rounded-tr-lg rounded-bl-2xl '
-		: 'rounded-tl-lg rounded-br-2xl ';
+	const cornerClass = isLeft ? 'rounded-tr-lg rounded-bl-2xl ' : 'rounded-tl-lg rounded-br-2xl ';
 
 	return (
 		<div className='flex-1 min-w-0 self-stretch relative pt-4 flex flex-col'>
@@ -580,7 +578,7 @@ const SecureSyncIllustration = () => {
 				ref={scope}
 				className='relative overflow-hidden flex-1 min-h-[180px] sm:min-h-[212px]'
 				role='img'
-				aria-label='Secure sync: environment variables sync between devices through encrypted EnvVault relay'
+				aria-label='Secure sync: environment variables sync between devices through encrypted Envval relay'
 			>
 				<div className='absolute inset-0 flex items-stretch'>
 					<EnvEditorWindow
@@ -609,7 +607,7 @@ const SecureSyncIllustration = () => {
 
 					<ConnectionLine direction='left' />
 
-					{/* EnvVault icon with spinning conic gradient border */}
+					{/* Envval icon with spinning conic gradient border */}
 					<div className='relative flex flex-col items-center justify-center shrink-0 z-10 self-center'>
 						<div className='relative size-10 sm:size-12 shrink-0 overflow-hidden rounded-sm bg-gray-200 p-px shadow-xl dark:bg-neutral-700'>
 							<div
@@ -630,7 +628,7 @@ const SecureSyncIllustration = () => {
 								}}
 							/>
 							<div className='relative z-20 flex h-full w-full items-center justify-center rounded-[5px] bg-white dark:bg-neutral-900'>
-								<EnvVaultIcon size={22} />
+								<EnvvalIcon size={22} />
 							</div>
 						</div>
 					</div>
