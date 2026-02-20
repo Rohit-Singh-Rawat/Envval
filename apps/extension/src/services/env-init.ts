@@ -6,14 +6,14 @@ import {
 	getRepoAndEnvIds,
 	getAllEnvFiles,
 	getCurrentWorkspaceId,
-	getWorkspacePath,
 } from '../utils/repo-detection';
 import type { Env } from '../api/types';
-import { EnvvalMetadataStore } from './metadata-store';
+import { EnvvalMetadataStore, type EnvMetadata } from './metadata-store';
 import { RepoMigrationService } from './repo-migration';
 import { RepoIdentityStore } from './repo-identity-store';
 import { WorkspaceContextProvider } from './workspace-context-provider';
 import { WorkspaceValidator } from './workspace-validator';
+import { PromptIgnoreStore } from './prompt-ignore-store';
 import { EnvvalApiClient } from '../api/client';
 import { EnvvalVsCodeSecrets } from '../utils/secrets';
 import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from '../utils/crypto';
@@ -32,13 +32,11 @@ import {
 	showEmptyFileConfirmation,
 	showSuccess,
 	showError,
-	extractFolderName,
 } from '../ui/dialog/init-prompt';
 
 /**
  * Service responsible for the initial discovery and synchronization of environment files.
- * It handles the "first-run" scenarios when a workspace is opened or when a new environment
- * file is created locally or discovered on the server.
+ * Handles first-run scenarios: new workspace, new env file, or server-side restore.
  */
 export class EnvInitService {
 	private static instance: EnvInitService;
@@ -46,6 +44,7 @@ export class EnvInitService {
 	private readonly metadataStore: EnvvalMetadataStore;
 	private readonly apiClient: EnvvalApiClient;
 	private readonly secretsManager: EnvvalVsCodeSecrets;
+	private readonly promptIgnoreStore: PromptIgnoreStore;
 	private readonly logger: Logger;
 
 	private constructor(
@@ -53,12 +52,14 @@ export class EnvInitService {
 		metadataStore: EnvvalMetadataStore,
 		apiClient: EnvvalApiClient,
 		secretsManager: EnvvalVsCodeSecrets,
+		promptIgnoreStore: PromptIgnoreStore,
 		logger: Logger
 	) {
 		this.context = context;
 		this.metadataStore = metadataStore;
 		this.apiClient = apiClient;
 		this.secretsManager = secretsManager;
+		this.promptIgnoreStore = promptIgnoreStore;
 		this.logger = logger;
 	}
 
@@ -67,6 +68,7 @@ export class EnvInitService {
 		metadataStore: EnvvalMetadataStore,
 		apiClient: EnvvalApiClient,
 		secretsManager: EnvvalVsCodeSecrets,
+		promptIgnoreStore: PromptIgnoreStore,
 		logger: Logger
 	): EnvInitService {
 		if (!EnvInitService.instance) {
@@ -75,6 +77,7 @@ export class EnvInitService {
 				metadataStore,
 				apiClient,
 				secretsManager,
+				promptIgnoreStore,
 				logger
 			);
 		}
@@ -85,7 +88,7 @@ export class EnvInitService {
 		const keyMaterial = await this.secretsManager.getKeyMaterial();
 		const userId = await this.secretsManager.getUserId();
 		if (!keyMaterial || !userId) {
-			this.logger.error('Missing key material or user ID - cannot perform encryption/decryption');
+			this.logger.error('Missing key material or user ID — cannot encrypt/decrypt');
 			return null;
 		}
 		return deriveKeyAsync(keyMaterial, userId);
@@ -93,33 +96,29 @@ export class EnvInitService {
 
 	/**
 	 * Orchestrates the primary startup check.
+	 * @param depth - Internal recursion guard. Max 1 re-entry after a successful migration.
 	 */
-	async performInitialCheck(): Promise<void> {
+	async performInitialCheck(depth = 0): Promise<void> {
 		StatusBar.getInstance().setLoading(true, 'Validating workspace...');
 		try {
 			this.logger.info('Performing initial check for repo and env files');
 
-			// Validate workspace before scanning
-			const contextProvider = WorkspaceContextProvider.getInstance();
-			const context = contextProvider.getWorkspaceContext();
-
-			if (context.mode === 'none' || !context.primaryPath) {
+			const wsContext = WorkspaceContextProvider.getInstance().getWorkspaceContext();
+			if (wsContext.mode === 'none' || !wsContext.primaryPath) {
 				this.logger.warn('No workspace or file open');
 				return;
 			}
 
-			const workspacePath = context.primaryPath;
+			const workspacePath = wsContext.primaryPath;
 			const validator = WorkspaceValidator.getInstance(this.logger);
-			const canProceed = await validator.validateAndPromptIfNeeded(workspacePath);
-
-			if (!canProceed) {
+			if (!(await validator.validateAndPromptIfNeeded(workspacePath))) {
 				this.logger.info('Workspace validation failed or user cancelled');
 				return;
 			}
 
-			StatusBar.getInstance().setLoading(true, 'Scanning workspace...');
+			StatusBar.getInstance().updateState('Loading', 'Scanning workspace...');
 
-			const workspace = await getCurrentWorkspaceId(undefined, this.context, this.logger);
+			const workspace = await getCurrentWorkspaceId(this.context, this.logger);
 			if (!workspace) {
 				this.logger.error('Failed to get workspace identity');
 				return;
@@ -127,71 +126,64 @@ export class EnvInitService {
 
 			const { repoId } = workspace;
 
-			// Check for migration opportunities
-			if (workspace.requiresMigration && workspace.suggestedMigration) {
-				const identityStore = new RepoIdentityStore(this.context);
-				const migrationService = new RepoMigrationService(
-					this.context,
-					this.metadataStore,
-					identityStore,
-					this.apiClient,
-					this.logger
-				);
-
-				const migrated = await migrationService.handleAutomaticMigrationPrompt(workspacePath);
-				if (migrated) {
-					return this.performInitialCheck();
-				}
-			}
-
-			// Update last active repo ID
+			// Single shared instances for this invocation
 			const identityStore = new RepoIdentityStore(this.context);
-			await identityStore.updateLastActiveRepoId(workspacePath, repoId);
-
-			// Check if repo exists on server
-			const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
-
-			if (!repoExistsResponse.exists) {
-				const shouldRegister = await showRepoRegistrationPrompt();
-				if (shouldRegister === 'register') {
-					const nameResult = await showRepoNamePrompt(workspacePath);
-					if (nameResult.action === 'skip' || !nameResult.name) {
-						this.logger.info('User skipped repo name input, cancelling registration');
-						return;
-					}
-
-					try {
-						await this.apiClient.createRepo({
-							repoId,
-							name: nameResult.name,
-							workspacePath,
-							gitRemoteUrl: workspace.gitRemoteUrl,
-						});
-						this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
-						showSuccess(`Project "${nameResult.name}" registered successfully.`);
-					} catch (error) {
-						this.logger.error(`Failed to register repo: ${formatError(error)}`);
-						showError('Failed to register repository. Please try again.');
-						return;
-					}
-				} else {
-					this.logger.info('User declined repo registration, skipping initial sync');
-					return;
-				}
-			}
-
-			// Sync all env files for this repo
-			await this.syncRepoEnvs(repoId, workspacePath);
-
-			// Secondary check for other migrations (e.g. Git Remote changes)
-			const migrationManager = new RepoMigrationService(
+			const migrationService = new RepoMigrationService(
 				this.context,
 				this.metadataStore,
 				identityStore,
 				this.apiClient,
 				this.logger
 			);
-			await migrationManager.handleAutomaticMigrationPrompt(workspacePath);
+
+			if (workspace.requiresMigration && workspace.suggestedMigration) {
+				const migrated = await migrationService.handleAutomaticMigrationPrompt(workspacePath);
+				if (migrated) {
+					// Re-run once so downstream steps see the new repoId.
+					// depth guard prevents an infinite loop if migration keeps reporting success.
+					if (depth < 1) {
+						return this.performInitialCheck(depth + 1);
+					}
+					this.logger.warn('performInitialCheck: migration re-entry limit reached, continuing');
+				}
+			}
+
+			await identityStore.updateLastActiveRepoId(workspacePath, repoId);
+
+			const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
+			if (!repoExistsResponse.exists) {
+				const shouldRegister = await showRepoRegistrationPrompt();
+				if (shouldRegister !== 'register') {
+					this.logger.info('User declined repo registration, skipping initial sync');
+					return;
+				}
+
+				const nameResult = await showRepoNamePrompt(workspacePath);
+				if (nameResult.action === 'skip' || !nameResult.name) {
+					this.logger.info('User skipped repo name input, cancelling registration');
+					return;
+				}
+
+				try {
+					await this.apiClient.createRepo({
+						repoId,
+						name: nameResult.name,
+						workspacePath,
+						gitRemoteUrl: workspace.gitRemoteUrl,
+					});
+					this.logger.info(`Repo registered: ${repoId} — "${nameResult.name}"`);
+					showSuccess(`Project "${nameResult.name}" registered successfully.`);
+				} catch (error) {
+					this.logger.error(`Failed to register repo: ${formatError(error)}`);
+					showError('Failed to register repository. Please try again.');
+					return;
+				}
+			}
+
+			await this.syncRepoEnvs(repoId, workspacePath);
+
+			// Secondary pass: catch any Git-remote changes that surfaced during sync
+			await migrationService.handleAutomaticMigrationPrompt(workspacePath);
 		} catch (error: unknown) {
 			this.logger.error(`Initial check failed: ${formatError(error)}`);
 		} finally {
@@ -214,100 +206,131 @@ export class EnvInitService {
 			this.logger.error(`Failed to fetch remote envs: ${formatError(error)}`);
 		}
 
-		const remoteEnvMap = new Map<string, Env>();
-		for (const env of remoteEnvs) {
-			remoteEnvMap.set(env.fileName, env);
-		}
+		const remoteEnvMap = new Map(remoteEnvs.map((e) => [e.fileName, e]));
 
 		const localEnvMap = new Map<string, string>();
 		for (const relativePath of localEnvFilePaths) {
-			const normalizedRelPath = relativePath.replace(/\\/g, '/');
-			const fullPath = path.join(workspacePath, relativePath);
-			localEnvMap.set(normalizedRelPath, fullPath);
+			localEnvMap.set(relativePath.replace(/\\/g, '/'), path.join(workspacePath, relativePath));
 		}
 
 		const allEnvFiles = new Set([...localEnvMap.keys(), ...remoteEnvMap.keys()]);
-		this.logger.info(`Found ${allEnvFiles.size} environment files to reconcile`);
+		this.logger.info(`${allEnvFiles.size} environment files to reconcile`);
 
-		const errors: Array<{ fileName: string; error: string }> = [];
 		let processed = 0;
+		let errors = 0;
 
 		for (const fileName of allEnvFiles) {
 			try {
 				const localPath = localEnvMap.get(fileName);
 				const remoteEnv = remoteEnvMap.get(fileName);
-				const uri = localPath ? Uri.file(localPath) : Uri.file(path.join(workspacePath, fileName));
+				const uri = localPath
+					? Uri.file(localPath)
+					: Uri.file(path.join(workspacePath, fileName));
 
-				const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+				const result = await getRepoAndEnvIds(fileName, this.context);
 				const envId = result?.envId;
-
 				if (!envId) {
-					this.logger.warn(`Skipping ${fileName}: Unable to determine environment ID`);
+					this.logger.warn(`Skipping ${fileName}: unable to determine environment ID`);
 					continue;
 				}
 
-				const existingMeta = await this.metadataStore.loadEnvMetadata(envId);
+				const existingMeta =
+					(await this.metadataStore.loadEnvMetadata(envId)) ??
+					(await this.metadataStore.loadEnvMetadataByFileName(fileName));
 				const localExists = !!localPath && fs.existsSync(localPath);
 				const remoteExists = !!remoteEnv;
 
 				this.logger.info(
-					`Reconciling ${fileName} [L:${localExists}, R:${remoteExists}, B:${!!existingMeta}]`
+					`Reconciling ${fileName} [L:${localExists} R:${remoteExists} B:${!!existingMeta}]`
 				);
 
-				if (existingMeta) {
-					if (remoteExists && localExists) {
-						continue;
-					}
-
-					if (!remoteExists && localExists) {
-						if (existingMeta.ignoredAt) {
-							const ignoredTime = new Date(existingMeta.ignoredAt).getTime();
-							if (Date.now() - ignoredTime < IGNORE_INTERVAL_MS) {
-								continue;
-							}
-						}
-
-						const choice = await showZombiePrompt(fileName);
-						if (choice === 'reinitialize') {
-							await this.promptAndInitialize(uri, repoId, envId, fileName);
-						} else if (choice === 'deleteLocal') {
-							fs.unlinkSync(uri.fsPath);
-							await this.metadataStore.clearMetadata(envId);
-							showSuccess(`${fileName} deleted locally.`);
-						} else if (choice === 'skip') {
-							await this.metadataStore.markAsIgnored(envId);
-						}
-					} else if (remoteExists && !localExists) {
-						await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
-					} else if (!remoteExists && !localExists) {
-						await this.metadataStore.clearMetadata(envId);
-					}
-				} else {
-					if (remoteExists && !localExists) {
-						await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
-					} else if (!remoteExists && localExists) {
-						await this.promptAndInitialize(uri, repoId, envId, fileName);
-					} else if (remoteExists && localExists) {
-						await this.handleFirstTimeSync(uri, repoId, envId, fileName, remoteEnv);
-					}
-				}
+				await this.reconcileEnvFile({
+					uri, repoId, envId, fileName,
+					existingMeta: existingMeta ?? undefined,
+					localExists, remoteExists, remoteEnv,
+				});
 
 				processed++;
 			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-				this.logger.error(`Failed to reconcile ${fileName}: ${errorMessage}`);
-				errors.push({ fileName, error: errorMessage });
+				this.logger.error(`Failed to reconcile ${fileName}: ${formatError(error)}`);
+				errors++;
 			}
 		}
 
-		this.logger.info(`Reconciliation complete: ${processed} processed, ${errors.length} errors`);
+		this.logger.info(`Reconciliation complete: ${processed} processed, ${errors} errors`);
+	}
+
+	private async reconcileEnvFile(opts: {
+		uri: Uri;
+		repoId: string;
+		envId: string;
+		fileName: string;
+		existingMeta: EnvMetadata | undefined;
+		localExists: boolean;
+		remoteExists: boolean;
+		remoteEnv?: Env;
+	}): Promise<void> {
+		const { uri, repoId, envId, fileName, existingMeta, localExists, remoteExists, remoteEnv } =
+			opts;
+
+		if (existingMeta) {
+			if (remoteExists && localExists) {
+				// Migrate metadata to server's env id if we stored under a different (computed) id.
+				// Otherwise every save PUTs to the wrong id → 404.
+				if (remoteEnv && existingMeta.envId !== remoteEnv.id) {
+					await this.metadataStore.clearMetadata(existingMeta.envId);
+					await this.metadataStore.saveEnvMetadataSync(
+						remoteEnv.id,
+						fileName,
+						existingMeta.lastSyncedHash,
+						existingMeta.envCount
+					);
+					this.logger.debug(`Migrated metadata for ${fileName} to server env id`);
+				}
+				return;
+			}
+			if (!remoteExists && localExists) {
+				const isIgnored = await this.promptIgnoreStore.isIgnoredWithinInterval(
+					repoId,
+					fileName,
+					IGNORE_INTERVAL_MS
+				);
+				if (isIgnored) {return;}
+
+				const choice = await showZombiePrompt(fileName);
+				if (choice === 'reinitialize') {
+					await this.promptAndInitialize(uri, repoId, fileName);
+					await this.promptIgnoreStore.clearIgnored(repoId, fileName);
+				} else if (choice === 'deleteLocal') {
+					fs.unlinkSync(uri.fsPath);
+					await this.metadataStore.clearMetadata(envId);
+					await this.promptIgnoreStore.clearIgnored(repoId, fileName);
+					showSuccess(`${fileName} deleted locally.`);
+				} else if (choice === 'skip') {
+					await this.promptIgnoreStore.markIgnored(repoId, fileName);
+				}
+			} else if (remoteExists && !localExists) {
+				await this.promptAndRestore(uri, envId, fileName, remoteEnv);
+			} else {
+				// !remoteExists && !localExists — stale metadata, clean it up
+				await this.metadataStore.clearMetadata(envId);
+			}
+		} else {
+			if (remoteExists && !localExists) {
+				await this.promptAndRestore(uri, envId, fileName, remoteEnv);
+			} else if (!remoteExists && localExists) {
+				await this.promptAndInitialize(uri, repoId, fileName);
+			} else if (remoteExists && localExists) {
+				await this.handleFirstTimeSync(uri, envId, fileName, remoteEnv);
+			}
+		}
 	}
 
 	async maybeInitializeOrRestore(uri: Uri): Promise<void> {
 		const fileName = toWorkspaceRelativePath(uri);
-		const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+		const result = await getRepoAndEnvIds(fileName, this.context);
 		if (!result) {
-			this.logger.error(`Failed to get repo and env ids for ${uri.fsPath}`);
+			this.logger.error(`Failed to get repo/env IDs for ${uri.fsPath}`);
 			return;
 		}
 
@@ -326,7 +349,6 @@ export class EnvInitService {
 				this.logger.info('User skipped repo name input, cancelling registration');
 				return;
 			}
-
 			try {
 				await this.apiClient.createRepo({
 					repoId,
@@ -334,7 +356,7 @@ export class EnvInitService {
 					workspacePath,
 					gitRemoteUrl: gitRemote,
 				});
-				this.logger.info(`Repo registered: ${repoId} with name: ${nameResult.name}`);
+				this.logger.info(`Repo registered: ${repoId} — "${nameResult.name}"`);
 				showSuccess(`Project "${nameResult.name}" registered successfully.`);
 			} catch (error) {
 				this.logger.error(`Failed to register repo: ${formatError(error)}`);
@@ -342,8 +364,10 @@ export class EnvInitService {
 			}
 		}
 
-		const existingMeta = await this.metadataStore.loadEnvMetadata(envId);
-		if (existingMeta) {
+		// Short-circuit: if metadata already exists the file is already tracked
+		const metaByEnvId = await this.metadataStore.loadEnvMetadata(envId);
+		const metaByFile = await this.metadataStore.loadEnvMetadataByFileName(fileName);
+		if (metaByEnvId ?? metaByFile) {
 			return;
 		}
 
@@ -359,111 +383,108 @@ export class EnvInitService {
 		const remoteExists = !!remoteEnv;
 
 		if (remoteExists && !localExists) {
-			await this.promptAndRestore(uri, repoId, envId, fileName, remoteEnv);
+			await this.promptAndRestore(uri, envId, fileName, remoteEnv);
 		} else if (!remoteExists && localExists) {
-			await this.promptAndInitialize(uri, repoId, envId, fileName);
+			await this.promptAndInitialize(uri, repoId, fileName);
 		} else if (remoteExists && localExists) {
-			await this.handleFirstTimeSync(uri, repoId, envId, fileName, remoteEnv);
+			await this.handleFirstTimeSync(uri, envId, fileName, remoteEnv);
 		}
 	}
 
-	private async promptAndInitialize(
-		uri: Uri,
-		repoId: string,
-		envId: string,
-		fileName: string
-	): Promise<void> {
+	private async promptAndInitialize(uri: Uri, repoId: string, fileName: string): Promise<void> {
+		const isIgnored = await this.promptIgnoreStore.isIgnoredWithinInterval(
+			repoId,
+			fileName,
+			IGNORE_INTERVAL_MS
+		);
+		if (isIgnored) {return;}
+
 		const answer = await showInitPrompt(fileName);
-		if (answer === 'initialize') {
-			try {
-				const stat = fs.statSync(uri.fsPath);
-				if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
-					showError(
-						`${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`
-					);
-					return;
-				}
+		if (answer !== 'initialize') {
+			await this.promptIgnoreStore.markIgnored(repoId, fileName);
+			return;
+		}
 
-				const content = fs.readFileSync(uri.fsPath, 'utf8');
-				if (!content.trim()) {
-					const confirmEmpty = await showEmptyFileConfirmation(fileName);
-					if (confirmEmpty !== 'yes') {
-						return;
-					}
-				}
-
-				const key = await this.getEncryptionKey();
-				if (!key) {
-					return;
-				}
-
-				const hash = hashEnv(content);
-				const envCount = countEnvVars(content);
-				const { ciphertext, iv } = encryptEnv(content, key, this.logger);
-
-				const env = await this.apiClient.createEnv({
-					repoId,
-					fileName,
-					content: `${ciphertext}:${iv}`,
-					latestHash: hash,
-					envCount,
-				});
-
-				await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
-				showSuccess(`${fileName} is now backed up and synced.`);
-			} catch (error) {
-				this.logger.error(`Failed to initialize ${fileName}: ${formatError(error)}`);
-				showError(`Failed to initialize ${fileName}.`);
+		try {
+			const stat = fs.statSync(uri.fsPath);
+			if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+				showError(
+					`${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`
+				);
+				return;
 			}
+
+			const content = fs.readFileSync(uri.fsPath, 'utf8');
+			if (!content.trim() && (await showEmptyFileConfirmation(fileName)) !== 'yes') {
+				return;
+			}
+
+			const key = await this.getEncryptionKey();
+			if (!key) {return;}
+
+			const hash = hashEnv(content);
+			const envCount = countEnvVars(content);
+			const { ciphertext, iv } = encryptEnv(content, key, this.logger);
+
+			const env = await this.apiClient.createEnv({
+				repoId,
+				fileName,
+				content: `${ciphertext}:${iv}`,
+				latestHash: hash,
+				envCount,
+			});
+
+			await this.metadataStore.saveEnvMetadataSync(env.id, fileName, hash, envCount);
+			await this.promptIgnoreStore.clearIgnored(repoId, fileName);
+			showSuccess(`${fileName} is now backed up and synced.`);
+		} catch (error) {
+			this.logger.error(`Failed to initialize ${fileName}: ${formatError(error)}`);
+			showError(`Failed to initialize ${fileName}.`);
 		}
 	}
 
 	private async promptAndRestore(
 		uri: Uri,
-		repoId: string,
 		envId: string,
 		fileName: string,
 		remoteEnv?: Env
 	): Promise<void> {
-		const answer = await showRestorePrompt(fileName);
-		if (answer === 'restore') {
-			try {
+		if ((await showRestorePrompt(fileName)) !== 'restore') {return;}
+
+		try {
+			if (!remoteEnv) {
+				remoteEnv = await this.apiClient.getEnv(envId);
 				if (!remoteEnv) {
-					remoteEnv = await this.apiClient.getEnv(envId);
-					if (!remoteEnv) {
-						showError(`Failed to fetch remote ${fileName}`);
-						return;
-					}
-				}
-
-				const key = await this.getEncryptionKey();
-				if (!key) {
+					showError(`Failed to fetch remote ${fileName}`);
 					return;
 				}
-
-				const [ciphertext, iv] = remoteEnv.content.split(':');
-				if (!ciphertext || !iv) {
-					this.logger.error(`Invalid remote content format for ${fileName}`);
-					showError(`Failed to restore ${fileName}: invalid remote data.`);
-					return;
-				}
-				const decrypted = decryptEnv(ciphertext, iv, key);
-				const hash = hashEnv(decrypted);
-				const envCount = countEnvVars(decrypted);
-
-				fs.writeFileSync(uri.fsPath, decrypted, 'utf8');
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
-				showSuccess(`${fileName} restored successfully.`);
-			} catch (error) {
-				this.logger.error(`Failed to restore ${fileName}: ${formatError(error)}`);
-				showError(`Failed to restore ${fileName}.`);
 			}
+
+			const key = await this.getEncryptionKey();
+			if (!key) {return;}
+
+			const [ciphertext, iv] = remoteEnv.content.split(':');
+			if (!ciphertext || !iv) {
+				this.logger.error(`Invalid remote content format for ${fileName}`);
+				showError(`Failed to restore ${fileName}: invalid remote data.`);
+				return;
+			}
+
+			const decrypted = decryptEnv(ciphertext, iv, key);
+			const hash = hashEnv(decrypted);
+			const envCount = countEnvVars(decrypted);
+
+			fs.writeFileSync(uri.fsPath, decrypted, 'utf8');
+			await this.metadataStore.saveEnvMetadataSync(remoteEnv.id, fileName, hash, envCount);
+			showSuccess(`${fileName} restored successfully.`);
+		} catch (error) {
+			this.logger.error(`Failed to restore ${fileName}: ${formatError(error)}`);
+			showError(`Failed to restore ${fileName}.`);
 		}
 	}
 
 	private async handleFirstTimeSync(
 		uri: Uri,
-		repoId: string,
 		envId: string,
 		fileName: string,
 		remoteEnv?: Env
@@ -480,29 +501,24 @@ export class EnvInitService {
 			const localContent = fs.readFileSync(uri.fsPath, 'utf8');
 			const localHash = hashEnv(localContent);
 
-			if (!remoteEnv || !remoteEnv.content) {
+			if (!remoteEnv?.content) {
 				remoteEnv = await this.apiClient.getEnv(envId);
-				if (!remoteEnv) {
-					return;
-				}
+				if (!remoteEnv) {return;}
 			}
 
 			const key = await this.getEncryptionKey();
-			if (!key) {
-				return;
-			}
+			if (!key) {return;}
 
 			const [ciphertext, iv] = remoteEnv.content.split(':');
-			if (!ciphertext || !iv) {
-				return;
-			}
+			if (!ciphertext || !iv) {return;}
 
+			const effectiveEnvId = remoteEnv.id;
 			const remoteContent = decryptEnv(ciphertext, iv, key);
 			const remoteHash = hashEnv(remoteContent);
 
 			if (localHash === remoteHash) {
 				const envCount = countEnvVars(localContent);
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
+				await this.metadataStore.saveEnvMetadataSync(effectiveEnvId, fileName, localHash, envCount);
 				showSuccess(`${fileName} is already in sync.`);
 				return;
 			}
@@ -510,46 +526,52 @@ export class EnvInitService {
 			const localEmpty = !localContent.trim();
 			const remoteEmpty = !remoteContent.trim();
 
+			// Unambiguous cases: one side is empty — resolve without prompting
 			if (localEmpty && !remoteEmpty) {
 				fs.writeFileSync(uri.fsPath, remoteContent, 'utf8');
-				const envCount = countEnvVars(remoteContent);
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash, envCount);
+				await this.metadataStore.saveEnvMetadataSync(
+					effectiveEnvId, fileName, remoteHash, countEnvVars(remoteContent)
+				);
 				showSuccess(`${fileName} restored from remote.`);
 				return;
-			} else if (!localEmpty && remoteEmpty) {
-				const { ciphertext: newCiphertext, iv: newIv } = encryptEnv(localContent, key);
+			}
+
+			if (!localEmpty && remoteEmpty) {
+				const { ciphertext: c, iv: v } = encryptEnv(localContent, key);
 				const envCount = countEnvVars(localContent);
-				await this.apiClient.updateEnv(envId, {
+				await this.apiClient.updateEnv(effectiveEnvId, {
 					baseHash: remoteHash,
-					content: `${newCiphertext}:${newIv}`,
+					content: `${c}:${v}`,
 					latestHash: localHash,
 					envCount,
 				});
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
+				await this.metadataStore.saveEnvMetadataSync(effectiveEnvId, fileName, localHash, envCount);
 				showSuccess(`${fileName} pushed to remote.`);
 				return;
 			}
 
+			// Both sides differ and non-empty — ask the user
 			const choice = await showFirstTimeSyncPrompt(fileName);
 			if (choice === 'useLocal') {
-				const { ciphertext: newCiphertext, iv: newIv } = encryptEnv(localContent, key);
+				const { ciphertext: c, iv: v } = encryptEnv(localContent, key);
 				const envCount = countEnvVars(localContent);
-				await this.apiClient.updateEnv(envId, {
+				await this.apiClient.updateEnv(effectiveEnvId, {
 					baseHash: remoteHash,
-					content: `${newCiphertext}:${newIv}`,
+					content: `${c}:${v}`,
 					latestHash: localHash,
 					envCount,
 				});
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, localHash, envCount);
+				await this.metadataStore.saveEnvMetadataSync(effectiveEnvId, fileName, localHash, envCount);
 				showSuccess(`Conflict resolved using local ${fileName}.`);
 			} else if (choice === 'useRemote') {
 				fs.writeFileSync(uri.fsPath, remoteContent, 'utf8');
-				const envCount = countEnvVars(remoteContent);
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, remoteHash, envCount);
+				await this.metadataStore.saveEnvMetadataSync(
+					effectiveEnvId, fileName, remoteHash, countEnvVars(remoteContent)
+				);
 				showSuccess(`Conflict resolved using remote ${fileName}.`);
 			}
 		} catch (error) {
-			this.logger.error(`Failed to handle first time sync for ${fileName}: ${formatError(error)}`);
+			this.logger.error(`First-time sync failed for ${fileName}: ${formatError(error)}`);
 		}
 	}
 }

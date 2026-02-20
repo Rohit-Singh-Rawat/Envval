@@ -29,7 +29,7 @@ export class RepoMigrationService {
 		reason?: string;
 	}> {
 		try {
-			const identity = await getCurrentWorkspaceId(undefined, this.context, this.logger);
+			const identity = await getCurrentWorkspaceId(this.context, this.logger);
 
 			if (!identity || !identity.requiresMigration || !identity.suggestedMigration) {
 				return { needsMigration: false };

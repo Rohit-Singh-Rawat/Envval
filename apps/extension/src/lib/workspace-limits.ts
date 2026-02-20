@@ -3,8 +3,6 @@
  * Only this file needs to change when new unsafe locations are discovered.
  */
 
-export const WORKSPACE_VALIDATION_CACHE_TTL_MS = 300_000; // 5 minutes
-
 // The path-safety checker walks the full ancestor chain, so these names are
 // caught even when nested under cloud-sync folders (e.g. OneDrive\Desktop).
 

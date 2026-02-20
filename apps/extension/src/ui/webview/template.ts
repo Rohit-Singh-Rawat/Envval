@@ -12,99 +12,75 @@ export function getLoginWebviewContent(): string {
 	<style>${styles}</style>
 </head>
 <body>
-	<div class="container">
-		<div class="logo">${icons.logo}</div>
+	<main class="container" role="main" aria-label="EnvVal sign in">
+		<div class="logo" aria-hidden="true">${icons.logo}</div>
 		<h1>Sign in to EnvVal</h1>
-		<p class="subtitle">Connect your account to sync environment variables securely</p>
-		
-		<!-- Initial State -->
-		<div id="state-initial" class="state active">
-			<button class="btn-primary" id="loginBtn" onclick="initiateLogin()">
-		
+
+		<div id="state-initial" class="state active" role="region" aria-label="Sign in options">
+			<p class="step-hint">We'll open your browser to connect your account.</p>
+			<button type="button" class="btn-primary" id="loginBtn" aria-label="Sign in with browser" onclick="initiateLogin()">
 				<span style="margin-left: 8px;">Sign in with Browser</span>
 			</button>
-			<p class="hint">You'll receive a code to enter in your browser</p>
 		</div>
-		
-		<!-- Requesting Code State -->
-		<div id="state-requesting" class="state">
+
+		<div id="state-requesting" class="state" role="status" aria-live="polite" aria-busy="true">
 			<div class="polling-status">
-				<div class="spinner"></div>
-				<span>Requesting authorization code...</span>
+				<div class="spinner" aria-hidden="true"></div>
+				<span>Requesting code…</span>
 			</div>
 		</div>
-		
-		<!-- Show Code State -->
-		<div id="state-showCode" class="state">
-			<div class="code-container">
-				<div class="code-label">Your Code</div>
-				<div class="user-code" id="userCode">----</div>
+
+		<div id="state-showCode" class="state" role="region" aria-label="Verification code">
+			<p class="step-hint">Enter this code in the browser when prompted.</p>
+			<div class="code-container" onclick="copyCode()" role="button" tabindex="0" title="Click to copy" aria-label="Verification code, click to copy" id="codeContainer">
+				<div class="user-code" id="userCode" aria-live="polite">----</div>
 			</div>
-			
-			<p class="verification-url">
-				Go to <a href="#" id="verificationLink" onclick="openBrowser(); return false;">envval.com/device</a>
+			<button type="button" class="btn-primary" id="copyOpenBtn" aria-label="Copy code and open browser" onclick="copyAndOpenBrowser()">
+				${icons.externalLinkSmall}
+				<span style="margin-left: 8px;">Copy code & open browser</span>
+			</button>
+			<p class="waiting-line" id="waitingLine" role="status" aria-live="polite">
+				<span class="spinner-inline" aria-hidden="true"></span>
+				Waiting for you to sign in…
 			</p>
-			
-			<div class="button-row">
-				<button class="btn-primary" onclick="openBrowser()">
-					${icons.externalLinkSmall}
-					<span style="margin-left: 6px;">Open Browser</span>
-				</button>
-				<button class="btn-secondary" onclick="copyCode()">
-					${icons.copy}
-					<span style="margin-left: 6px;">Copy Code</span>
-				</button>
-			</div>
-			
-			<div class="polling-status" id="pollingStatus">
-				<div class="spinner"></div>
-				<span>Waiting for approval in browser...</span>
-			</div>
-			
-			<div class="timer" id="timer"></div>
-			
-			<button class="btn-link" onclick="cancel()">Cancel</button>
+			<div class="timer" id="timer" role="timer" aria-live="polite"></div>
+			<button type="button" class="btn-link" onclick="cancel()">Cancel</button>
 		</div>
-		
-		<!-- Success State -->
-		<div id="state-success" class="state success">
-			<div class="result-icon">${icons.check}</div>
-			<div class="result-title">Successfully Connected!</div>
-			<p class="result-message">Your EnvVal account is now linked.<br/>This window will close automatically.</p>
+
+		<div id="state-success" class="state success" role="status" aria-live="polite">
+			<div class="result-icon" aria-hidden="true">${icons.check}</div>
+			<p class="result-title">You're connected</p>
+			<p class="result-message">This window will close in a moment.</p>
 		</div>
-		
-		<!-- Denied State -->
-		<div id="state-denied" class="state error">
-			<div class="result-icon">${icons.x}</div>
-			<div class="result-title">Access Denied</div>
-			<p class="result-message">The authorization request was denied.</p>
-			<button class="btn-primary" style="margin-top: 24px;" onclick="reset()">Try Again</button>
+
+		<div id="state-denied" class="state error" role="alert">
+			<div class="result-icon" aria-hidden="true">${icons.x}</div>
+			<p class="result-title">Access denied</p>
+			<p class="result-message">Authorization was denied.</p>
+			<button type="button" class="btn-primary" onclick="reset()">Try again</button>
 		</div>
-		
-		<!-- Expired State -->
-		<div id="state-expired" class="state warning">
-			<div class="result-icon">${icons.clock}</div>
-			<div class="result-title" style="color: var(--warning);">Code Expired</div>
-			<p class="result-message">The authorization code has expired.<br/>Please try again.</p>
-			<button class="btn-primary" style="margin-top: 24px;" onclick="reset()">Try Again</button>
+
+		<div id="state-expired" class="state warning" role="alert">
+			<div class="result-icon" aria-hidden="true">${icons.clock}</div>
+			<p class="result-title">Code expired</p>
+			<p class="result-message">Please start sign in again.</p>
+			<button type="button" class="btn-primary" onclick="reset()">Try again</button>
 		</div>
-		
-		<!-- Error State -->
-		<div id="state-error" class="state error">
-			<div class="result-icon">${icons.alertCircle}</div>
-			<div class="result-title">Something Went Wrong</div>
+
+		<div id="state-error" class="state error" role="alert">
+			<div class="result-icon" aria-hidden="true">${icons.alertCircle}</div>
+			<p class="result-title">Something went wrong</p>
 			<p class="result-message" id="errorMessage">An error occurred. Please try again.</p>
-			<button class="btn-primary" style="margin-top: 24px;" onclick="reset()">Try Again</button>
+			<button type="button" class="btn-primary" onclick="reset()">Try again</button>
 		</div>
-	</div>
-	
-	<div class="copy-feedback" id="copyFeedback">
+	</main>
+
+	<div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite" aria-atomic="true">
 		${icons.checkSmall}
-		<span>Code copied to clipboard!</span>
+		<span>Code copied</span>
 	</div>
 
 	<script>${script}</script>
 </body>
 </html>`;
 }
-

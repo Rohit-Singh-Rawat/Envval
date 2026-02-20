@@ -10,9 +10,8 @@ import { formatError } from '../utils/format-error';
 /**
  * State of an environment file relative to the remote vault.
  */
-export type EnvSyncStatus = 'synced' | 'modified' | 'conflict' | 'ignored';
+export type EnvSyncStatus = 'synced' | 'modified' | 'conflict' | 'missing';
 
-// ── Display helpers ──────────────────────────────────────────────────
 
 /**
  * Computes the shortest unique display labels for a set of folder paths.
@@ -36,12 +35,10 @@ function computeShortLabels(fullPaths: string[]): Map<string, string> {
 		return new Map();
 	}
 
-	// Pre-split into segments once — O(1) lookup by path key instead of indexOf
 	const segmentsMap = new Map<string, string[]>(fullPaths.map((p) => [p, p.split('/')]));
 	const depthMap = new Map<string, number>(fullPaths.map((p) => [p, 1]));
 
 	for (;;) {
-		// Build candidate labels from the trailing `depth` segments of each path
 		const currentLabels = new Map<string, string>();
 		for (const fullPath of fullPaths) {
 			const segments = segmentsMap.get(fullPath)!;
@@ -49,7 +46,6 @@ function computeShortLabels(fullPaths: string[]): Map<string, string> {
 			currentLabels.set(fullPath, segments.slice(-depth).join('/'));
 		}
 
-		// Group paths by their current label to detect collisions
 		const labelToFullPaths = new Map<string, string[]>();
 		for (const [fullPath, label] of currentLabels) {
 			const existing = labelToFullPaths.get(label);
@@ -60,8 +56,6 @@ function computeShortLabels(fullPaths: string[]): Map<string, string> {
 			}
 		}
 
-		// Expand depth only for colliding paths that still have room to grow.
-		// If no path was expanded the labels are as unique as possible — done.
 		let expanded = false;
 		for (const [, paths] of labelToFullPaths) {
 			if (paths.length > 1) {
@@ -82,7 +76,6 @@ function computeShortLabels(fullPaths: string[]): Map<string, string> {
 	}
 }
 
-// ── Tree data provider ───────────────────────────────────────────────
 
 /**
  * Provides the environment list for the VS Code sidebar.
@@ -96,12 +89,14 @@ export class TrackedEnvsProvider
 	>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 	private readonly disposables: vscode.Disposable[] = [];
+	private readonly itemRegistry = new Map<string, EnvItem>();
 
 	constructor(
 		private readonly metadataStore: EnvvalMetadataStore,
 		private readonly fileWatcher: EnvFileWatcher,
 		private readonly statusCalculator: EnvStatusCalculator,
-		private readonly logger: Logger
+		private readonly logger: Logger,
+		private readonly isAuthenticated: () => Promise<boolean>
 	) {
 		this.disposables.push(
 			this.metadataStore.onDidChangeMetadata(() => {
@@ -114,7 +109,13 @@ export class TrackedEnvsProvider
 			this.fileWatcher.onDidChange((event) => {
 				this.logger.debug(`File changed: ${event.fileName}, refreshing tree view`);
 				this.statusCalculator.invalidateCache(event.fileName);
-				this.refresh();
+				const item = this.itemRegistry.get(event.fileName);
+				if (item) {
+					item.updateStatus();
+					this._onDidChangeTreeData.fire(item);
+				} else {
+					this.refresh();
+				}
 			}),
 			this.fileWatcher.onDidCreate((event) => {
 				this.logger.debug(`File created: ${event.fileName}, refreshing tree view`);
@@ -131,6 +132,7 @@ export class TrackedEnvsProvider
 	dispose(): void {
 		this.disposables.forEach((d) => d.dispose());
 		this._onDidChangeTreeData.dispose();
+		this.itemRegistry.clear();
 	}
 
 	refresh(): void {
@@ -149,6 +151,10 @@ export class TrackedEnvsProvider
 
 	async getChildren(element?: EnvItem | FolderItem): Promise<(EnvItem | FolderItem)[]> {
 		try {
+			if (!(await this.isAuthenticated())) {
+				return [];
+			}
+
 			const trackedEnvs = await this.metadataStore.getAllTrackedEnvs();
 
 			if (!element) {
@@ -156,7 +162,12 @@ export class TrackedEnvsProvider
 			}
 
 			if (element instanceof FolderItem) {
-				return element.envs.map((meta) => new EnvItem(meta, this.statusCalculator));
+				const children = element.envs.map((meta) => {
+					const item = new EnvItem(meta, this.statusCalculator);
+					this.itemRegistry.set(meta.fileName, item);
+					return item;
+				});
+				return children;
 			}
 
 			return [];
@@ -167,13 +178,17 @@ export class TrackedEnvsProvider
 	}
 
 	private buildRootItems(trackedEnvs: EnvMetadata[]): (EnvItem | FolderItem)[] {
+		this.itemRegistry.clear();
+
 		const rootItems: (EnvItem | FolderItem)[] = [];
 		const folders = new Map<string, EnvMetadata[]>();
 
 		for (const meta of trackedEnvs) {
 			const dirPath = path.posix.dirname(meta.fileName);
 			if (dirPath === '.') {
-				rootItems.push(new EnvItem(meta, this.statusCalculator));
+				const item = new EnvItem(meta, this.statusCalculator);
+				this.itemRegistry.set(meta.fileName, item);
+				rootItems.push(item);
 			} else {
 				const existing = folders.get(dirPath);
 				if (existing) {
@@ -184,7 +199,6 @@ export class TrackedEnvsProvider
 			}
 		}
 
-		// Compute short display labels for all folder paths at once
 		const shortLabels = computeShortLabels(Array.from(folders.keys()));
 
 		for (const [folderPath, envs] of folders) {
@@ -193,7 +207,6 @@ export class TrackedEnvsProvider
 		}
 
 		return rootItems.sort((a, b) => {
-			// Folders first, then alphabetical
 			if (a instanceof FolderItem && !(b instanceof FolderItem)) {
 				return -1;
 			}
@@ -208,7 +221,6 @@ export class TrackedEnvsProvider
 	}
 }
 
-// ── Tree items ───────────────────────────────────────────────────────
 
 export class FolderItem extends vscode.TreeItem {
 	constructor(
@@ -233,25 +245,35 @@ export class EnvItem extends vscode.TreeItem {
 		private readonly statusCalculator: EnvStatusCalculator
 	) {
 		super(path.basename(metadata.fileName), vscode.TreeItemCollapsibleState.None);
-
-		const status = this.statusCalculator.calculateStatus(metadata);
-		const lastSynced = new Date(metadata.lastSyncedAt);
-		const relativeTime = this.getRelativeTime(lastSynced);
-
-		this.tooltip = this.createTooltip(status, lastSynced, relativeTime);
-		this.description = `(${metadata.envCount} vars) • ${relativeTime}`;
-		this.iconPath = this.getIcon(status);
-		this.contextValue = `envItem:${status}`;
-
-		this.accessibilityInformation = {
-			label: `${metadata.fileName}, status: ${status}, ${metadata.envCount} variables, last synced ${relativeTime}`,
-			role: 'link',
-		};
-
+		this.applyStatus();
 		this.command = {
 			command: Commands.OPEN_FILE,
 			title: 'Open File',
 			arguments: [this],
+		};
+	}
+
+	/**
+	 * Recalculates and updates visual properties in-place.
+	 * Called for targeted refreshes to avoid a full tree reload.
+	 */
+	updateStatus(): void {
+		this.applyStatus();
+	}
+
+	private applyStatus(): void {
+		const status = this.statusCalculator.calculateStatus(this.metadata);
+		const lastSynced = new Date(this.metadata.lastSyncedAt);
+		const relativeTime = this.getRelativeTime(lastSynced);
+
+		this.tooltip = this.createTooltip(status, lastSynced, relativeTime);
+		this.description = `(${this.metadata.envCount} vars) • ${relativeTime}`;
+		this.iconPath = this.getIcon(status);
+		this.contextValue = `envItem:${status}`;
+
+		this.accessibilityInformation = {
+			label: `${this.metadata.fileName}, status: ${status}, ${this.metadata.envCount} variables, last synced ${relativeTime}`,
+			role: 'link',
 		};
 	}
 
@@ -261,16 +283,10 @@ export class EnvItem extends vscode.TreeItem {
 				return new vscode.ThemeIcon('shield-check', new vscode.ThemeColor('charts.green'));
 			case 'modified':
 				return new vscode.ThemeIcon('pencil', new vscode.ThemeColor('charts.blue'));
-			case 'ignored':
-				return new vscode.ThemeIcon(
-					'circle-slash',
-					new vscode.ThemeColor('problemsWarningIcon.foreground')
-				);
 			case 'conflict':
-				return new vscode.ThemeIcon(
-					'warning',
-					new vscode.ThemeColor('statusBarItem.errorForeground')
-				);
+				return new vscode.ThemeIcon('warning', new vscode.ThemeColor('statusBarItem.errorForeground'));
+			case 'missing':
+				return new vscode.ThemeIcon('error', new vscode.ThemeColor('list.errorForeground'));
 		}
 	}
 

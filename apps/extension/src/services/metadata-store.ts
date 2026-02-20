@@ -8,7 +8,6 @@ export interface EnvMetadata {
 	lastSyncedHash: string;
 	lastSyncedAt: string; // ISO timestamp
 	envCount: number;
-	ignoredAt?: string; // ISO timestamp for when user skipped sync
 }
 
 interface EnvvalMetadataStorage {
@@ -52,6 +51,11 @@ export class EnvvalMetadataStore {
 	public async loadEnvMetadata(envId: string): Promise<EnvMetadata | undefined> {
 		const stored = this.ctx.workspaceState.get<EnvvalMetadataStorage>(METADATA_STORAGE_KEY) ?? {};
 		return stored[envId];
+	}
+
+	public async loadEnvMetadataByFileName(fileName: string): Promise<EnvMetadata | undefined> {
+		const stored = this.ctx.workspaceState.get<EnvvalMetadataStorage>(METADATA_STORAGE_KEY) ?? {};
+		return Object.values(stored).find((metadata) => metadata.fileName === fileName);
 	}
 
 	public async getAllTrackedEnvs(): Promise<EnvMetadata[]> {
@@ -112,33 +116,6 @@ export class EnvvalMetadataStore {
 		return this.enqueueWrite(async () => {
 			await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, {});
 			this._onDidChangeMetadata.fire('*');
-		});
-	}
-
-	public async markAsIgnored(envId: string): Promise<void> {
-		return this.enqueueWrite(async () => {
-			const stored = this.ctx.workspaceState.get<EnvvalMetadataStorage>(METADATA_STORAGE_KEY) ?? {};
-			const entry = stored[envId];
-			if (!entry) {
-				return;
-			}
-			stored[envId] = { ...entry, ignoredAt: new Date().toISOString() };
-			await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, stored);
-			this._onDidChangeMetadata.fire(envId);
-		});
-	}
-
-	public async clearIgnoredAt(envId: string): Promise<void> {
-		return this.enqueueWrite(async () => {
-			const stored = this.ctx.workspaceState.get<EnvvalMetadataStorage>(METADATA_STORAGE_KEY) ?? {};
-			const entry = stored[envId];
-			if (!entry) {
-				return;
-			}
-			const { ignoredAt: _removed, ...rest } = entry;
-			stored[envId] = rest as EnvMetadata;
-			await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, stored);
-			this._onDidChangeMetadata.fire(envId);
 		});
 	}
 

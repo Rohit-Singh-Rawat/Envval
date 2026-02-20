@@ -4,7 +4,8 @@ export const VSCODE_CONFIG_SECTION = 'envval';
 
 export type ExtensionEnvironment = 'development' | 'production';
 
-export const DEFAULT_ENVIRONMENT: ExtensionEnvironment = 'production';
+export const DEFAULT_ENVIRONMENT: ExtensionEnvironment =
+	process.env.NODE_ENV === 'production' ? 'production' : 'development';
 
 export interface RuntimeEndpoints {
 	readonly apiBaseUrl: string;
@@ -23,6 +24,7 @@ export const RUNTIME_ENDPOINTS: Readonly<Record<ExtensionEnvironment, RuntimeEnd
 };
 
 export const METADATA_STORAGE_KEY = 'envval.metadata';
+export const PROMPT_IGNORE_STORAGE_KEY = 'envval.promptIgnore';
 export const REPO_IDENTITIES_STORAGE_KEY = 'envval.repoIdentities';
 export const IGNORED_ENV_FILES: readonly string[] = [
 	'.env.example',

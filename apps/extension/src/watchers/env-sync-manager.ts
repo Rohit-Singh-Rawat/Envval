@@ -11,7 +11,7 @@ import { EnvInitService } from '../services/env-init';
 import fs from 'fs';
 import path from 'path';
 import { EnvvalVsCodeSecrets } from '../utils/secrets';
-import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
+import { MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
 import { validateFilePath, toWorkspaceRelativePath } from '../utils/path-validator';
 import { StatusBar } from '../ui/status-bar';
 import { ConnectionMonitor } from '../services/connection-monitor';
@@ -19,8 +19,8 @@ import { OperationQueueService } from '../services/operation-queue';
 import { formatError } from '../utils/format-error';
 
 /**
- * Service orchestrating the synchronization between local files and Envval.
- * Handles watchers, background polling, and conflict resolution.
+ * Orchestrates synchronization between local .env files and the Envval server.
+ * Manages file watchers, background polling, conflict resolution, and offline queuing.
  */
 export class SyncManager implements Disposable {
 	private static instance: SyncManager;
@@ -32,23 +32,25 @@ export class SyncManager implements Disposable {
 	private readonly envInitService: EnvInitService;
 	private readonly logger: Logger;
 
-	/**
-	 * Memory cache for the derived AES key to avoid CPU-intensive PBKDF2 on every operation.
-	 */
+	/** Cached derived AES key — avoids PBKDF2 on every operation. */
 	private cachedKey: string | null = null;
 
-	/**
-	 * Track in-flight syncs to prevent race conditions (e.g., Save vs Poll).
-	 */
+	/** Prevents concurrent syncs for the same envId (Save vs Poll race). */
 	private readonly activeSyncs: Set<string> = new Set();
 
 	/**
-	 * Coalesces rapid saves: if a sync is active for an envId, the latest
-	 * incoming URI is stored here and processed once the current sync finishes.
-	 * Only the most recent pending save is kept — intermediate ones are dropped
-	 * since we always want to upload the final state.
+	 * Coalesces rapid saves: only the latest pending URI per envId is kept.
+	 * Intermediate states are irrelevant — we always upload the final version.
 	 */
 	private readonly pendingSyncs: Map<string, Uri> = new Map();
+
+	/**
+	 * Counts consecutive 404s per envId. Once MAX_CONSECUTIVE_404S is hit,
+	 * auto-recovery stops and the user is prompted to re-initialize manually.
+	 * This breaks the save → 404 → phantom-metadata → save infinite loop.
+	 */
+	private readonly consecutive404s: Map<string, number> = new Map();
+	private static readonly MAX_CONSECUTIVE_404S = 3;
 
 	private constructor(
 		context: vscode.ExtensionContext,
@@ -66,7 +68,6 @@ export class SyncManager implements Disposable {
 		this.envInitService = envInitService;
 		this.logger = logger;
 
-		// Register file system watcher events
 		const subscriptions = [
 			envFileWatcher.onDidCreate((event) => this.handleNewEnvFile(event.uri)),
 			envFileWatcher.onDidChange((event) => this.handleEnvFileSave(event.uri)),
@@ -74,16 +75,14 @@ export class SyncManager implements Disposable {
 		];
 		context.subscriptions.push(...subscriptions);
 
-		// Pause/resume polling based on network connectivity
-		const connectionMonitor = ConnectionMonitor.getInstance();
 		context.subscriptions.push(
-			connectionMonitor.onDidChangeConnectionState((online) => {
+			ConnectionMonitor.getInstance().onDidChangeConnectionState((online) => {
 				if (online) {
-					this.logger.info('[SyncManager] Connection restored - resuming sync');
+					this.logger.info('[SyncManager] Connection restored — resuming sync');
 					this.startPolling();
 					this.pollRemoteChanges();
 				} else {
-					this.logger.info('[SyncManager] Connection lost - pausing sync');
+					this.logger.info('[SyncManager] Connection lost — pausing sync');
 					this.stopPolling();
 				}
 			})
@@ -101,22 +100,65 @@ export class SyncManager implements Disposable {
 	): SyncManager {
 		if (!SyncManager.instance) {
 			SyncManager.instance = new SyncManager(
-				context,
-				apiClient,
-				secretsManager,
-				metadataStore,
-				envFileWatcher,
-				envInitService,
-				logger
+				context, apiClient, secretsManager, metadataStore,
+				envFileWatcher, envInitService, logger
 			);
 		}
 		return SyncManager.instance;
 	}
 
+	// ── Shared file I/O helpers ───────────────────────────────────────────────
+
 	/**
-	 * Performs an asynchronous poll of all tracked environments.
-	 * Provides real-time feedback via the status bar.
+	 * Reads a file synchronously, enforcing the size ceiling.
+	 * Returns null (and shows an error message) if the file is missing or oversized.
+	 * Synchronous by design: callers need to claim the activeSyncs lock before
+	 * any await, so the check-then-act must be atomic within the JS event loop turn.
 	 */
+	private readFileChecked(filePath: string, fileName: string): string | null {
+		try {
+			const stat = fs.statSync(filePath);
+			if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
+				window.showErrorMessage(
+					`Envval: ${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`
+				);
+				return null;
+			}
+			return fs.readFileSync(filePath, 'utf8');
+		} catch {
+			return null; // file deleted between event and handler
+		}
+	}
+
+	/**
+	 * Encrypts content and pushes it to the API.
+	 * Throws on API errors so callers can handle 404/412 specifically.
+	 */
+	private async encryptAndUpload(
+		envId: string,
+		content: string,
+		baseHash: string
+	): Promise<{ hash: string; envCount: number }> {
+		const key = await this.getEncryptionKey();
+		if (!key) {
+			throw new Error('Encryption key unavailable');
+		}
+		const hash = hashEnv(content);
+		const { ciphertext, iv } = encryptEnv(content, key);
+		const envCount = countEnvVars(content);
+
+		await this.apiClient.updateEnv(envId, {
+			baseHash,
+			content: `${ciphertext}:${iv}`,
+			latestHash: hash,
+			envCount,
+		});
+
+		return { hash, envCount };
+	}
+
+	// ── Polling ───────────────────────────────────────────────────────────────
+
 	public async pollRemoteChanges(): Promise<void> {
 		if (!ConnectionMonitor.getInstance().isOnline) {
 			return;
@@ -127,7 +169,7 @@ export class SyncManager implements Disposable {
 			return;
 		}
 
-		StatusBar.getInstance().setSyncState(true);
+		let syncedAny = false;
 		try {
 			for (const localMeta of trackedEnvs) {
 				if (this.activeSyncs.has(localMeta.envId)) {
@@ -136,20 +178,12 @@ export class SyncManager implements Disposable {
 
 				this.activeSyncs.add(localMeta.envId);
 				try {
-					// Check if user recently chose to ignore this file
-					if (localMeta.ignoredAt) {
-						const ignoredTime = new Date(localMeta.ignoredAt).getTime();
-						if (Date.now() - ignoredTime < IGNORE_INTERVAL_MS) {
-							continue;
-						}
-					}
-
 					let remoteEnv;
 					try {
 						remoteEnv = await this.apiClient.getEnv(localMeta.envId);
 					} catch (error: unknown) {
 						if (error instanceof ApiError && error.status === 404) {
-							this.logger.warn(`Remote env ${localMeta.envId} missing. Triggering reconciliation.`);
+							this.logger.warn(`Remote env ${localMeta.envId} missing — triggering reconciliation`);
 							const workspacePath = await getWorkspacePath();
 							if (workspacePath) {
 								await this.envInitService.maybeInitializeOrRestore(
@@ -179,8 +213,15 @@ export class SyncManager implements Disposable {
 					const remoteContent = decryptEnv(ciphertext, iv, key);
 					const remoteHash = hashEnv(remoteContent);
 
-					if (remoteHash === localMeta.lastSyncedHash) {
+					const freshMeta = await this.metadataStore.loadEnvMetadata(localMeta.envId);
+					if (!freshMeta) {
+						this.logger.debug(`[SyncManager] Metadata cleared for ${localMeta.fileName} during poll — skipping`);
 						continue;
+					}
+					const syncedHash = freshMeta.lastSyncedHash;
+
+					if (remoteHash === syncedHash) {
+						continue; // no remote change — don't touch the status bar
 					}
 
 					const workspacePath = await getWorkspacePath();
@@ -191,11 +232,10 @@ export class SyncManager implements Disposable {
 					const localFilePath = path.join(workspacePath, localMeta.fileName);
 					const pathCheck = validateFilePath(localFilePath, workspacePath);
 					if (!pathCheck.isValid) {
-						this.logger.error(
-							`Path validation failed for ${localMeta.fileName}: ${pathCheck.error}`
-						);
+						this.logger.error(`Path validation failed for ${localMeta.fileName}: ${pathCheck.error}`);
 						continue;
 					}
+
 					let localContent: string;
 					try {
 						localContent = fs.readFileSync(localFilePath, 'utf8');
@@ -204,18 +244,22 @@ export class SyncManager implements Disposable {
 						await this.envInitService.maybeInitializeOrRestore(Uri.file(localFilePath));
 						continue;
 					}
+
 					const localHash = hashEnv(localContent);
 
-					// Standard three-way reconciliation logic
-					if (localHash === localMeta.lastSyncedHash) {
+					// A real remote update is about to be applied — show Syncing now.
+					if (!syncedAny) {
+						StatusBar.getInstance().setSyncState(true);
+						syncedAny = true;
+					}
+
+					if (localHash === syncedHash) {
 						await this.applyRemoteUpdate(Uri.file(localFilePath), remoteContent, remoteHash);
 					} else {
 						await this.handleConflict(
 							Uri.file(localFilePath),
 							localMeta.envId,
 							localMeta.fileName,
-							localContent,
-							localHash,
 							remoteContent,
 							remoteHash
 						);
@@ -229,7 +273,9 @@ export class SyncManager implements Disposable {
 		} catch (error: unknown) {
 			this.logger.error(`Global sync poll failed: ${formatError(error)}`);
 		} finally {
-			StatusBar.getInstance().setSyncState(false, new Date());
+			if (syncedAny) {
+				StatusBar.getInstance().setSyncState(false, new Date());
+			}
 		}
 	}
 
@@ -237,7 +283,7 @@ export class SyncManager implements Disposable {
 		await this.updateFileInVscode(uri, content);
 		const envCount = countEnvVars(content);
 		const fileName = toWorkspaceRelativePath(uri);
-		const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+		const result = await getRepoAndEnvIds(fileName, this.context);
 		if (result) {
 			await this.metadataStore.saveEnvMetadataSync(result.envId, fileName, hash, envCount);
 			this.logger.debug(`Auto-pulled updates for ${fileName}`);
@@ -248,8 +294,6 @@ export class SyncManager implements Disposable {
 		uri: Uri,
 		envId: string,
 		fileName: string,
-		localContent: string,
-		localHash: string,
 		remoteContent: string,
 		remoteHash: string
 	): Promise<void> {
@@ -271,10 +315,11 @@ export class SyncManager implements Disposable {
 		}
 	}
 
+	// ── Polling lifecycle ─────────────────────────────────────────────────────
+
 	public startPolling(): void {
 		this.stopPolling();
-		const config = getVSCodeConfig();
-		const interval = config.pollIntervalSeconds * 1000;
+		const interval = getVSCodeConfig().pollIntervalSeconds * 1000;
 		this.pollInterval = setInterval(() => this.pollRemoteChanges(), interval);
 	}
 
@@ -285,58 +330,48 @@ export class SyncManager implements Disposable {
 		}
 	}
 
+	// ── File event handlers ───────────────────────────────────────────────────
+
 	public async handleEnvFileSave(uri: Uri): Promise<void> {
 		const fileName = toWorkspaceRelativePath(uri);
-		const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+		const result = await getRepoAndEnvIds(fileName, this.context);
 		if (!result) {
 			return;
 		}
 
-		const { envId } = result;
+		const computedEnvId = result.envId;
+		const existingMetadata =
+			(await this.metadataStore.loadEnvMetadata(computedEnvId)) ??
+			(await this.metadataStore.loadEnvMetadataByFileName(fileName));
+		const envId = existingMetadata?.envId ?? computedEnvId;
+
 		if (!ConnectionMonitor.getInstance().isOnline) {
 			OperationQueueService.getInstance().enqueue('push', envId, fileName);
-			this.logger.debug(`[SyncManager] Offline - queued push for ${fileName}`);
 			return;
 		}
 
 		if (this.activeSyncs.has(envId)) {
-			// Coalesce: store the latest URI so we can re-run once the active sync finishes.
-			// Only the most recent save matters — intermediate states are irrelevant.
+			// Coalesce: keep only the latest URI — intermediate states are irrelevant.
 			this.pendingSyncs.set(envId, uri);
 			return;
 		}
 
-		// All operations here are synchronous — no await, no event loop yield.
-		// This is intentional: we must claim the lock (activeSyncs.add) before
-		// any await so that a second debounce-fired save cannot pass the has()
-		// check above with the same stale baseHash and race us to the API.
-		let content: string;
-		try {
-			const stat = fs.statSync(uri.fsPath);
-			if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
-				window.showErrorMessage(
-					`Envval: ${fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`
-				);
-				return;
-			}
-			content = fs.readFileSync(uri.fsPath, 'utf8');
-		} catch {
-			return; // File deleted between event and handler
+		// Read synchronously before claiming the lock so size/existence is checked
+		// atomically with the lock acquisition (no await between check and add).
+		const content = this.readFileChecked(uri.fsPath, fileName);
+		if (content === null) {
+			return;
 		}
 
 		const hash = hashEnv(content);
 
-		// Claim the lock before the first await. Every call between has() and here
-		// is synchronous, so the JS engine cannot interleave another invocation in
-		// this window — making the check-then-act atomic.
+		// Claim the lock synchronously — everything above is sync, so no other
+		// invocation can interleave between the has() check and this add().
 		this.activeSyncs.add(envId);
-
-		// Track whether we actually reached the network call so the finally block
-		// only clears the status bar spinner when it was actually shown.
 		let statusBarActive = false;
 
 		try {
-			const metadata = await this.metadataStore.loadEnvMetadata(envId);
+			const metadata = existingMetadata ?? (await this.metadataStore.loadEnvMetadata(envId));
 
 			if (!metadata) {
 				await this.envInitService.maybeInitializeOrRestore(uri);
@@ -344,51 +379,24 @@ export class SyncManager implements Disposable {
 			}
 
 			if (metadata.lastSyncedHash === hash) {
-				return; // No real change — skip, no status bar activity
+				return; // no real change
 			}
 
 			statusBarActive = true;
 			StatusBar.getInstance().setSyncState(true);
 
-			const key = await this.getEncryptionKey();
-			if (!key) {
-				return;
-			}
-
-			const { ciphertext, iv } = encryptEnv(content, key);
-			const envCount = countEnvVars(content);
-
 			try {
-				await this.apiClient.updateEnv(envId, {
-					baseHash: metadata.lastSyncedHash,
-					content: `${ciphertext}:${iv}`,
-					latestHash: hash,
-					envCount,
-				});
-
-				await this.metadataStore.saveEnvMetadataSync(envId, fileName, hash, envCount);
+				const { hash: newHash, envCount } = await this.encryptAndUpload(
+					envId, content, metadata.lastSyncedHash
+				);
+				await this.metadataStore.saveEnvMetadataSync(envId, fileName, newHash, envCount);
+				this.consecutive404s.delete(envId);
 				this.logger.debug(`Synced ${fileName}`);
 			} catch (error: unknown) {
 				if (error instanceof ApiError && error.status === 404) {
-					await this.metadataStore.clearMetadata(envId);
-					await this.envInitService.maybeInitializeOrRestore(uri);
+					await this.handle404OnSave(envId, fileName, uri);
 				} else if (error instanceof ApiError && error.status === 412) {
-					this.logger.warn(`Conflict detected for ${fileName} - showing resolution dialog`);
-					const choice = await window.showWarningMessage(
-						`Conflict: ${fileName} was modified on another device`,
-						'Use Local (overwrite remote)',
-						'Use Remote (discard local)',
-						'Cancel'
-					);
-
-					if (choice === 'Use Local (overwrite remote)') {
-						await this.pushEnv(envId);
-					} else if (choice === 'Use Remote (discard local)') {
-						const pulled = await this.pullAndDecrypt(envId);
-						if (pulled) {
-							await this.applyRemoteUpdate(uri, pulled.content, pulled.hash);
-						}
-					}
+					await this.handle412OnSave(envId, fileName, uri);
 				} else {
 					throw error;
 				}
@@ -401,13 +409,49 @@ export class SyncManager implements Disposable {
 				StatusBar.getInstance().setSyncState(false, new Date());
 			}
 
-			// If another save arrived while this sync was in flight, process it now.
-			// setImmediate yields to the event loop before re-entering so pending I/O
-			// (e.g. the metadata write that just completed) settles first.
+			// Process the next coalesced save, if any, after current I/O settles.
 			const pendingUri = this.pendingSyncs.get(envId);
 			if (pendingUri) {
 				this.pendingSyncs.delete(envId);
 				setImmediate(() => this.handleEnvFileSave(pendingUri));
+			}
+		}
+	}
+
+	private async handle404OnSave(envId: string, fileName: string, uri: Uri): Promise<void> {
+		const failures = (this.consecutive404s.get(envId) ?? 0) + 1;
+
+		if (failures >= SyncManager.MAX_CONSECUTIVE_404S) {
+			this.logger.error(`${failures} consecutive 404s for ${fileName} — halting auto-recovery`);
+			window.showErrorMessage(
+				`Envval: "${fileName}" was not found on the server after ${failures} attempts. Open the Envval panel and re-initialize to fix.`
+			);
+			await this.metadataStore.clearMetadata(envId);
+			this.consecutive404s.delete(envId);
+			return;
+		}
+
+		this.consecutive404s.set(envId, failures);
+		this.logger.debug(`404 attempt ${failures}/${SyncManager.MAX_CONSECUTIVE_404S} for ${fileName}`);
+		await this.metadataStore.clearMetadata(envId);
+		await this.envInitService.maybeInitializeOrRestore(uri);
+	}
+
+	private async handle412OnSave(envId: string, fileName: string, uri: Uri): Promise<void> {
+		this.logger.warn(`Conflict on save for ${fileName}`);
+		const choice = await window.showWarningMessage(
+			`Conflict: ${fileName} was modified on another device`,
+			'Use Local (overwrite remote)',
+			'Use Remote (discard local)',
+			'Cancel'
+		);
+
+		if (choice === 'Use Local (overwrite remote)') {
+			await this.pushEnv(envId);
+		} else if (choice === 'Use Remote (discard local)') {
+			const pulled = await this.pullAndDecrypt(envId);
+			if (pulled) {
+				await this.applyRemoteUpdate(uri, pulled.content, pulled.hash);
 			}
 		}
 	}
@@ -418,31 +462,23 @@ export class SyncManager implements Disposable {
 
 	public async handleDeletedEnvFile(uri: Uri): Promise<void> {
 		const fileName = toWorkspaceRelativePath(uri);
-		const result = await getRepoAndEnvIds(fileName, undefined, this.context);
+		const result = await getRepoAndEnvIds(fileName, this.context);
 		if (!result) {
 			return;
 		}
 		const { envId } = result;
+
 		if (!ConnectionMonitor.getInstance().isOnline) {
-			this.logger.info(`[SyncManager] Offline - skipping remote delete for ${fileName}`);
+			this.logger.info(`Offline — skipping remote delete for ${fileName}`);
 			return;
 		}
+
 		if (await this.metadataStore.loadEnvMetadata(envId)) {
 			await this.apiClient.deleteEnv(envId);
 		}
 	}
 
-	public async updateFileInVscode(uri: Uri, content: string): Promise<void> {
-		const edit = new WorkspaceEdit();
-		const document = await vscode.workspace.openTextDocument(uri);
-		const fullRange = new Range(
-			document.positionAt(0),
-			document.positionAt(document.getText().length)
-		);
-		edit.replace(uri, fullRange, content);
-		await vscode.workspace.applyEdit(edit);
-		await document.save();
-	}
+	// ── Manual push ───────────────────────────────────────────────────────────
 
 	public async pushEnv(envId: string): Promise<void> {
 		if (this.activeSyncs.has(envId)) {
@@ -470,67 +506,22 @@ export class SyncManager implements Disposable {
 			}
 
 			const filePath = path.join(workspacePath, metadata.fileName);
-			let content: string;
-			try {
-				const stat = fs.statSync(filePath);
-				if (stat.size > MAX_ENV_FILE_SIZE_BYTES) {
-					window.showErrorMessage(
-						`Envval: ${metadata.fileName} is too large to sync (${Math.round(stat.size / 1024)}KB, max ${MAX_ENV_FILE_SIZE_BYTES / 1000}KB)`
-					);
-					return;
-				}
-				content = fs.readFileSync(filePath, 'utf8');
-			} catch {
-				return; // File deleted between event and handler
-			}
-			const hash = hashEnv(content);
-			const key = await this.getEncryptionKey();
-			if (!key) {
+			const content = this.readFileChecked(filePath, metadata.fileName);
+			if (content === null) {
 				return;
 			}
 
-			const { ciphertext, iv } = encryptEnv(content, key);
-			const envCount = countEnvVars(content);
-
-			await this.apiClient.updateEnv(envId, {
-				baseHash: metadata.lastSyncedHash,
-				content: `${ciphertext}:${iv}`,
-				latestHash: hash,
-				envCount,
-			});
-
+			const { hash, envCount } = await this.encryptAndUpload(
+				envId, content, metadata.lastSyncedHash
+			);
 			await this.metadataStore.saveEnvMetadataSync(envId, metadata.fileName, hash, envCount);
 			window.showInformationMessage(`Envval: Pushed ${metadata.fileName}`);
 		} catch (error: unknown) {
 			if (error instanceof ApiError && error.status === 412) {
-				// Conflict detected
-				this.logger.warn(`Push conflict for ${metadata.fileName}`);
-				const choice = await window.showWarningMessage(
-					`Conflict: ${metadata.fileName} was modified on another device`,
-					'Force Push (overwrite remote)',
-					'Pull Remote (discard local)',
-					'Cancel'
-				);
-
-				if (choice === 'Force Push (overwrite remote)') {
-					// Retry push - will use current hash
-					await this.pushEnv(envId);
-				} else if (choice === 'Pull Remote (discard local)') {
-					const pulled = await this.pullAndDecrypt(envId);
-					if (pulled) {
-						const workspacePath = await getWorkspacePath();
-						if (workspacePath) {
-							await this.applyRemoteUpdate(
-								Uri.file(path.join(workspacePath, metadata.fileName)),
-								pulled.content,
-								pulled.hash
-							);
-						}
-					}
-				}
+				await this.handle412OnPush(envId, metadata.fileName);
 			} else {
 				this.logger.error(`Manual push failed: ${formatError(error)}`);
-				window.showErrorMessage(`Envval Push Failed.`);
+				window.showErrorMessage('Envval Push Failed.');
 			}
 		} finally {
 			this.activeSyncs.delete(envId);
@@ -538,16 +529,42 @@ export class SyncManager implements Disposable {
 		}
 	}
 
-	/**
-	 * Processes all queued offline operations. Called when connection is restored.
-	 */
+	private async handle412OnPush(envId: string, fileName: string): Promise<void> {
+		this.logger.warn(`Push conflict for ${fileName}`);
+		const choice = await window.showWarningMessage(
+			`Conflict: ${fileName} was modified on another device`,
+			'Force Push (overwrite remote)',
+			'Pull Remote (discard local)',
+			'Cancel'
+		);
+
+		if (choice === 'Force Push (overwrite remote)') {
+			await this.pushEnv(envId);
+		} else if (choice === 'Pull Remote (discard local)') {
+			const pulled = await this.pullAndDecrypt(envId);
+			if (pulled) {
+				const workspacePath = await getWorkspacePath();
+				const metadata = await this.metadataStore.loadEnvMetadata(envId);
+				if (workspacePath && metadata) {
+					await this.applyRemoteUpdate(
+						Uri.file(path.join(workspacePath, metadata.fileName)),
+						pulled.content,
+						pulled.hash
+					);
+				}
+			}
+		}
+	}
+
+	// ── Offline queue ─────────────────────────────────────────────────────────
+
 	public async processQueuedOperations(): Promise<void> {
 		const queue = OperationQueueService.getInstance();
 		if (queue.isEmpty) {
 			return;
 		}
 
-		this.logger.info(`[SyncManager] Processing ${queue.size} queued operations`);
+		this.logger.info(`Processing ${queue.size} queued operations`);
 
 		const result = await queue.processAll(async (op) => {
 			if (op.type === 'push') {
@@ -563,19 +580,21 @@ export class SyncManager implements Disposable {
 
 		if (result.succeeded > 0) {
 			window.showInformationMessage(
-				`Envval: Back online - synced ${result.succeeded} queued change${result.succeeded > 1 ? 's' : ''}`
+				`Envval: Back online — synced ${result.succeeded} queued change${result.succeeded > 1 ? 's' : ''}`
 			);
 		}
 	}
 
-	/** Fetches and decrypts remote env content. Returns null if unavailable or malformed. */
+	// ── Internal crypto helpers ───────────────────────────────────────────────
+
+	/** Fetches and decrypts the remote env. Returns null if unavailable or malformed. */
 	private async pullAndDecrypt(envId: string): Promise<{ content: string; hash: string } | null> {
 		const remoteEnv = await this.apiClient.getEnv(envId);
 		if (!remoteEnv) {
 			return null;
 		}
-		const parts = remoteEnv.content.split(':');
-		if (parts.length < 2 || !parts[0] || !parts[1]) {
+		const [ciphertext, iv] = remoteEnv.content.split(':');
+		if (!ciphertext || !iv) {
 			this.logger.error(`Invalid remote content format for env ${envId}`);
 			return null;
 		}
@@ -583,7 +602,7 @@ export class SyncManager implements Disposable {
 		if (!key) {
 			return null;
 		}
-		const content = decryptEnv(parts[0], parts[1], key);
+		const content = decryptEnv(ciphertext, iv, key);
 		return { content, hash: hashEnv(content) };
 	}
 
@@ -591,27 +610,40 @@ export class SyncManager implements Disposable {
 		if (this.cachedKey) {
 			return this.cachedKey;
 		}
-
 		const keyMaterial = await this.secretsManager.getKeyMaterial();
 		const userId = await this.secretsManager.getUserId();
-
 		if (!keyMaterial || !userId) {
 			return null;
 		}
-
 		this.cachedKey = await deriveKeyAsync(keyMaterial, userId);
 		return this.cachedKey;
 	}
 
 	public invalidateCache(): void {
 		this.cachedKey = null;
-		this.logger.debug('Key cache invalidated.');
 	}
+
+	// ── VS Code file update ───────────────────────────────────────────────────
+
+	public async updateFileInVscode(uri: Uri, content: string): Promise<void> {
+		const edit = new WorkspaceEdit();
+		const document = await vscode.workspace.openTextDocument(uri);
+		const fullRange = new Range(
+			document.positionAt(0),
+			document.positionAt(document.getText().length)
+		);
+		edit.replace(uri, fullRange, content);
+		await vscode.workspace.applyEdit(edit);
+		await document.save();
+	}
+
+	// ── Lifecycle ─────────────────────────────────────────────────────────────
 
 	public dispose(): void {
 		this.stopPolling();
 		this.cachedKey = null;
 		this.pendingSyncs.clear();
+		this.consecutive404s.clear();
 		SyncManager.instance = undefined!;
 	}
 }

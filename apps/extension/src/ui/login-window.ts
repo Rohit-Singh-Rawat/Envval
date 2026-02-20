@@ -8,6 +8,12 @@ import { Logger } from '../utils/logger';
 import { formatError } from '../utils/format-error';
 import { getLoginWebviewContent } from './webview/template';
 
+type WebviewMessage =
+	| { command: 'setState'; state: string; userCode?: string; expiresIn?: number; message?: string }
+	| { command: 'browserOpened' }
+	| { command: 'codeCopied' }
+	| { command: 'pollingUpdate'; attempt: number };
+
 export class LoginWindow {
 	private static instance: LoginWindow;
 	private panel: vscode.WebviewPanel | undefined;
@@ -79,6 +85,10 @@ export class LoginWindow {
 					case 'copyCode':
 						await this.handleCopyCode();
 						break;
+					case 'copyAndOpen':
+						await this.handleCopyCode();
+						await this.handleOpenBrowser();
+						break;
 					case 'cancel':
 						this.handleCancel();
 						break;
@@ -119,9 +129,6 @@ export class LoginWindow {
 				command: 'setState',
 				state: 'showCode',
 				userCode: formattedCode,
-				verificationUrl:
-					this.currentDeviceCode.verification_uri_complete ||
-					this.currentDeviceCode.verification_uri,
 				expiresIn: this.currentDeviceCode.expires_in,
 			});
 
@@ -205,7 +212,7 @@ export class LoginWindow {
 		return code;
 	}
 
-	private sendMessage(message: { command: string; [key: string]: unknown }): void {
+	private sendMessage(message: WebviewMessage): void {
 		if (this.panel) {
 			this.panel.webview.postMessage(message);
 		}

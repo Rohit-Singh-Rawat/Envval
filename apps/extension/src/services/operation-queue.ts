@@ -159,7 +159,9 @@ export class OperationQueueService implements Disposable {
 	}
 
 	public dispose(): void {
-		this.persist();
+		// Fire-and-forget: best-effort flush on extension deactivation.
+		// VS Code may terminate the process immediately after, so we cannot await.
+		void this.persist();
 		this._onDidChange.dispose();
 	}
 }

@@ -80,62 +80,6 @@ export class WorkspaceContextProvider {
 	}
 
 	/**
-	 * Gets the workspace path for a specific file URI.
-	 * Useful for determining which workspace folder a file belongs to in multi-root workspaces.
-	 */
-	public getWorkspacePathForFile(fileUri: vscode.Uri): string | undefined {
-		// Try to get the workspace folder that contains this file
-		const folder = vscode.workspace.getWorkspaceFolder(fileUri);
-		if (folder) {
-			return folder.uri.fsPath;
-		}
-
-		// Fallback: If it's an env file without a workspace, use parent directory
-		if (this.isEnvFile(fileUri.fsPath)) {
-			return path.dirname(fileUri.fsPath);
-		}
-
-		return undefined;
-	}
-
-	/**
-	 * Gets all workspace paths (useful for multi-root workspaces).
-	 */
-	public getAllWorkspacePaths(): string[] {
-		const context = this.getWorkspaceContext();
-		return context.allPaths;
-	}
-
-	/**
-	 * Checks if currently in single-file mode (no workspace, just a file open).
-	 */
-	public isSingleFileMode(): boolean {
-		return this.getWorkspaceContext().mode === 'single-file';
-	}
-
-	/**
-	 * Checks if currently in multi-root mode (multiple workspace folders).
-	 */
-	public isMultiRootMode(): boolean {
-		return this.getWorkspaceContext().mode === 'multi-root';
-	}
-
-	/**
-	 * Gets the active workspace folder based on the currently active editor.
-	 * In multi-root workspaces, returns the folder containing the active file.
-	 */
-	public getActiveWorkspacePath(): string | undefined {
-		const activeEditor = vscode.window.activeTextEditor;
-		if (!activeEditor) {
-			// No active editor - return primary workspace
-			return this.getWorkspaceContext().primaryPath;
-		}
-
-		// Get workspace folder for active file
-		return this.getWorkspacePathForFile(activeEditor.document.uri);
-	}
-
-	/**
 	 * Checks if a filename is an environment file.
 	 */
 	private isEnvFile(fileName: string): boolean {

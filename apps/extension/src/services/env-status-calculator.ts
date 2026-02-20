@@ -5,7 +5,6 @@ import { EnvMetadata } from './metadata-store';
 import { hashEnv } from '../utils/crypto';
 import { EnvSyncStatus } from '../views/tracked-envs';
 import { Logger } from '../utils/logger';
-import { formatError } from '../utils/format-error';
 
 interface StatusCacheEntry {
 	status: EnvSyncStatus;
@@ -13,90 +12,61 @@ interface StatusCacheEntry {
 	hash: string;
 }
 
-/**
- * Service responsible for calculating environment file sync status.
- * Implements caching to avoid redundant file I/O and hash calculations.
- * 
- * This is separated from the UI layer to follow single responsibility principle
- * and enable easier testing and reuse across different components.
- */
 export class EnvStatusCalculator {
 	private static instance: EnvStatusCalculator;
 	private readonly cache = new Map<string, StatusCacheEntry>();
-	
+
 	private constructor(private readonly logger: Logger) {}
-	
+
 	public static getInstance(logger: Logger): EnvStatusCalculator {
 		if (!EnvStatusCalculator.instance) {
 			EnvStatusCalculator.instance = new EnvStatusCalculator(logger);
 		}
 		return EnvStatusCalculator.instance;
 	}
-	
+
 	/**
-	 * Calculate the sync status of an environment file.
-	 * Uses caching based on file modification time to avoid redundant hashing.
+	 * Returns the sync status of a tracked env file.
+	 * Uses mtime-based caching to avoid redundant hashing on every tree refresh.
+	 * Returns 'missing' when the file cannot be read — distinct from 'synced'.
 	 */
 	public calculateStatus(metadata: EnvMetadata): EnvSyncStatus {
-		if (metadata.ignoredAt) {
-			return 'ignored';
-		}
-		
-		const fileUri = this.getFileUri(metadata.fileName);
+		const fileUri = this.resolveUri(metadata.fileName);
+		const cacheKey = fileUri.fsPath;
 
 		try {
 			const stats = fs.statSync(fileUri.fsPath);
 			const mtime = stats.mtimeMs;
-			const cacheKey = fileUri.fsPath;
-			
-			// Check cache validity using modification time
+
 			const cached = this.cache.get(cacheKey);
 			if (cached && cached.mtime === mtime && cached.hash === metadata.lastSyncedHash) {
 				return cached.status;
 			}
-			
-			// Cache miss or invalidated - recalculate
+
 			const content = fs.readFileSync(fileUri.fsPath, 'utf8');
-			const localHash = hashEnv(content);
-			const status: EnvSyncStatus = localHash === metadata.lastSyncedHash ? 'synced' : 'modified';
-			
-			// Update cache
-			this.cache.set(cacheKey, {
-				status,
-				mtime,
-				hash: metadata.lastSyncedHash
-			});
-			
+			const status: EnvSyncStatus =
+				hashEnv(content) === metadata.lastSyncedHash ? 'synced' : 'modified';
+
+			this.cache.set(cacheKey, { status, mtime, hash: metadata.lastSyncedHash });
 			return status;
-		} catch (error) {
-			const errorMsg = formatError(error);
-			this.logger.error(`Failed to calculate status for ${metadata.fileName}: ${errorMsg}`);
-			// Graceful degradation: assume synced if we can't determine status
-			return 'synced';
+		} catch {
+			// File is unreadable or deleted — remove stale cache and signal clearly.
+			this.cache.delete(cacheKey);
+			this.logger.debug(`EnvStatusCalculator: cannot read ${metadata.fileName}, marking as missing`);
+			return 'missing';
 		}
 	}
-	
-	/**
-	 * Invalidate cache for a specific file or all files.
-	 * Should be called when files are modified externally or metadata changes.
-	 */
+
 	public invalidateCache(fileName?: string): void {
 		if (fileName) {
-			const fileUri = this.getFileUri(fileName);
-			this.cache.delete(fileUri.fsPath);
-			this.logger.debug(`Cache invalidated for: ${fileName}`);
+			this.cache.delete(this.resolveUri(fileName).fsPath);
 		} else {
 			this.cache.clear();
-			this.logger.debug('Entire status cache cleared');
 		}
 	}
-	
-	private getFileUri(fileName: string): vscode.Uri {
-		const workspaceFolders = vscode.workspace.workspaceFolders;
-		if (workspaceFolders && workspaceFolders.length > 0) {
-			const rootPath = workspaceFolders[0].uri.fsPath;
-			return vscode.Uri.file(path.join(rootPath, fileName));
-		}
-		return vscode.Uri.file(fileName);
+
+	private resolveUri(fileName: string): vscode.Uri {
+		const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		return vscode.Uri.file(root ? path.join(root, fileName) : fileName);
 	}
 }

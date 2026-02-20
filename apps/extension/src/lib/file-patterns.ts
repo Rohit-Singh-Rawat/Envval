@@ -3,7 +3,10 @@
  * Used with VS Code's workspace.findFiles API.
  */
 
-/** Matches .env, .env.local, .env.production, etc. */
+/**
+ * Broad include for VS Code glob engine compatibility.
+ * Strict validity is enforced afterwards by `isValidEnvFilePath`.
+ */
 export const ENV_FILE_INCLUDE_PATTERN = '**/.env*' as const;
 
 /**

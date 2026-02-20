@@ -20,51 +20,31 @@ export class Logger {
 		return Logger.instance;
 	}
 
+	private isVerbose(): boolean {
+		return this.runtimeConfig.environment === 'development' || this.runtimeConfig.loggingVerbose;
+	}
+
 	private write(level: string, message: string): void {
 		const timestamp = new Date().toISOString();
 		this.channel.appendLine(`${timestamp} [${level}] ${message}`);
 	}
 
-	private shouldWrite(level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'): boolean {
-		// Production logging policy is intentionally strict to avoid noisy output channels.
-		if (this.runtimeConfig.environment === 'production') {
-			return level === 'INFO' || level === 'ERROR';
-		}
-
-		if (level === 'DEBUG') {
-			return this.runtimeConfig.loggingVerbose;
-		}
-		return true;
-	}
-
-	public log(message: string): void {
-		if (this.runtimeConfig.loggingVerbose) {
-			this.write('LOG', message);
-		}
-	}
-
 	public debug(message: string): void {
-		if (this.shouldWrite('DEBUG')) {
+		if (this.isVerbose()) {
 			this.write('DEBUG', message);
 		}
 	}
 
 	public info(message: string): void {
-		if (this.shouldWrite('INFO')) {
-			this.write('INFO', message);
-		}
+		this.write('INFO', message);
 	}
 
 	public warn(message: string): void {
-		if (this.shouldWrite('WARN')) {
-			this.write('WARN', message);
-		}
+		this.write('WARN', message);
 	}
 
 	public error(message: string): void {
-		if (this.shouldWrite('ERROR')) {
-			this.write('ERROR', message);
-		}
+		this.write('ERROR', message);
 	}
 
 	public show(): void {
@@ -76,9 +56,6 @@ export class Logger {
 	}
 }
 
-export function createLogger(
-	ctx: ExtensionContext,
-	runtimeConfig?: RuntimeConfig
-): Logger {
+export function createLogger(ctx: ExtensionContext, runtimeConfig?: RuntimeConfig): Logger {
 	return Logger.getInstance(ctx, runtimeConfig);
 }

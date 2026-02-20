@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { createLogger } from './utils/logger';
-import { getRuntimeConfig, onConfigChange } from './lib/config';
+import { getApiBaseUrl, getDeviceVerificationUrl, getRuntimeConfig, onConfigChange } from './lib/config';
 import { Commands } from './commands';
 import { StatusBar } from './ui/status-bar';
 import { LoginWindow } from './ui/login-window';
@@ -18,12 +18,20 @@ import { EnvStatusCalculator } from './services/env-status-calculator';
 import { EnvHoverProvider, SUPPORTED_LANGUAGES } from './providers/env-hover-provider';
 import { ConnectionMonitor } from './services/connection-monitor';
 import { OperationQueueService } from './services/operation-queue';
+import { PromptIgnoreStore } from './services/prompt-ignore-store';
 import { NOTIFICATION_DEBOUNCE_MS } from './lib/constants';
 import { WorkspaceValidator } from './services/workspace-validator';
 import { WorkspaceContextProvider } from './services/workspace-context-provider';
 
 export async function activate(context: vscode.ExtensionContext) {
-	const logger = createLogger(context, getRuntimeConfig());
+
+	const startupConfig = getRuntimeConfig();
+
+	const logger = createLogger(context, startupConfig);
+	logger.info(
+		`Runtime config: environment=${startupConfig.environment}, loggingVerbose=${startupConfig.loggingVerbose}, apiBaseUrl=${getApiBaseUrl()}, deviceVerificationUrl=${getDeviceVerificationUrl()}`
+	);
+	logger.debug('Debug logging probe: extension activation');
 
 	const workspaceValidator = WorkspaceValidator.getInstance(logger);
 	const contextProvider = WorkspaceContextProvider.getInstance();
@@ -33,6 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const authProvider = AuthenticationProvider.getInstance(secrets, logger);
 	const apiClient = EnvvalApiClient.getInstance(authProvider, logger);
 	const metadataStore = EnvvalMetadataStore.getInstance(context);
+	const promptIgnoreStore = PromptIgnoreStore.getInstance(context);
 	const envFileWatcher = EnvFileWatcher.getInstance(context, logger);
 	const connectionMonitor = ConnectionMonitor.getInstance(logger);
 	const operationQueue = OperationQueueService.getInstance(context, logger);
@@ -49,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		metadataStore,
 		apiClient,
 		secrets,
+		promptIgnoreStore,
 		logger
 	);
 
@@ -81,7 +91,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		metadataStore,
 		envFileWatcher,
 		statusCalculator,
-		logger
+		logger,
+		() => authProvider.isAuthenticated()
 	);
 	vscode.window.registerTreeDataProvider('envvalTrackedEnvs', trackedEnvsProvider);
 
@@ -92,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('envval.validateWorkspace', async () => {
 			const wsContext = contextProvider.getWorkspaceContext();
 			if (wsContext.primaryPath) {
-				workspaceValidator.clearCache(wsContext.primaryPath);
+				workspaceValidator.resetValidation();
 				const result = await workspaceValidator.validateWorkspace(wsContext.primaryPath, {
 					showPrompts: true,
 					force: true,
@@ -110,6 +121,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const disposeConfigListener = onConfigChange((config) => {
 		logger.setRuntimeConfig(config);
+		logger.info(
+			`Runtime config updated: environment=${config.environment}, loggingVerbose=${config.loggingVerbose}, apiBaseUrl=${getApiBaseUrl()}, deviceVerificationUrl=${getDeviceVerificationUrl()}`
+		);
+		logger.debug('Debug logging probe: config updated');
 	});
 
 	let lastNotificationAt = 0;
@@ -126,15 +141,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		if (online) {
 			apiClient.resetCircuitBreaker();
 			await syncManager.processQueuedOperations();
-
-			if (canNotify && !operationQueue.isEmpty) {
-				lastNotificationAt = now;
-			}
-		} else {
-			if (canNotify) {
-				vscode.window.showWarningMessage('Envval: Connection lost. Changes will be queued.');
-				lastNotificationAt = now;
-			}
+		} else if (canNotify) {
+			vscode.window.showWarningMessage('Envval: Connection lost. Changes will be queued.');
+			lastNotificationAt = now;
 		}
 	});
 

@@ -7,57 +7,57 @@ let timerInterval = null;
 
 function setState(state, data = {}) {
 	currentState = state;
-	
-	document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
-	
+
+	document.querySelectorAll('.state').forEach(function (el) {
+		el.classList.remove('active');
+		el.setAttribute('aria-hidden', 'true');
+	});
+
 	const stateEl = document.getElementById('state-' + state);
 	if (stateEl) {
 		stateEl.classList.add('active');
+		stateEl.removeAttribute('aria-hidden');
 	}
-	
+
 	if (state === 'showCode' && data.userCode) {
-		document.getElementById('userCode').textContent = data.userCode;
-		if (data.verificationUrl) {
-			document.getElementById('verificationLink').href = data.verificationUrl;
-			document.getElementById('verificationLink').textContent = data.verificationUrl.replace('https://', '').replace('http://', '');
-		}
-		if (data.expiresIn) {
-			startTimer(data.expiresIn);
-		}
+		const codeEl = document.getElementById('userCode');
+		if (codeEl) codeEl.textContent = data.userCode;
+		if (data.expiresIn) startTimer(data.expiresIn);
+		setTimeout(function () {
+			const btn = document.getElementById('copyOpenBtn');
+			if (btn) btn.focus();
+		}, 0);
 	}
-	
+
 	if (state === 'error' && data.message) {
-		document.getElementById('errorMessage').textContent = data.message;
+		const msgEl = document.getElementById('errorMessage');
+		if (msgEl) msgEl.textContent = data.message;
 	}
 }
 
 function startTimer(seconds) {
-	expiresAt = Date.now() + (seconds * 1000);
+	expiresAt = Date.now() + seconds * 1000;
 	updateTimer();
 	timerInterval = setInterval(updateTimer, 1000);
 }
 
 function updateTimer() {
 	if (!expiresAt) return;
-	
 	const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
 	const minutes = Math.floor(remaining / 60);
 	const secs = remaining % 60;
-	
-	document.getElementById('timer').textContent = 
-		'Code expires in ' + minutes + ':' + secs.toString().padStart(2, '0');
-	
-	if (remaining <= 0) {
-		clearInterval(timerInterval);
-	}
+	const timerEl = document.getElementById('timer');
+	if (timerEl) timerEl.textContent = 'Expires in ' + minutes + ':' + (secs < 10 ? '0' : '') + secs;
+	if (remaining <= 0) clearInterval(timerInterval);
 }
 
 function initiateLogin() {
 	vscode.postMessage({ command: 'initiateLogin' });
 }
 
-function openBrowser() {
-	vscode.postMessage({ command: 'openBrowser' });
+function copyAndOpenBrowser() {
+	vscode.postMessage({ command: 'copyAndOpen' });
+	showCopyFeedback();
 }
 
 function copyCode() {
@@ -76,21 +76,26 @@ function reset() {
 
 function showCopyFeedback() {
 	const feedback = document.getElementById('copyFeedback');
-	feedback.classList.add('show');
-	setTimeout(() => feedback.classList.remove('show'), 2000);
+	if (feedback) {
+		feedback.classList.add('show');
+		setTimeout(function () { feedback.classList.remove('show'); }, 2000);
+	}
 }
 
-window.addEventListener('message', event => {
-	const message = event.data;
-	
-	switch (message.command) {
-		case 'setState':
-			setState(message.state, message);
-			break;
-		case 'codeCopied':
+const codeContainer = document.getElementById('codeContainer');
+if (codeContainer) {
+	codeContainer.addEventListener('keydown', function (e) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			copyCode();
 			showCopyFeedback();
-			break;
-	}
+		}
+	});
+}
+
+window.addEventListener('message', function (event) {
+	const message = event.data;
+	if (message.command === 'setState') setState(message.state, message);
+	if (message.command === 'codeCopied') showCopyFeedback();
 });
 `;
-

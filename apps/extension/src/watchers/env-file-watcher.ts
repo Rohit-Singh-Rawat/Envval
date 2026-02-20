@@ -1,7 +1,9 @@
 import path from "path";
 import { EventEmitter, ExtensionContext, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 import { IGNORED_ENV_FILES } from "../lib/constants";
+import { ENV_FILE_INCLUDE_PATTERN } from "../lib/file-patterns";
 import { toWorkspaceRelativePath } from "../utils/path-validator";
+import { isValidEnvFilePath } from "../utils/env-file-name";
 import { Logger } from "../utils/logger";
 
 export interface EnvFileEvent {
@@ -10,7 +12,7 @@ export interface EnvFileEvent {
   readonly workspacePath: string;
 }
 
-const DEBOUNCE_MS = 1000;
+const DEBOUNCE_MS = 2000;
 
 export class EnvFileWatcher {
   private watchers: FileSystemWatcher[] = [];
@@ -52,7 +54,11 @@ export class EnvFileWatcher {
   }
 
   private isIgnored(uri: Uri): boolean {
-    return IGNORED_ENV_FILES.includes(path.basename(uri.fsPath));
+    const workspaceRelativePath = toWorkspaceRelativePath(uri);
+    if (!isValidEnvFilePath(workspaceRelativePath)) {
+      return true;
+    }
+    return IGNORED_ENV_FILES.includes(path.basename(uri.fsPath).toLowerCase());
   }
 
   private debouncePerUri(
@@ -102,7 +108,7 @@ export class EnvFileWatcher {
       return;
     }
 
-    const pattern = new RelativePattern(rootUri, '**/.env*');
+    const pattern = new RelativePattern(rootUri, ENV_FILE_INCLUDE_PATTERN);
     this.logger.debug(`Starting EnvFileWatcher with pattern: ${pattern.pattern}`);
 
     const watcher = workspace.createFileSystemWatcher(pattern);

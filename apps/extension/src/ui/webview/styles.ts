@@ -39,7 +39,7 @@ body {
 }
 
 .logo {
-	margin-bottom: 8px;
+	margin-bottom: 12px;
 	display: flex;
 	justify-content: center;
 }
@@ -62,6 +62,32 @@ h1 {
 	margin-bottom: 32px;
 	font-size: 15px;
 	line-height: 1.6;
+}
+
+.step-hint {
+	color: var(--muted-foreground);
+	font-size: 14px;
+	line-height: 1.5;
+	margin-bottom: 20px;
+}
+
+.waiting-line {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 20px;
+	font-size: 13px;
+	color: var(--muted-foreground);
+}
+
+.spinner-inline {
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--border);
+	border-top-color: var(--primary);
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
 }
 
 /* States */
@@ -169,44 +195,37 @@ h1 {
 
 /* Code display */
 .code-container {
-	background: linear-gradient(135deg, #fafaf8 0%, #f5f5f0 100%);
-	border: 2px solid var(--primary);
-	border-radius: 12px;
-	padding: 24px;
-	margin: 24px 0;
+	background: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 20px 24px;
+	margin: 0 0 20px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	position: relative;
+	overflow: hidden;
+	outline: none;
 }
 
-.code-label {
-	font-size: 11px;
-	color: var(--muted-foreground);
-	margin-bottom: 8px;
-	text-transform: uppercase;
-	letter-spacing: 1.5px;
-	font-weight: 500;
+.code-container:focus-visible {
+	box-shadow: 0 0 0 2px var(--primary);
+}
+
+.code-container:hover {
+	background: #e2e8f0;
+	border-color: #cbd5e1;
+}
+
+.code-container:active {
+	transform: scale(0.98);
 }
 
 .user-code {
-	font-size: 36px;
+	font-size: 26px;
 	font-weight: 700;
 	font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Monaco, Consolas, monospace;
-	letter-spacing: 6px;
-	color: var(--primary);
-}
-
-.verification-url {
-	font-size: 14px;
-	color: var(--muted-foreground);
-	margin: 16px 0;
-}
-
-.verification-url a {
-	color: var(--primary);
-	text-decoration: none;
-	font-weight: 500;
-}
-
-.verification-url a:hover {
-	text-decoration: underline;
+	letter-spacing: 4px;
+	color: var(--foreground);
 }
 
 .button-row {
@@ -406,10 +425,5 @@ h1 {
 	}
 }
 
-.hint {
-	margin-top: 24px;
-	font-size: 13px;
-	color: var(--muted-foreground);
-}
 `;
 

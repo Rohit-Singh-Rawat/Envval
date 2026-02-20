@@ -1,4 +1,3 @@
-// repo-identity.ts
 import * as vscode from 'vscode';
 import { RepoIdentityStore } from '../services/repo-identity-store';
 import { RepoMigrationService } from '../services/repo-migration';
@@ -56,7 +55,7 @@ export class RepoIdentityCommands {
     }
 
     try {
-      const identity = await getCurrentWorkspaceId(undefined, this.context);
+      const identity = await getCurrentWorkspaceId(this.context);
       if (!identity) {
         vscode.window.showErrorMessage('Unable to determine repository identity.');
         return;
@@ -131,7 +130,7 @@ export class RepoIdentityCommands {
     }
 
     try {
-      const currentIdentity = await getCurrentWorkspaceId(undefined, this.context);
+      const currentIdentity = await getCurrentWorkspaceId(this.context);
       const currentId = currentIdentity?.repoId || '';
 
       const newIdentity = await vscode.window.showInputBox({
@@ -269,8 +268,8 @@ export class RepoIdentityCommands {
       await this.identityStore.setSubProjectPath(workspacePath, selectedPath.trim());
 
       // Offer to migrate if current identity changes
-      const currentIdentity = await getCurrentWorkspaceId(undefined, this.context);
-      const newIdentity = await getCurrentWorkspaceId(undefined, this.context);
+      const currentIdentity = await getCurrentWorkspaceId(this.context);
+      const newIdentity = await getCurrentWorkspaceId(this.context);
 
       if (currentIdentity?.repoId !== newIdentity?.repoId && currentIdentity?.repoId) {
         const migrate = await vscode.window.showInformationMessage(
@@ -429,7 +428,7 @@ export class RepoIdentityCommands {
       outputChannel.appendLine('1. CURRENT IDENTITY DETECTION:');
       outputChannel.appendLine('-'.repeat(30));
 
-      const identity = await getCurrentWorkspaceId(undefined, this.context);
+      const identity = await getCurrentWorkspaceId(this.context);
       if (identity) {
         outputChannel.appendLine(`Repo ID: ${identity.repoId}`);
         outputChannel.appendLine(`Identity Source: ${identity.identitySource}`);
