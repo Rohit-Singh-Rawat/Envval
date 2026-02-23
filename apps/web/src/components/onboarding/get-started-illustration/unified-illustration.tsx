@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { LockIcon } from 'hugeicons-react';
-import { EASE_OUT, TrafficLights, ReplayButton } from './shared';
-import { StepVSCodeInner } from './step-vscode';
-import { StepDashboardInner } from './step-dashboard';
+import { LockIcon } from "hugeicons-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useState } from "react";
+import { EASE_OUT, ReplayButton, TrafficLights } from "./shared";
+import { StepDashboardInner } from "./step-dashboard";
+import { StepVSCodeInner } from "./step-vscode";
 
 type StepId = 1 | 2 | 3;
 
@@ -16,11 +16,11 @@ type UnifiedIllustrationProps = {
 /** Title bar text per step — steps 1-2 show VS Code title, step 3 shows browser URL bar */
 const TITLE_BAR_CONFIG: Record<
 	StepId,
-	{ type: 'text'; label: string } | { type: 'url'; url: string }
+	{ type: "text"; label: string } | { type: "url"; url: string }
 > = {
-	1: { type: 'text', label: 'Envval — Visual Studio Code' },
-	2: { type: 'text', label: '.env — my-saas-app' },
-	3: { type: 'url', url: 'app.envval.dev/repos/my-saas-app' },
+	1: { type: "text", label: "Envval — Visual Studio Code" },
+	2: { type: "text", label: ".env — my-saas-app" },
+	3: { type: "url", url: "app.envval.dev/repos/my-saas-app" },
 };
 
 /**
@@ -53,35 +53,35 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 	const isVSCodeStep = activeStep === 1 || activeStep === 2;
 
 	return (
-		<div className='relative w-full max-w-[570px] group'>
+		<div className="relative w-full max-w-[570px] group">
 			{/* Persistent window frame */}
-			<div className='relative overflow-hidden rounded-md bg-[hsl(var(--card))] border border-border w-full'>
+			<div className="relative overflow-hidden rounded-md bg-[hsl(var(--card))] border border-border w-full">
 				{/* Persistent title bar */}
-				<div className='relative flex h-6 items-center justify-center border-b border-border bg-muted/60 px-3'>
+				<div className="relative flex h-6 items-center justify-center border-b border-border bg-muted/60 px-3">
 					<TrafficLights />
 
 					{/* Title bar content — animated swap with blur bridge */}
-					<AnimatePresence mode='wait'>
+					<AnimatePresence mode="wait">
 						<motion.div
 							key={`title-${activeStep}`}
-							initial={{ opacity: 0, y: 4, filter: 'blur(4px)' }}
-							animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-							exit={{ opacity: 0, y: -4, filter: 'blur(4px)' }}
+							initial={{ opacity: 0, y: 4, filter: "blur(4px)" }}
+							animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+							exit={{ opacity: 0, y: -4, filter: "blur(4px)" }}
 							transition={{ duration: 0.25, ease: EASE_OUT }}
-							className='flex items-center'
+							className="flex items-center"
 						>
-							{titleConfig.type === 'text' ? (
-								<span className='text-[10px] text-muted-foreground/50 hidden sm:block'>
+							{titleConfig.type === "text" ? (
+								<span className="text-[10px] text-muted-foreground/50 hidden sm:block">
 									{titleConfig.label}
 								</span>
 							) : (
-								<div className='flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-[2px] max-w-[220px]'>
+								<div className="flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-[2px] max-w-[220px]">
 									<LockIcon
 										size={8}
-										className='text-emerald-500 shrink-0'
+										className="text-emerald-500 shrink-0"
 										strokeWidth={2.5}
 									/>
-									<span className='text-[9px] text-muted-foreground/70 truncate'>
+									<span className="text-[9px] text-muted-foreground/70 truncate">
 										{titleConfig.url}
 									</span>
 								</div>
@@ -89,20 +89,17 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 						</motion.div>
 					</AnimatePresence>
 
-					<ReplayButton
-						onClick={handleReplay}
-						visible={animationDone}
-					/>
+					<ReplayButton onClick={handleReplay} visible={animationDone} />
 				</div>
 
 				{/* Inner content — smoother transitions with blur bridge */}
-				<AnimatePresence mode='wait'>
+				<AnimatePresence mode="wait">
 					{isVSCodeStep ? (
 						<motion.div
 							key={`vscode-${activeStep}-${replayKey}`}
-							initial={{ opacity: 0, filter: 'blur(6px)' }}
-							animate={{ opacity: 1, filter: 'blur(0px)' }}
-							exit={{ opacity: 0, filter: 'blur(6px)' }}
+							initial={{ opacity: 0, filter: "blur(6px)" }}
+							animate={{ opacity: 1, filter: "blur(0px)" }}
+							exit={{ opacity: 0, filter: "blur(6px)" }}
 							transition={{
 								duration: 0.35,
 								ease: EASE_OUT,
@@ -117,9 +114,9 @@ export function UnifiedIllustration({ activeStep }: UnifiedIllustrationProps) {
 					) : (
 						<motion.div
 							key={`dashboard-${replayKey}`}
-							initial={{ opacity: 0, filter: 'blur(6px)' }}
-							animate={{ opacity: 1, filter: 'blur(0px)' }}
-							exit={{ opacity: 0, filter: 'blur(6px)' }}
+							initial={{ opacity: 0, filter: "blur(6px)" }}
+							animate={{ opacity: 1, filter: "blur(0px)" }}
+							exit={{ opacity: 0, filter: "blur(6px)" }}
 							transition={{
 								duration: 0.35,
 								ease: EASE_OUT,

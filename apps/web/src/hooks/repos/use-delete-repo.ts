@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import client from '@/lib/api';
-import { toast } from '@/lib/toast';
-import { normalizeClientError } from '@/lib/error';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import client from "@/lib/api";
+import { normalizeClientError } from "@/lib/error";
+import { toast } from "@/lib/toast";
 
 type DeleteRepoParams = {
 	slug: string;
@@ -12,29 +12,31 @@ export function useDeleteRepo() {
 
 	return useMutation({
 		mutationFn: async ({ slug }: DeleteRepoParams) => {
-			const response = await client.api.v1.repos['by-slug'][':slug'].$delete({
+			const response = await client.api.v1.repos["by-slug"][":slug"].$delete({
 				param: { slug },
 			});
 
 			if (!response.ok) {
 				const error = await response
 					.json()
-					.catch(() => ({ error: 'Failed to delete repository' }));
-				throw new Error((error as { error: string }).error || 'Failed to delete repository');
+					.catch(() => ({ error: "Failed to delete repository" }));
+				throw new Error(
+					(error as { error: string }).error || "Failed to delete repository",
+				);
 			}
 
 			return response.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['repos'] });
-			toast.success('Repository deleted successfully');
+			queryClient.invalidateQueries({ queryKey: ["repos"] });
+			toast.success("Repository deleted successfully");
 		},
 		onError: (error) => {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to delete repository'
+				"Failed to delete repository",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		},
 	});

@@ -24,121 +24,121 @@
 *
 */
 @font-face {
-	font-family: 'Zodiak-Thin';
+	font-family: "Zodiak-Thin";
 	src:
-		url('/fonts/zodiak/Zodiak-Thin.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Thin.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Thin.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Thin.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Thin.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Thin.ttf") format("truetype");
 	font-weight: 100;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-ThinItalic';
+	font-family: "Zodiak-ThinItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-ThinItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-ThinItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-ThinItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-ThinItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-ThinItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-ThinItalic.ttf") format("truetype");
 	font-weight: 100;
 	font-display: swap;
 	font-style: italic;
 }
 @font-face {
-	font-family: 'Zodiak-Light';
+	font-family: "Zodiak-Light";
 	src:
-		url('/fonts/zodiak/Zodiak-Light.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Light.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Light.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Light.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Light.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Light.ttf") format("truetype");
 	font-weight: 300;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-LightItalic';
+	font-family: "Zodiak-LightItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-LightItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-LightItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-LightItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-LightItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-LightItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-LightItalic.ttf") format("truetype");
 	font-weight: 300;
 	font-display: swap;
 	font-style: italic;
 }
 @font-face {
-	font-family: 'Zodiak-Regular';
+	font-family: "Zodiak-Regular";
 	src:
-		url('/fonts/zodiak/Zodiak-Regular.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Regular.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Regular.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Regular.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Regular.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Regular.ttf") format("truetype");
 	font-weight: 400;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-Italic';
+	font-family: "Zodiak-Italic";
 	src:
-		url('/fonts/zodiak/Zodiak-Italic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Italic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Italic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Italic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Italic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Italic.ttf") format("truetype");
 	font-weight: 400;
 	font-display: swap;
 	font-style: italic;
 }
 @font-face {
-	font-family: 'Zodiak-Bold';
+	font-family: "Zodiak-Bold";
 	src:
-		url('/fonts/zodiak/Zodiak-Bold.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Bold.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Bold.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Bold.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Bold.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Bold.ttf") format("truetype");
 	font-weight: 700;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-BoldItalic';
+	font-family: "Zodiak-BoldItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-BoldItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-BoldItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-BoldItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-BoldItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-BoldItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-BoldItalic.ttf") format("truetype");
 	font-weight: 700;
 	font-display: swap;
 	font-style: italic;
 }
 @font-face {
-	font-family: 'Zodiak-Extrabold';
+	font-family: "Zodiak-Extrabold";
 	src:
-		url('/fonts/zodiak/Zodiak-Extrabold.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Extrabold.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Extrabold.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Extrabold.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Extrabold.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Extrabold.ttf") format("truetype");
 	font-weight: 800;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-ExtraboldItalic';
+	font-family: "Zodiak-ExtraboldItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-ExtraboldItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-ExtraboldItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-ExtraboldItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-ExtraboldItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-ExtraboldItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-ExtraboldItalic.ttf") format("truetype");
 	font-weight: 800;
 	font-display: swap;
 	font-style: italic;
 }
 @font-face {
-	font-family: 'Zodiak-Black';
+	font-family: "Zodiak-Black";
 	src:
-		url('/fonts/zodiak/Zodiak-Black.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Black.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Black.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Black.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Black.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Black.ttf") format("truetype");
 	font-weight: 900;
 	font-display: swap;
 	font-style: normal;
 }
 @font-face {
-	font-family: 'Zodiak-BlackItalic';
+	font-family: "Zodiak-BlackItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-BlackItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-BlackItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-BlackItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-BlackItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-BlackItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-BlackItalic.ttf") format("truetype");
 	font-weight: 900;
 	font-display: swap;
 	font-style: italic;
@@ -152,11 +152,11 @@
 'wght' (range from 100.0 to 900.0
 */
 @font-face {
-	font-family: 'Zodiak-Variable';
+	font-family: "Zodiak-Variable";
 	src:
-		url('/fonts/zodiak/Zodiak-Variable.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-Variable.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-Variable.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-Variable.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-Variable.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-Variable.ttf") format("truetype");
 	font-weight: 100 900;
 	font-display: swap;
 	font-style: normal;
@@ -170,11 +170,11 @@
 'wght' (range from 100.0 to 900.0
 */
 @font-face {
-	font-family: 'Zodiak-VariableItalic';
+	font-family: "Zodiak-VariableItalic";
 	src:
-		url('/fonts/zodiak/Zodiak-VariableItalic.woff2') format('woff2'),
-		url('/fonts/zodiak/Zodiak-VariableItalic.woff') format('woff'),
-		url('/fonts/zodiak/Zodiak-VariableItalic.ttf') format('truetype');
+		url("/fonts/zodiak/Zodiak-VariableItalic.woff2") format("woff2"),
+		url("/fonts/zodiak/Zodiak-VariableItalic.woff") format("woff"),
+		url("/fonts/zodiak/Zodiak-VariableItalic.ttf") format("truetype");
 	font-weight: 100 900;
 	font-display: swap;
 	font-style: italic;

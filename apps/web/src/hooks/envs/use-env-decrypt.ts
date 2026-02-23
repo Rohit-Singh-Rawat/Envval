@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { deriveKey, decryptEnv, CryptoError } from '@/utils/crypto-env';
-import { useKeyMaterial } from '@/hooks/auth/use-key-material';
+import { useEffect, useState } from "react";
+import { useKeyMaterial } from "@/hooks/auth/use-key-material";
+import { CryptoError, decryptEnv, deriveKey } from "@/utils/crypto-env";
 
 interface DecryptionState {
 	readonly decryptedContent: string | null;
@@ -13,17 +13,18 @@ interface UseEnvDecryptParams {
 	readonly enabled?: boolean;
 }
 
-/**
- * Decrypts environment file content using AES-256-GCM.
- * Automatically derives encryption key and performs decryption when enabled.
- * 
- * @param encryptedContent - Encrypted content in format "ciphertext.authTag:iv"
- * @param enabled - Whether decryption should run (default: true)
- * @returns Decryption state with plaintext content, loading, and error states
- */
-export function useEnvDecrypt({ encryptedContent, enabled = true }: UseEnvDecryptParams) {
-	const { keyMaterial, userId, isLoading: isLoadingKeyMaterial, error: keyMaterialError } = useKeyMaterial();
-	
+// encryptedContent format expected from server: "ciphertext.authTag:iv"
+export function useEnvDecrypt({
+	encryptedContent,
+	enabled = true,
+}: UseEnvDecryptParams) {
+	const {
+		keyMaterial,
+		userId,
+		isLoading: isLoadingKeyMaterial,
+		error: keyMaterialError,
+	} = useKeyMaterial();
+
 	const [state, setState] = useState<DecryptionState>({
 		decryptedContent: null,
 		isDecrypting: false,
@@ -46,7 +47,7 @@ export function useEnvDecrypt({ encryptedContent, enabled = true }: UseEnvDecryp
 		}
 
 		if (isLoadingKeyMaterial || !keyMaterial || !userId) {
-			setState(prev => ({ ...prev, isDecrypting: true, error: null }));
+			setState((prev) => ({ ...prev, isDecrypting: true, error: null }));
 			return;
 		}
 
@@ -54,7 +55,7 @@ export function useEnvDecrypt({ encryptedContent, enabled = true }: UseEnvDecryp
 
 		const performDecryption = async () => {
 			try {
-				setState(prev => ({ ...prev, isDecrypting: true, error: null }));
+				setState((prev) => ({ ...prev, isDecrypting: true, error: null }));
 
 				const encryptionKey = await deriveKey(keyMaterial, userId);
 				const plaintext = await decryptEnv(encryptedContent, encryptionKey);
@@ -71,9 +72,10 @@ export function useEnvDecrypt({ encryptedContent, enabled = true }: UseEnvDecryp
 					setState({
 						decryptedContent: null,
 						isDecrypting: false,
-						error: error instanceof CryptoError
-							? error
-							: new Error('Failed to decrypt environment content'),
+						error:
+							error instanceof CryptoError
+								? error
+								: new Error("Failed to decrypt environment content"),
 					});
 				}
 			}
@@ -84,7 +86,14 @@ export function useEnvDecrypt({ encryptedContent, enabled = true }: UseEnvDecryp
 		return () => {
 			cancelled = true;
 		};
-	}, [encryptedContent, keyMaterial, userId, isLoadingKeyMaterial, keyMaterialError, enabled]);
+	}, [
+		encryptedContent,
+		keyMaterial,
+		userId,
+		isLoadingKeyMaterial,
+		keyMaterialError,
+		enabled,
+	]);
 
 	return {
 		decryptedContent: state.decryptedContent,

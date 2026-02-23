@@ -1,13 +1,13 @@
-import { Suspense } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { Heading } from '@/components/dashboard/shared/heading';
-import { useUserProfile } from '@/hooks/user/use-user';
-import { ProfileSection } from '@/components/settings/profile-section';
-import { NotificationsSection } from '@/components/settings/notifications-section';
-import { StatisticsSection } from '@/components/settings/statistics-section';
-import { DangerZoneSection } from '@/components/settings/danger-zone-section';
+import { createFileRoute } from "@tanstack/react-router";
+import { Suspense } from "react";
+import { Heading } from "@/components/dashboard/shared/heading";
+import { DangerZoneSection } from "@/components/settings/danger-zone-section";
+import { NotificationsSection } from "@/components/settings/notifications-section";
+import { ProfileSection } from "@/components/settings/profile-section";
+import { StatisticsSection } from "@/components/settings/statistics-section";
+import { useUserProfile } from "@/hooks/user/use-user";
 
-export const Route = createFileRoute('/_dashboard/settings')({
+export const Route = createFileRoute("/_dashboard/settings")({
 	component: RouteComponent,
 });
 

@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import Home from '../components/home/home';
-import { homePageMiddleware } from '@/middleware/auth';
-export const Route = createFileRoute('/')({
+import { createFileRoute } from "@tanstack/react-router";
+import { homePageMiddleware } from "@/middleware/auth";
+import Home from "../components/home/home";
+export const Route = createFileRoute("/")({
 	component: App,
 	server: {
 		middleware: [homePageMiddleware],

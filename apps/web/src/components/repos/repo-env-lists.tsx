@@ -1,22 +1,16 @@
-import { useRepoEnvs, useRepoSummaryBySlug } from '@/hooks/envs/use-repo-envs';
-import { EnvFileCard } from './env-file-card';
-import { EmptyEnvsState } from './empty-envs-state';
+import { useRepoEnvs, useRepoSummaryBySlug } from "@/hooks/envs/use-repo-envs";
+import { EmptyEnvsState } from "./empty-envs-state";
+import { EnvFileCard } from "./env-file-card";
+import type { Environment } from "./types";
 
 interface RepoEnvListsProps {
 	slug: string;
 }
 
-interface Environment {
-	id: string;
-	fileName: string;
-	envCount: number;
-	updatedAt: string;
-}
-
 export function RepoEnvLists({ slug }: RepoEnvListsProps) {
 	const { data: repoSummary } = useRepoSummaryBySlug(slug);
 
-	if (!repoSummary || 'error' in repoSummary) {
+	if (!repoSummary || "error" in repoSummary) {
 		return (
 			<div className="w-full p-4">
 				<div className="text-destructive">Error loading repository</div>
@@ -30,7 +24,7 @@ export function RepoEnvLists({ slug }: RepoEnvListsProps) {
 function EnvListContent({ repoId }: { repoId: string }) {
 	const { data: repoEnvs } = useRepoEnvs(repoId, true);
 
-	if (!repoEnvs || 'error' in repoEnvs) {
+	if (!repoEnvs || "error" in repoEnvs) {
 		return (
 			<div className="w-full">
 				<div className="text-destructive">Error loading environments</div>
@@ -47,15 +41,19 @@ function EnvListContent({ repoId }: { repoId: string }) {
 					Environment Files
 				</h2>
 				<span className="text-sm text-muted-foreground">
-					{environments.length} file{environments.length !== 1 ? 's' : ''}
+					{environments.length} file{environments.length !== 1 ? "s" : ""}
 				</span>
 			</div>
 
 			{environments.length === 0 ? (
 				<EmptyEnvsState />
 			) : (
-				<ul className="space-y-3 mb-3" role="list" aria-label="Environment files">
-					{environments.map((env: Environment) => (
+				<ul
+					className="space-y-3 mb-3"
+					role="list"
+					aria-label="Environment files"
+				>
+					{environments.map((env) => (
 						<li key={env.id}>
 							<EnvFileCard env={env} repoId={repoId} />
 						</li>
@@ -65,4 +63,3 @@ function EnvListContent({ repoId }: { repoId: string }) {
 		</section>
 	);
 }
-

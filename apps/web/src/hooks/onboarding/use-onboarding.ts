@@ -1,12 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useForm, type FieldErrors } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { toast } from '@/lib/toast';
-import { normalizeClientError } from '@/lib/error';
-import { onboardingSchema, type OnboardingFormValues } from '@/components/onboarding/types';
-import { useSession } from '@/lib/auth-client';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import { type FieldErrors, useForm } from "react-hook-form";
+import {
+	type OnboardingFormValues,
+	onboardingSchema,
+} from "@/components/onboarding/types";
+import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
+import { normalizeClientError } from "@/lib/error";
+import { toast } from "@/lib/toast";
 
 export type UseOnboardingOptions = {
 	totalSteps: number;
@@ -14,8 +17,8 @@ export type UseOnboardingOptions = {
 
 /** Fields to validate per step (used for Next button and onInvalid). */
 const STEP_FIELDS: Record<number, (keyof OnboardingFormValues)[]> = {
-	1: ['firstName'],
-	2: ['source', 'medium'],
+	1: ["firstName"],
+	2: ["source", "medium"],
 };
 
 export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
@@ -25,23 +28,23 @@ export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
 
 	const form = useForm<OnboardingFormValues>({
 		resolver: zodResolver(onboardingSchema),
-		mode: 'onChange',
+		mode: "onChange",
 		defaultValues: {
-			firstName: '',
-			lastName: '',
+			firstName: "",
+			lastName: "",
 			source: undefined,
 			medium: undefined,
-			details: '',
+			details: "",
 		},
 	});
 
 	useEffect(() => {
-		if (!session?.user?.name || form.getValues('firstName')) return;
-		const nameParts = session.user.name.split(' ');
-		const firstName = nameParts[0] ?? '';
-		const lastName = nameParts.slice(1).join(' ') ?? '';
-		if (firstName) form.setValue('firstName', firstName);
-		if (lastName) form.setValue('lastName', lastName);
+		if (!session?.user?.name || form.getValues("firstName")) return;
+		const nameParts = session.user.name.split(" ");
+		const firstName = nameParts[0] ?? "";
+		const lastName = nameParts.slice(1).join(" ") ?? "";
+		if (firstName) form.setValue("firstName", firstName);
+		if (lastName) form.setValue("lastName", lastName);
 	}, [session?.user?.name, form]);
 
 	const onboardingMutation = useMutation({
@@ -57,49 +60,49 @@ export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
 			if (!response.ok) {
 				const error = await response
 					.json()
-					.catch(() => ({ message: 'Failed to complete onboarding' }));
-				throw new Error((error as { message: string }).message ?? 'Failed to complete onboarding');
+					.catch(() => ({ message: "Failed to complete onboarding" }));
+				throw new Error(
+					(error as { message: string }).message ??
+						"Failed to complete onboarding",
+				);
 			}
 			return response.json();
 		},
 		onSuccess: () => {
-			toast.success('Onboarding completed successfully!');
+			toast.success("Onboarding completed successfully!");
 			setIsComplete(true);
 		},
 		onError: (error) => {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to complete onboarding'
+				"Failed to complete onboarding",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		},
 	});
 
-	const validateCurrentStep = useCallback(
-		async (): Promise<boolean> => {
-			if (step === 1) return form.trigger('firstName');
-			if (step === 2) {
-				const values = form.getValues();
-				if (!values.source) {
-					form.setError('source', {
-						type: 'required',
-						message: 'Please select where you heard about us',
-					});
-				}
-				if (!values.medium) {
-					form.setError('medium', {
-						type: 'required',
-						message: 'Please select how you found us',
-					});
-				}
-				if (!values.source || !values.medium) return false;
-				return form.trigger(['source', 'medium']);
+	const validateCurrentStep = useCallback(async (): Promise<boolean> => {
+		if (step === 1) return form.trigger("firstName");
+		if (step === 2) {
+			const values = form.getValues();
+			if (!values.source) {
+				form.setError("source", {
+					type: "required",
+					message: "Please select where you heard about us",
+				});
 			}
-			return true;
-		},
-		[step, form]
-	);
+			if (!values.medium) {
+				form.setError("medium", {
+					type: "required",
+					message: "Please select how you found us",
+				});
+			}
+			if (!values.source || !values.medium) return false;
+			return form.trigger(["source", "medium"]);
+		}
+		return true;
+	}, [step, form]);
 
 	const goNext = useCallback(async () => {
 		const isValid = await validateCurrentStep();
@@ -116,23 +119,23 @@ export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
 			// Step 2 fields are optional in schema for step 1; require them before submitting.
 			if (totalSteps >= 2 && (!data.source || !data.medium)) {
 				if (!data.source) {
-					form.setError('source', {
-						type: 'required',
-						message: 'Please select where you heard about us',
+					form.setError("source", {
+						type: "required",
+						message: "Please select where you heard about us",
 					});
 				}
 				if (!data.medium) {
-					form.setError('medium', {
-						type: 'required',
-						message: 'Please select how you found us',
+					form.setError("medium", {
+						type: "required",
+						message: "Please select how you found us",
 					});
 				}
-				toast.error('Please fill in how you heard about us before finishing.');
+				toast.error("Please fill in how you heard about us before finishing.");
 				return;
 			}
 			await onboardingMutation.mutateAsync(data);
 		},
-		[step, totalSteps, form, onboardingMutation]
+		[step, totalSteps, form, onboardingMutation],
 	);
 
 	const onInvalid = useCallback(
@@ -141,10 +144,12 @@ export function useOnboarding({ totalSteps }: UseOnboardingOptions) {
 			if (!fields) return;
 			const hasError = fields.some((f) => errors[f]);
 			if (!hasError) return;
-			if (step === 1) toast.error('Please fill in your first name before continuing.');
-			if (step === 2) toast.error('Please fill in how you heard about us before finishing.');
+			if (step === 1)
+				toast.error("Please fill in your first name before continuing.");
+			if (step === 2)
+				toast.error("Please fill in how you heard about us before finishing.");
 		},
-		[step]
+		[step],
 	);
 
 	return {

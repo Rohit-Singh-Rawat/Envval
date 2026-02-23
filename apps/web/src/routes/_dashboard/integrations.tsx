@@ -1,29 +1,44 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { motion, stagger, useAnimate, useReducedMotion } from 'motion/react';
-import { useEffect, useState } from 'react';
-import { Link01Icon,  } from 'hugeicons-react';
+import { createFileRoute } from "@tanstack/react-router";
+import { Link01Icon } from "hugeicons-react";
+import { motion, stagger, useAnimate, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 
-export const Route = createFileRoute('/_dashboard/integrations')({
+export const Route = createFileRoute("/_dashboard/integrations")({
 	component: IntegrationsPage,
 });
 
 const EASE_OUT = [0.32, 0.72, 0, 1] as const;
 
 const ORBITS = [
-	{ radius: 55, duration: 20, reverse: false, icons: [
-		{ Icon: GithubIcon, angle: 0 },
-		{ Icon: TerminalIcon, angle: 180 },
-	]},
-	{ radius: 100, duration: 28, reverse: true, icons: [
-		{ Icon: VercelIcon, angle: 60 },
-		{ Icon: DatabaseIcon, angle: 180 },
-		{ Icon: CloudIcon, angle: 300 },
-	]},
-	{ radius: 145, duration: 38, reverse: false, icons: [
-		{ Icon: SlackIcon, angle: 30 },
-		{ Icon: KeyIcon, angle: 150 },
-		{ Icon: LockIcon, angle: 270 },
-	]},
+	{
+		radius: 55,
+		duration: 20,
+		reverse: false,
+		icons: [
+			{ Icon: GithubIcon, angle: 0 },
+			{ Icon: TerminalIcon, angle: 180 },
+		],
+	},
+	{
+		radius: 100,
+		duration: 28,
+		reverse: true,
+		icons: [
+			{ Icon: VercelIcon, angle: 60 },
+			{ Icon: DatabaseIcon, angle: 180 },
+			{ Icon: CloudIcon, angle: 300 },
+		],
+	},
+	{
+		radius: 145,
+		duration: 38,
+		reverse: false,
+		icons: [
+			{ Icon: SlackIcon, angle: 30 },
+			{ Icon: KeyIcon, angle: 150 },
+			{ Icon: LockIcon, angle: 270 },
+		],
+	},
 ] as const;
 
 function IntegrationsPage() {
@@ -38,17 +53,49 @@ function IntegrationsPage() {
 		}
 
 		const runAnimation = async () => {
-			await animate('[data-center]', { opacity: 1, scale: 1 }, { duration: 0.4, ease: EASE_OUT });
+			await animate(
+				"[data-center]",
+				{ opacity: 1, scale: 1 },
+				{ duration: 0.4, ease: EASE_OUT },
+			);
 
-			animate('[data-ring="0"]', { opacity: 1, pathLength: 1 }, { duration: 0.5, ease: EASE_OUT });
-			animate('[data-ring="1"]', { opacity: 1, pathLength: 1 }, { duration: 0.6, ease: EASE_OUT, delay: 0.1 });
-			await animate('[data-ring="2"]', { opacity: 1, pathLength: 1 }, { duration: 0.7, ease: EASE_OUT, delay: 0.2 });
+			animate(
+				'[data-ring="0"]',
+				{ opacity: 1, pathLength: 1 },
+				{ duration: 0.5, ease: EASE_OUT },
+			);
+			animate(
+				'[data-ring="1"]',
+				{ opacity: 1, pathLength: 1 },
+				{ duration: 0.6, ease: EASE_OUT, delay: 0.1 },
+			);
+			await animate(
+				'[data-ring="2"]',
+				{ opacity: 1, pathLength: 1 },
+				{ duration: 0.7, ease: EASE_OUT, delay: 0.2 },
+			);
 
-			animate('[data-orbit="0"]', { opacity: 1 }, { duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) });
-			animate('[data-orbit="1"]', { opacity: 1 }, { duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) });
-			await animate('[data-orbit="2"]', { opacity: 1 }, { duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) });
+			animate(
+				'[data-orbit="0"]',
+				{ opacity: 1 },
+				{ duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) },
+			);
+			animate(
+				'[data-orbit="1"]',
+				{ opacity: 1 },
+				{ duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) },
+			);
+			await animate(
+				'[data-orbit="2"]',
+				{ opacity: 1 },
+				{ duration: 0.3, ease: EASE_OUT, delay: stagger(0.1) },
+			);
 
-			await animate('[data-text]', { opacity: 1,	 y: 0 }, { duration: 0.5, ease: EASE_OUT });
+			await animate(
+				"[data-text]",
+				{ opacity: 1, y: 0 },
+				{ duration: 0.5, ease: EASE_OUT },
+			);
 
 			setAnimationComplete(true);
 		};
@@ -61,11 +108,11 @@ function IntegrationsPage() {
 			ref={scope}
 			className="relative flex  flex-col items-center justify-center overflow-hidden px-8 -space-y-15"
 		>
-		
-			<div
-				className="relative flex size-[360px]  items-center justify-center mask-radial-[100%_35%] mask-radial-from-40%  mask-radial-at-center"
-			>
-				<svg className="pointer-events-none absolute inset-0 size-full" viewBox="0 0 360 360">
+			<div className="relative flex size-[360px]  items-center justify-center mask-radial-[100%_35%] mask-radial-from-40%  mask-radial-at-center">
+				<svg
+					className="pointer-events-none absolute inset-0 size-full"
+					viewBox="0 0 360 360"
+				>
 					{ORBITS.map((orbit, i) => (
 						<motion.circle
 							key={i}
@@ -103,16 +150,18 @@ function IntegrationsPage() {
 						>
 							<Icon />
 						</OrbitingIcon>
-					))
+					)),
 				)}
 			</div>
 
 			<div
 				data-text
 				className="relative z-10 flex flex-col items-center gap-3 text-center"
-				style={{ opacity: 0, transform: 'translateY(16px)' }}
+				style={{ opacity: 0, transform: "translateY(16px)" }}
 			>
-				<h1 className="text-2xl font-medium tracking-tight text-foreground">Coming Soon</h1>
+				<h1 className="text-2xl font-medium tracking-tight text-foreground">
+					Coming Soon
+				</h1>
 				<p className="max-w-xs text-pretty text-sm text-muted-foreground">
 					A CLI to interact with your environment variables simply.
 				</p>
@@ -142,13 +191,24 @@ function OrbitingIcon({
 		<div
 			data-orbit={orbit}
 			className="absolute left-1/2 top-1/2 -ml-4 -mt-4"
-			style={{ opacity: 0, '--angle': angle, '--radius': `${radius}px`, '--duration': `${duration}s` } as React.CSSProperties}
+			style={
+				{
+					opacity: 0,
+					"--angle": angle,
+					"--radius": `${radius}px`,
+					"--duration": `${duration}s`,
+				} as React.CSSProperties
+			}
 		>
 			<div
 				className="flex size-8 items-center justify-center rounded-[7px] squircle bg-background border border-primary/20 text-primary backdrop-blur-sm"
 				style={{
-					animation: shouldAnimate ? `orbit var(--duration) linear infinite${reverse ? ' reverse' : ''}` : 'none',
-					transform: !shouldAnimate ? `rotate(${angle}deg) translateY(calc(var(--radius) * -1)) rotate(${-angle}deg)` : undefined,
+					animation: shouldAnimate
+						? `orbit var(--duration) linear infinite${reverse ? " reverse" : ""}`
+						: "none",
+					transform: !shouldAnimate
+						? `rotate(${angle}deg) translateY(calc(var(--radius) * -1)) rotate(${-angle}deg)`
+						: undefined,
 				}}
 			>
 				{children}
@@ -175,7 +235,16 @@ function VercelIcon() {
 
 function TerminalIcon() {
 	return (
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<polyline points="4 17 10 11 4 5" />
 			<line x1="12" y1="19" x2="20" y2="19" />
 		</svg>
@@ -192,7 +261,16 @@ function SlackIcon() {
 
 function DatabaseIcon() {
 	return (
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<ellipse cx="12" cy="5" rx="9" ry="3" />
 			<path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
 			<path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
@@ -202,7 +280,16 @@ function DatabaseIcon() {
 
 function CloudIcon() {
 	return (
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
 		</svg>
 	);
@@ -210,7 +297,16 @@ function CloudIcon() {
 
 function KeyIcon() {
 	return (
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
 		</svg>
 	);
@@ -218,7 +314,16 @@ function KeyIcon() {
 
 function LockIcon() {
 	return (
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
 			<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 		</svg>

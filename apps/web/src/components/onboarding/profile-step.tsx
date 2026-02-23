@@ -1,12 +1,12 @@
-import { Controller, useFormContext } from 'react-hook-form';
-import { Input } from '@envval/ui/components/input';
 import {
 	Field,
 	FieldError,
 	FieldGroup,
 	FieldLabel,
-} from '@envval/ui/components/field';
-import type { OnboardingFormValues } from './types';
+} from "@envval/ui/components/field";
+import { Input } from "@envval/ui/components/input";
+import { Controller, useFormContext } from "react-hook-form";
+import type { OnboardingFormValues } from "./types";
 
 export function ProfileStep() {
 	const form = useFormContext<OnboardingFormValues>();
@@ -14,44 +14,36 @@ export function ProfileStep() {
 	return (
 		<FieldGroup>
 			<Controller
-				name='firstName'
+				name="firstName"
 				control={form.control}
 				render={({ field, fieldState }) => (
 					<Field data-invalid={fieldState.invalid}>
-						<FieldLabel htmlFor='profile-first-name'>
-							First name
-						</FieldLabel>
+						<FieldLabel htmlFor="profile-first-name">First name</FieldLabel>
 						<Input
 							{...field}
-							id='profile-first-name'
-							variant='muted'
-							placeholder='Ada'
+							id="profile-first-name"
+							variant="muted"
+							placeholder="Ada"
 							aria-invalid={fieldState.invalid}
 						/>
-						{fieldState.invalid && (
-							<FieldError errors={[fieldState.error]} />
-						)}
+						{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
 					</Field>
 				)}
 			/>
 			<Controller
-				name='lastName'
+				name="lastName"
 				control={form.control}
 				render={({ field, fieldState }) => (
 					<Field data-invalid={fieldState.invalid}>
-						<FieldLabel htmlFor='profile-last-name'>
-							Last name
-						</FieldLabel>
+						<FieldLabel htmlFor="profile-last-name">Last name</FieldLabel>
 						<Input
 							{...field}
-							id='profile-last-name'
-							variant='muted'
-							placeholder='Lovelace'
+							id="profile-last-name"
+							variant="muted"
+							placeholder="Lovelace"
 							aria-invalid={fieldState.invalid}
 						/>
-						{fieldState.invalid && (
-							<FieldError errors={[fieldState.error]} />
-						)}
+						{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
 					</Field>
 				)}
 			/>

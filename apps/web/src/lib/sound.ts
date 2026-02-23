@@ -1,15 +1,20 @@
-type UiSoundId = 'button' | 'toast-notification' | 'toast-caution' | 'toggle-on' | 'toggle-off';
+type UiSoundId =
+	| "button"
+	| "toast-notification"
+	| "toast-caution"
+	| "toggle-on"
+	| "toggle-off";
 
 type PlaySoundOptions = {
 	volume?: number;
 };
 
 const SOUND_SOURCES: Record<UiSoundId, string> = {
-	button: '/sounds/ui/button.wav',
-	'toast-notification': '/sounds/ui/notification.wav',
-	'toast-caution': '/sounds/ui/caution.wav',
-	'toggle-on': '/sounds/ui/toggle_on.wav',
-	'toggle-off': '/sounds/ui/toggle_off.wav',
+	button: "/sounds/ui/button.wav",
+	"toast-notification": "/sounds/ui/notification.wav",
+	"toast-caution": "/sounds/ui/caution.wav",
+	"toggle-on": "/sounds/ui/toggle_on.wav",
+	"toggle-off": "/sounds/ui/toggle_off.wav",
 };
 
 const audioCache = new Map<UiSoundId, HTMLAudioElement>();
@@ -19,7 +24,7 @@ const audioCache = new Map<UiSoundId, HTMLAudioElement>();
  * Centralizes audio handling so individual components stay clean and declarative.
  */
 export function playUiSound(id: UiSoundId, options?: PlaySoundOptions): void {
-	if (typeof window === 'undefined') return;
+	if (typeof window === "undefined") return;
 
 	const src = SOUND_SOURCES[id];
 	if (!src) return;
@@ -28,11 +33,11 @@ export function playUiSound(id: UiSoundId, options?: PlaySoundOptions): void {
 
 	if (!audio) {
 		audio = new Audio(src);
-		audio.preload = 'auto';
+		audio.preload = "auto";
 		audioCache.set(id, audio);
 	}
 
-	if (typeof options?.volume === 'number') {
+	if (typeof options?.volume === "number") {
 		audio.volume = options.volume;
 	}
 
@@ -48,4 +53,3 @@ export function playUiSound(id: UiSoundId, options?: PlaySoundOptions): void {
 }
 
 export type { UiSoundId, PlaySoundOptions };
-

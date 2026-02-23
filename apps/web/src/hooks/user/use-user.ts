@@ -1,5 +1,10 @@
-import client from '@/lib/api';
-import {  useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import client from "@/lib/api";
+import type { AvatarId } from "@/lib/avatars";
 
 export type NotificationPreferences = {
 	newRepoAdded: boolean;
@@ -20,12 +25,9 @@ type ProfileResponse = {
 	profile: UserProfile;
 };
 
-/**
- * Fetches user profile with display name, avatar, and notification preferences.
- */
 export function useUserProfile() {
 	return useSuspenseQuery({
-		queryKey: ['user', 'profile'],
+		queryKey: ["user", "profile"],
 		queryFn: async () => {
 			const response = await client.api.v1.user.profile.$get();
 			const data = (await response.json()) as ProfileResponse;
@@ -36,22 +38,9 @@ export function useUserProfile() {
 
 type UpdateProfileData = {
 	displayName?: string;
-	avatar?:
-		| 'avatar-1'
-		| 'avatar-2'
-		| 'avatar-3'
-		| 'avatar-4'
-		| 'avatar-5'
-		| 'avatar-6'
-		| 'avatar-7'
-		| 'avatar-8'
-		| 'avatar-9'
-		| 'avatar-10';
+	avatar?: AvatarId;
 };
 
-/**
- * Updates user display name and/or avatar with optimistic updates.
- */
 export function useUpdateProfile() {
 	const queryClient = useQueryClient();
 
@@ -62,12 +51,15 @@ export function useUpdateProfile() {
 			return result.profile;
 		},
 		onMutate: async (newData) => {
-			await queryClient.cancelQueries({ queryKey: ['user', 'profile'] });
+			await queryClient.cancelQueries({ queryKey: ["user", "profile"] });
 
-			const previousProfile = queryClient.getQueryData<UserProfile>(['user', 'profile']);
+			const previousProfile = queryClient.getQueryData<UserProfile>([
+				"user",
+				"profile",
+			]);
 
 			if (previousProfile) {
-				queryClient.setQueryData<UserProfile>(['user', 'profile'], {
+				queryClient.setQueryData<UserProfile>(["user", "profile"], {
 					...previousProfile,
 					...newData,
 				});
@@ -77,33 +69,35 @@ export function useUpdateProfile() {
 		},
 		onError: (_err, _newData, context) => {
 			if (context?.previousProfile) {
-				queryClient.setQueryData(['user', 'profile'], context.previousProfile);
+				queryClient.setQueryData(["user", "profile"], context.previousProfile);
 			}
 		},
 		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+			queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
 		},
 	});
 }
 
-/**
- * Updates user notification preferences with optimistic updates.
- */
 export function useUpdateNotifications() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: async (preferences: NotificationPreferences) => {
-			const response = await client.api.v1.user.notifications.$patch({ json: preferences });
+			const response = await client.api.v1.user.notifications.$patch({
+				json: preferences,
+			});
 			return await response.json();
 		},
 		onMutate: async (newPreferences) => {
-			await queryClient.cancelQueries({ queryKey: ['user', 'profile'] });
+			await queryClient.cancelQueries({ queryKey: ["user", "profile"] });
 
-			const previousProfile = queryClient.getQueryData<UserProfile>(['user', 'profile']);
+			const previousProfile = queryClient.getQueryData<UserProfile>([
+				"user",
+				"profile",
+			]);
 
 			if (previousProfile) {
-				queryClient.setQueryData<UserProfile>(['user', 'profile'], {
+				queryClient.setQueryData<UserProfile>(["user", "profile"], {
 					...previousProfile,
 					notificationPreferences: newPreferences,
 				});
@@ -113,11 +107,11 @@ export function useUpdateNotifications() {
 		},
 		onError: (_err, _newPrefs, context) => {
 			if (context?.previousProfile) {
-				queryClient.setQueryData(['user', 'profile'], context.previousProfile);
+				queryClient.setQueryData(["user", "profile"], context.previousProfile);
 			}
 		},
 		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+			queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
 		},
 	});
 }
@@ -129,12 +123,9 @@ export type UserStats = {
 	accountCreated: string | null;
 };
 
-/**
- * Fetches user statistics (repo count, env count, last activity).
- */
 export function useUserStats() {
 	return useSuspenseQuery({
-		queryKey: ['user', 'stats'],
+		queryKey: ["user", "stats"],
 		queryFn: async () => {
 			const response = await client.api.v1.user.stats.$get();
 			const data = (await response.json()) as { stats: UserStats };
@@ -143,9 +134,6 @@ export function useUserStats() {
 	});
 }
 
-/**
- * Deletes all user repositories with cascading environment deletion.
- */
 export function useDeleteAllRepos() {
 	const queryClient = useQueryClient();
 
@@ -155,20 +143,19 @@ export function useDeleteAllRepos() {
 			return await response.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['repos'] });
-			queryClient.invalidateQueries({ queryKey: ['environments'] });
-			queryClient.invalidateQueries({ queryKey: ['user', 'stats'] });
+			queryClient.invalidateQueries({ queryKey: ["repos"] });
+			queryClient.invalidateQueries({ queryKey: ["environments"] });
+			queryClient.invalidateQueries({ queryKey: ["user", "stats"] });
 		},
 	});
 }
 
-/**
- * Permanently deletes user account and all associated data.
- */
 export function useDeleteAccount() {
 	return useMutation({
 		mutationFn: async (confirmation: string) => {
-			const response = await client.api.v1.user.account.$delete({ json: { confirmation } });
+			const response = await client.api.v1.user.account.$delete({
+				json: { confirmation },
+			});
 			return await response.json();
 		},
 	});

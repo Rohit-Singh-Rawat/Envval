@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { authClient } from '@/lib/auth-client';
-import { useNavigate } from '@tanstack/react-router';
-import { useDeviceKeyMaterialRegistration } from './use-device-key-material-registration';
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
+import { useDeviceKeyMaterialRegistration } from "./use-device-key-material-registration";
 
 export function useLogout() {
 	const navigate = useNavigate();
@@ -11,9 +11,14 @@ export function useLogout() {
 	const logout = async () => {
 		setIsLoading(true);
 		try {
-			await clearDeviceKeys();
+			// Best-effort: clear local keys first. On failure we still sign out
+			// so the user is never left in a half-authenticated state.
+			await clearDeviceKeys().catch(() => undefined);
 			await authClient.signOut();
-			navigate({ to: '/' });
+			await navigate({ to: "/" });
+		} catch {
+			// Logout errors are non-recoverable client-side; the session will
+			// be invalid on the next request regardless.
 		} finally {
 			setIsLoading(false);
 		}

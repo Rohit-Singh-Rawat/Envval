@@ -1,11 +1,11 @@
-import { cn } from '@/lib/utils';
-import { getAvatarById } from '@/lib/avatars';
-import { MarbleAvatar } from '@/components/ui/marble-avatar';
+import { MarbleAvatar } from "@/components/ui/marble-avatar";
+import { getAvatarById } from "@/lib/avatars";
+import { cn } from "@/lib/utils";
 
 interface AvatarProps {
 	avatarId: string;
 	className?: string;
-	size?: 'sm' | 'md' | 'lg';
+	size?: "sm" | "md" | "lg";
 }
 
 const sizeMap = {
@@ -17,7 +17,7 @@ const sizeMap = {
 /**
  * Displays a user avatar using marble patterns.
  */
-export function Avatar({ avatarId, className, size = 'md' }: AvatarProps) {
+export function Avatar({ avatarId, className, size = "md" }: AvatarProps) {
 	const avatar = getAvatarById(avatarId);
 
 	if (!avatar) {
@@ -26,7 +26,7 @@ export function Avatar({ avatarId, className, size = 'md' }: AvatarProps) {
 			<MarbleAvatar
 				name="default-0"
 				size={sizeMap[size]}
-				className={cn('rounded-full', className)}
+				className={cn("rounded-full", className)}
 			/>
 		);
 	}
@@ -35,7 +35,7 @@ export function Avatar({ avatarId, className, size = 'md' }: AvatarProps) {
 		<MarbleAvatar
 			name={`pattern-${avatar.pattern}`}
 			size={sizeMap[size]}
-			className={cn('rounded-full', className)}
+			className={cn("rounded-full", className)}
 		/>
 	);
 }

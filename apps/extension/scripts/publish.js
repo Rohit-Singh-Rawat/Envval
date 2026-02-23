@@ -49,8 +49,7 @@ function run(label, args, displayArgs = args) {
   const result = spawnSync(args[0], args.slice(1), { stdio: "inherit", shell: true });
   if (result.status !== 0) {
     throw new Error(
-      `[${label}] command exited with code ${result.status ?? "unknown"}${
-        result.error ? `: ${result.error.message}` : ""
+      `[${label}] command exited with code ${result.status ?? "unknown"}${result.error ? `: ${result.error.message}` : ""
       }`
     );
   }
@@ -75,6 +74,13 @@ function publishToOpenVsx(vsixFile, token) {
 function main() {
   loadEnv(path.join(ROOT, ".env"));
 
+  const args = process.argv.slice(2);
+  const onlyVsce = args.includes("--onlyvsce") || args.includes("onlyvsce");
+  const onlyOvsx = args.includes("--onlyovsx") || args.includes("onlyovsx") || args.includes("--onlyosvx") || args.includes("onlyosvx");
+
+  const skipVsce = onlyOvsx && !onlyVsce;
+  const skipOvsx = onlyVsce && !onlyOvsx;
+
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf-8"));
   const vsixFile = `${pkg.name}-${pkg.version}.vsix`;
 
@@ -86,26 +92,34 @@ function main() {
     throw new Error(`Build succeeded but .vsix not found: ${vsixFile}`);
   }
 
-  try {
-    publishToMarketplace(vsixFile);
-    console.log("VS Code Marketplace: published\n");
-  } catch (err) {
-    console.error("VS Code Marketplace: publish failed —", err.message);
-    process.exit(1);
-  }
-
-  const ovsxToken = process.env.OVSX_PAT;
-  if (!ovsxToken) {
-    console.warn("Open VSX: skipped (OVSX_PAT not set)");
-    console.warn("  Add OVSX_PAT=<token> to apps/extension/.env");
-  } else {
+  if (!skipVsce) {
     try {
-      publishToOpenVsx(vsixFile, ovsxToken);
-      console.log("Open VSX: published\n");
+      publishToMarketplace(vsixFile);
+      console.log("VS Code Marketplace: published\n");
     } catch (err) {
-      console.error("Open VSX: publish failed —", err.message);
+      console.error("VS Code Marketplace: publish failed —", err.message);
       process.exit(1);
     }
+  } else {
+    console.log("VS Code Marketplace: skipped (due to flags)\n");
+  }
+
+  if (!skipOvsx) {
+    const ovsxToken = process.env.OVSX_PAT;
+    if (!ovsxToken) {
+      console.warn("Open VSX: skipped (OVSX_PAT not set)");
+      console.warn("  Add OVSX_PAT=<token> to apps/extension/.env\n");
+    } else {
+      try {
+        publishToOpenVsx(vsixFile, ovsxToken);
+        console.log("Open VSX: published\n");
+      } catch (err) {
+        console.error("Open VSX: publish failed —", err.message);
+        process.exit(1);
+      }
+    }
+  } else {
+    console.log("Open VSX: skipped (due to flags)\n");
   }
 
   console.log(`Done: ${pkg.name}@${pkg.version}`);

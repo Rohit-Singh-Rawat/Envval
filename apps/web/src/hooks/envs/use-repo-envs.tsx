@@ -1,11 +1,11 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import client from '@/lib/api';
+import { useSuspenseQuery } from "@tanstack/react-query";
+import client from "@/lib/api";
 
 export function useRepoSummary(repoId: string) {
 	return useSuspenseQuery({
-		queryKey: ['repo', repoId],
+		queryKey: ["repo", repoId],
 		queryFn: async () => {
-			const response = await client.api.v1.repos[':repoId'].$get({
+			const response = await client.api.v1.repos[":repoId"].$get({
 				param: {
 					repoId,
 				},
@@ -17,9 +17,9 @@ export function useRepoSummary(repoId: string) {
 
 export function useRepoSummaryBySlug(slug: string) {
 	return useSuspenseQuery({
-		queryKey: ['repo', 'by-slug', slug],
+		queryKey: ["repo", "by-slug", slug],
 		queryFn: async () => {
-			const response = await client.api.v1.repos['by-slug'][':slug'].$get({
+			const response = await client.api.v1.repos["by-slug"][":slug"].$get({
 				param: {
 					slug,
 				},
@@ -31,9 +31,9 @@ export function useRepoSummaryBySlug(slug: string) {
 
 export function useRepoEnvs(repoId: string, includeContent = false) {
 	return useSuspenseQuery({
-		queryKey: ['repo-envs', repoId, includeContent],
+		queryKey: ["repo-envs", repoId, includeContent],
 		queryFn: async () => {
-			const response = await client.api.v1.repos[':repoId'].environments.$get({
+			const response = await client.api.v1.repos[":repoId"].environments.$get({
 				param: {
 					repoId,
 				},

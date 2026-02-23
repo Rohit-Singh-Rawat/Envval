@@ -1,9 +1,9 @@
 export type NormalizedClientErrorKind =
-	| 'rate_limit'
-	| 'validation'
-	| 'auth'
-	| 'network'
-	| 'unknown';
+	| "rate_limit"
+	| "validation"
+	| "auth"
+	| "network"
+	| "unknown";
 
 export interface NormalizedClientError {
 	readonly message: string;
@@ -21,7 +21,7 @@ interface ErrorLikeShape {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+	return typeof value === "object" && value !== null;
 }
 
 function isErrorLike(value: unknown): value is ErrorLikeShape {
@@ -29,11 +29,11 @@ function isErrorLike(value: unknown): value is ErrorLikeShape {
 }
 
 function coerceStatus(value: unknown): number | undefined {
-	if (typeof value === 'number' && Number.isFinite(value)) {
+	if (typeof value === "number" && Number.isFinite(value)) {
 		return value;
 	}
 
-	if (typeof value === 'string') {
+	if (typeof value === "string") {
 		const parsed = Number.parseInt(value, 10);
 		return Number.isFinite(parsed) ? parsed : undefined;
 	}
@@ -42,7 +42,7 @@ function coerceStatus(value: unknown): number | undefined {
 }
 
 function coerceString(value: unknown): string | undefined {
-	if (typeof value !== 'string') return undefined;
+	if (typeof value !== "string") return undefined;
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : undefined;
 }
@@ -69,16 +69,16 @@ function pickMessage(source: ErrorLikeShape, fallbackMessage: string): string {
  */
 export function normalizeClientError(
 	error: unknown,
-	fallbackMessage: string
+	fallbackMessage: string,
 ): NormalizedClientError {
 	if (error == null) {
 		return {
 			message: fallbackMessage,
-			kind: 'unknown',
+			kind: "unknown",
 		};
 	}
 
-	if (typeof error === 'string') {
+	if (typeof error === "string") {
 		const message = error.trim() || fallbackMessage;
 		return {
 			message,
@@ -87,7 +87,8 @@ export function normalizeClientError(
 	}
 
 	if (error instanceof Error) {
-		const possible = error as Error & Partial<{ status: unknown; code: unknown }>;
+		const possible = error as Error &
+			Partial<{ status: unknown; code: unknown }>;
 		const status = coerceStatus(possible.status);
 		const code = coerceString(possible.code);
 		const message = possible.message || fallbackMessage;
@@ -116,7 +117,7 @@ export function normalizeClientError(
 
 	return {
 		message: fallbackMessage,
-		kind: 'unknown',
+		kind: "unknown",
 	};
 }
 
@@ -126,29 +127,36 @@ function inferKind(input: {
 	message?: string;
 }): NormalizedClientErrorKind {
 	const { status, code, message } = input;
-	const codeLower = code?.toLowerCase() ?? '';
-	const messageLower = message?.toLowerCase() ?? '';
+	const codeLower = code?.toLowerCase() ?? "";
+	const messageLower = message?.toLowerCase() ?? "";
 
-	if (status === 429 || codeLower.includes('rate') || messageLower.includes('too many requests')) {
-		return 'rate_limit';
+	if (
+		status === 429 ||
+		codeLower.includes("rate") ||
+		messageLower.includes("too many requests")
+	) {
+		return "rate_limit";
 	}
 
 	if (status && status >= 400 && status < 500) {
-		if (codeLower.includes('otp') || codeLower.includes('code') || codeLower.includes('invalid')) {
-			return 'validation';
+		if (
+			codeLower.includes("otp") ||
+			codeLower.includes("code") ||
+			codeLower.includes("invalid")
+		) {
+			return "validation";
 		}
 
-		if (codeLower.includes('auth') || codeLower.includes('unauthorized')) {
-			return 'auth';
+		if (codeLower.includes("auth") || codeLower.includes("unauthorized")) {
+			return "auth";
 		}
 
-		return 'validation';
+		return "validation";
 	}
 
 	if (status && status >= 500) {
-		return 'network';
+		return "network";
 	}
 
-	return 'unknown';
+	return "unknown";
 }
-

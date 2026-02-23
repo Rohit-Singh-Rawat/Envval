@@ -1,11 +1,15 @@
-import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import client from '@/lib/api';
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import client from "@/lib/api";
 
 export interface Device {
 	id: string;
 	userId: string;
 	name: string;
-	type: 'DEVICE_EXTENSION' | 'DEVICE_WEB';
+	type: "DEVICE_EXTENSION" | "DEVICE_WEB";
 	lastIpAddress: string | null;
 	lastUserAgent: string | null;
 	createdAt: string;
@@ -17,7 +21,7 @@ export interface DevicesResponse {
 	currentDeviceId: string | null;
 }
 
-const DEVICES_QUERY_KEY = ['devices'] as const;
+const DEVICES_QUERY_KEY = ["devices"] as const;
 
 /**
  * Fetches all devices for the current user.
@@ -43,7 +47,7 @@ export function useDeleteDevice() {
 
 	return useMutation({
 		mutationFn: async (deviceId: string) => {
-			const response = await client.api.v1.devices[':deviceId'].$delete({
+			const response = await client.api.v1.devices[":deviceId"].$delete({
 				param: { deviceId },
 			});
 			return response.json();
@@ -63,7 +67,7 @@ export function useDeleteAllDevices() {
 
 	return useMutation({
 		mutationFn: async (exceptDeviceId: string) => {
-			const response = await client.api.v1.devices['revoke-all'].$post({
+			const response = await client.api.v1.devices["revoke-all"].$post({
 				json: { exceptDeviceId },
 			});
 			return response.json();

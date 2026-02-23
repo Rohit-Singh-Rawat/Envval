@@ -1,6 +1,6 @@
-import { toast as sonnerToast, type ExternalToast } from 'sonner';
-import { TOAST_IDS } from './constants';
-import { playUiSound } from './sound';
+import { type ExternalToast, toast as sonnerToast } from "sonner";
+import { TOAST_IDS } from "./constants";
+import { playUiSound } from "./sound";
 
 type ToastMessages = {
 	loading: string;
@@ -9,18 +9,21 @@ type ToastMessages = {
 };
 
 const KEY_MATERIAL_MESSAGES: ToastMessages = {
-	loading: 'Securing your session...',
-	success: 'Session secured!',
-	error: 'Failed to secure session. Some features may be limited.',
+	loading: "Securing your session...",
+	success: "Session secured!",
+	error: "Failed to secure session. Some features may be limited.",
 };
 
-type ToastKind = 'success' | 'error' | 'warning' | 'info';
+type ToastKind = "success" | "error" | "warning" | "info";
 
-const TOAST_SOUND_MAP: Record<ToastKind, 'toast-notification' | 'toast-caution'> = {
-	success: 'toast-notification',
-	info: 'toast-notification',
-	warning: 'toast-caution',
-	error: 'toast-caution',
+const TOAST_SOUND_MAP: Record<
+	ToastKind,
+	"toast-notification" | "toast-caution"
+> = {
+	success: "toast-notification",
+	info: "toast-notification",
+	warning: "toast-caution",
+	error: "toast-caution",
 };
 
 function playToastSound(kind: ToastKind): void {
@@ -35,34 +38,34 @@ function playToastSound(kind: ToastKind): void {
  */
 export const toast = {
 	success: (...args: Parameters<typeof sonnerToast.success>) => {
-		playToastSound('success');
+		playToastSound("success");
 		return sonnerToast.success(...args);
 	},
 	error: (...args: Parameters<typeof sonnerToast.error>) => {
-		playToastSound('error');
+		playToastSound("error");
 		return sonnerToast.error(...args);
 	},
 	warning: (...args: Parameters<typeof sonnerToast.warning>) => {
-		playToastSound('warning');
+		playToastSound("warning");
 		return sonnerToast.warning(...args);
 	},
 	info: (...args: Parameters<typeof sonnerToast.info>) => {
-		playToastSound('info');
+		playToastSound("info");
 		return sonnerToast.info(...args);
 	},
 };
 
 export function toastKeyMaterialSync<T>(
 	promise: Promise<T>,
-	options?: ExternalToast
+	options?: ExternalToast,
 ): Promise<T> {
 	const withSound = promise
 		.then((value) => {
-			playToastSound('success');
+			playToastSound("success");
 			return value;
 		})
 		.catch((error) => {
-			playToastSound('error');
+			playToastSound("error");
 			throw error;
 		});
 
@@ -74,4 +77,3 @@ export function toastKeyMaterialSync<T>(
 
 	return withSound;
 }
-

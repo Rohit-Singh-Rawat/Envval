@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const TICK_MS = 1000;
 
@@ -50,4 +50,3 @@ export function useTimer(defaultSeconds = 30) {
 		reset,
 	};
 }
-

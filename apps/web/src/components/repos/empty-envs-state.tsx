@@ -1,12 +1,12 @@
-import { motion, useReducedMotion } from 'motion/react';
-import { useState } from 'react';
+import { motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
 
 const EASE_OUT = [0.32, 0.72, 0, 1] as const;
 
 const KEYS = [
-	{ color: 'text-sky-500', delay: 0.15, x: -68, y: -52, rotate: -22 },
-	{ color: 'text-indigo-500', delay: 0.25, x: 0, y: -72, rotate: 0 },
-	{ color: 'text-blue-500', delay: 0.35, x: 68, y: -48, rotate: 22 },
+	{ color: "text-sky-500", delay: 0.15, x: -68, y: -52, rotate: -22 },
+	{ color: "text-indigo-500", delay: 0.25, x: 0, y: -72, rotate: 0 },
+	{ color: "text-blue-500", delay: 0.35, x: 68, y: -48, rotate: 22 },
 ] as const;
 
 const FOLDER = { width: 88, height: 64 } as const;
@@ -26,18 +26,21 @@ export function EmptyEnvsState() {
 					width: FOLDER.width,
 					height: FOLDER.height + 75,
 					perspective: 600,
-					perspectiveOrigin: 'center 80%',
+					perspectiveOrigin: "center 80%",
 				}}
 				onMouseEnter={() => setIsHovered(true)}
 				onMouseLeave={() => setIsHovered(false)}
 			>
-				<div className="absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
+				<div
+					className="absolute inset-0"
+					style={{ transformStyle: "preserve-3d" }}
+				>
 					<div
 						className="absolute bottom-0 left-0 rounded-lg bg-gradient-to-b from-sky-500 to-blue-600"
 						style={{
 							width: FOLDER.width,
 							height: FOLDER.height,
-							transform: 'translateZ(-1px)',
+							transform: "translateZ(-1px)",
 							boxShadow: `
 								0 4px 6px -1px rgba(0,0,0,0.1),
 								0 2px 4px -2px rgba(0,0,0,0.1),
@@ -58,10 +61,9 @@ export function EmptyEnvsState() {
 									inset 1px 0 0 rgba(255,255,255,0.08),
 									inset -1px 0 0 rgba(0,0,0,0.05),
 								`,
-								transform: 'translateZ(2px)',
+								transform: "translateZ(2px)",
 							}}
-						>
-						</div>
+						></div>
 						<div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 						<div className="absolute inset-x-2 top-3 h-px bg-sky-400/60" />
 						<div className="absolute inset-x-0 bottom-0 h-3 bg-gradient-to-t from-black/5 to-transparent" />
@@ -74,19 +76,25 @@ export function EmptyEnvsState() {
 							style={{
 								bottom: FOLDER.height * 0.3,
 								zIndex: 10,
-								transformOrigin: 'center bottom',
+								transformOrigin: "center bottom",
 							}}
-							initial={{ opacity: 0.9, x: '-50%', y: 0, scale: 0.8, rotate: 0 }}
+							initial={{ opacity: 0.9, x: "-50%", y: 0, scale: 0.8, rotate: 0 }}
 							animate={
 								shouldReduceMotion
-									? { opacity: 0.85, x: `calc(-50% + ${key.x}px)`, y: key.y, scale: 1, rotate: key.rotate }
+									? {
+											opacity: 0.85,
+											x: `calc(-50% + ${key.x}px)`,
+											y: key.y,
+											scale: 1,
+											rotate: key.rotate,
+										}
 									: {
 											opacity: [0.9, 0.95, 0.85],
-											x: ['-50%', `calc(-50% + ${key.x}px)`],
+											x: ["-50%", `calc(-50% + ${key.x}px)`],
 											y: [0, key.y - 8, key.y],
 											scale: [0.8, 1.05, 1],
 											rotate: [0, key.rotate * 1.1, key.rotate],
-									  }
+										}
 							}
 							transition={{ duration: 0.5, delay: key.delay, ease: EASE_OUT }}
 						>
@@ -97,7 +105,7 @@ export function EmptyEnvsState() {
 										: {
 												y: [0, -5, 0],
 												rotate: isHovered ? [0, -4, 4, 0] : [0, -2, 2, 0],
-										  }
+											}
 								}
 								transition={{
 									duration: isHovered ? 2 : 4 + index * 0.5,
@@ -116,10 +124,10 @@ export function EmptyEnvsState() {
 						style={{
 							width: FOLDER.width,
 							height: FOLDER.height * 0.85,
-							transformStyle: 'preserve-3d',
-							transformOrigin: 'center bottom',
+							transformStyle: "preserve-3d",
+							transformOrigin: "center bottom",
 							zIndex: 20,
-							backfaceVisibility: 'hidden',
+							backfaceVisibility: "hidden",
 							boxShadow: `
 								0 4px 8px -2px rgba(0,0,0,0.12),
 								0 2px 4px -1px rgba(0,0,0,0.08),
@@ -128,8 +136,15 @@ export function EmptyEnvsState() {
 							`,
 						}}
 						initial={{ rotateX: 0 }}
-						animate={{ rotateX: shouldReduceMotion ? -40 : isHovered ? -40 : -45 }}
-						transition={{ type: 'spring', stiffness: 200, damping: 15, delay: isHovered ? 0 : 0.05 }}
+						animate={{
+							rotateX: shouldReduceMotion ? -40 : isHovered ? -40 : -45,
+						}}
+						transition={{
+							type: "spring",
+							stiffness: 200,
+							damping: 15,
+							delay: isHovered ? 0 : 0.05,
+						}}
 					>
 						<div className="absolute inset-x-0 top-0 h-px bg-white/15" />
 						<div className="absolute inset-x-2 top-2 h-px bg-sky-300/50" />
@@ -142,12 +157,21 @@ export function EmptyEnvsState() {
 				className="flex flex-col items-center gap-2 text-center"
 				initial={{ opacity: 0, y: 12 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.4, delay: shouldReduceMotion ? 0.2 : 0.5, ease: EASE_OUT }}
+				transition={{
+					duration: 0.4,
+					delay: shouldReduceMotion ? 0.2 : 0.5,
+					ease: EASE_OUT,
+				}}
 			>
-				<p className="text-balance font-medium text-foreground">No Environment Files</p>
+				<p className="text-balance font-medium text-foreground">
+					No Environment Files
+				</p>
 				<p className="max-w-xs text-pretty text-sm text-muted-foreground">
-					Create your first <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">.env</code> file to
-					manage variables securely
+					Create your first{" "}
+					<code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+						.env
+					</code>{" "}
+					file to manage variables securely
 				</p>
 			</motion.div>
 		</div>

@@ -7,22 +7,27 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from '@envval/ui/components/command';
-import { Drawer, DrawerContent } from '@envval/ui/components/drawer';
-import { Spinner } from '@envval/ui/components/icons/spinner';
-import { Kbd } from '@envval/ui/components/kbd';
-import { useIsMobile } from '@envval/ui/hooks/use-mobile';
-import { cn } from '@envval/ui/lib/utils';
-import { useNavigate } from '@tanstack/react-router';
-import { Copy01Icon, FolderOpenIcon, Logout01Icon, Search01Icon } from 'hugeicons-react';
-import * as React from 'react';
-import { useLogout } from '@/hooks/auth/use-logout';
-import { toast } from '@/lib/toast';
-import type { Project } from '@/hooks/repos/use-get-repos';
-import { useGetRepos } from '@/hooks/repos/use-get-repos';
-import { useCommandMenu } from '@/hooks/use-command-menu';
-import { useDebounce } from '@/hooks/use-debounce';
-import { DASHBOARD_NAV_ITEMS } from '@/lib/dashboard-nav';
+} from "@envval/ui/components/command";
+import { Drawer, DrawerContent } from "@envval/ui/components/drawer";
+import { Spinner } from "@envval/ui/components/icons/spinner";
+import { Kbd } from "@envval/ui/components/kbd";
+import { useIsMobile } from "@envval/ui/hooks/use-mobile";
+import { cn } from "@envval/ui/lib/utils";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	Copy01Icon,
+	FolderOpenIcon,
+	Logout01Icon,
+	Search01Icon,
+} from "hugeicons-react";
+import * as React from "react";
+import { useLogout } from "@/hooks/auth/use-logout";
+import type { Project } from "@/hooks/repos/use-get-repos";
+import { useGetRepos } from "@/hooks/repos/use-get-repos";
+import { useCommandMenu } from "@/hooks/use-command-menu";
+import { useDebounce } from "@/hooks/use-debounce";
+import { DASHBOARD_NAV_ITEMS } from "@/lib/dashboard-nav";
+import { toast } from "@/lib/toast";
 
 interface CommandMenuTriggerProps {
 	className?: string;
@@ -33,28 +38,28 @@ export function CommandMenuTrigger({ className }: CommandMenuTriggerProps) {
 
 	return (
 		<button
-			type='button'
+			type="button"
 			onClick={() => setOpen(true)}
 			className={cn(
-				'group flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/60 transition-all outline-none focus-visible:ring-1 focus-visible:ring-primary/50 border border-border/40 hover:border-border/80 squircle',
-				className
+				"group flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-muted/30 hover:bg-muted/60 transition-all outline-none focus-visible:ring-1 focus-visible:ring-primary/50 border border-border/40 hover:border-border/80 squircle",
+				className,
 			)}
-			aria-label='Open command menu (search, navigate, run actions)'
+			aria-label="Open command menu (search, navigate, run actions)"
 		>
-			<div className='flex items-center gap-2 flex-1'>
-				{' '}
+			<div className="flex items-center gap-2 flex-1">
+				{" "}
 				<Search01Icon
-					className='size-4 opacity-70 group-hover:opacity-100 transition-opacity'
+					className="size-4 opacity-70 group-hover:opacity-100 transition-opacity"
 					aria-hidden
 				/>
-				<span className='inline-flex font-medium'>Search...</span>
+				<span className="inline-flex font-medium">Search...</span>
 			</div>
 
 			<Kbd
-				className='inline-flex ml-4 group-hover:bg-muted/80 transition-colors border-border/50 '
+				className="inline-flex ml-4 group-hover:bg-muted/80 transition-colors border-border/50 "
 				aria-hidden
 			>
-				<span className='text-xs opacity-70'>⌘</span>K
+				<span className="text-xs opacity-70">⌘</span>K
 			</Kbd>
 		</button>
 	);
@@ -89,12 +94,9 @@ function ResponsiveCommandDialog({
 
 	if (isMobile) {
 		return (
-			<Drawer
-				open={open}
-				onOpenChange={onOpenChange}
-			>
+			<Drawer open={open} onOpenChange={onOpenChange}>
 				<DrawerContent
-					className='max-h-[85dvh] rounded-t-2xl border-t border-border bg-popover p-0'
+					className="max-h-[85dvh] rounded-t-2xl border-t border-border bg-popover p-0"
 					aria-label={title}
 					aria-description={description}
 				>
@@ -119,7 +121,7 @@ function ResponsiveCommandDialog({
 export function CommandMenu() {
 	const { open, setOpen } = useCommandMenu();
 	const navigate = useNavigate();
-	const [search, setSearch] = React.useState('');
+	const [search, setSearch] = React.useState("");
 	const debouncedSearch = useDebounce(search, 300);
 	const { data: repos = [], isLoading: reposLoading } = useGetRepos({
 		search: debouncedSearch.trim() || undefined,
@@ -135,81 +137,84 @@ export function CommandMenu() {
 
 	const navFiltered = React.useMemo(
 		() =>
-			DASHBOARD_NAV_ITEMS.filter((item) => matchesSearch(item.title, searchLower)).map((item) => ({
+			DASHBOARD_NAV_ITEMS.filter((item) =>
+				matchesSearch(item.title, searchLower),
+			).map((item) => ({
 				...item,
 				action: () => navigate({ to: item.href }),
 			})),
-		[searchLower, navigate]
+		[searchLower, navigate],
 	);
 
 	const generalItems = React.useMemo(
 		() =>
 			[
 				{
-					label: 'Copy current URL',
+					label: "Copy current URL",
 					icon: Copy01Icon,
-					action: () => copyToClipboard(window.location.href, 'Current URL'),
-					shortcut: '⌘⇧U' as const,
+					action: () => copyToClipboard(window.location.href, "Current URL"),
+					shortcut: "⌘⇧U" as const,
 				},
 			].filter((item) => matchesSearch(item.label, searchLower)),
-		[searchLower, copyToClipboard]
+		[searchLower, copyToClipboard],
 	);
 
 	const systemItems = React.useMemo(
 		() =>
 			[
 				{
-					label: 'Logout',
+					label: "Logout",
 					icon: Logout01Icon,
 					action: logout,
-					shortcut: '⇧⌘Q' as const,
+					shortcut: "⇧⌘Q" as const,
 				},
 			].filter((item) => matchesSearch(item.label, searchLower)),
-		[searchLower, logout]
+		[searchLower, logout],
 	);
 
 	const hasAnyResults =
-		navFiltered.length > 0 || repos.length > 0 || generalItems.length > 0 || systemItems.length > 0;
+		navFiltered.length > 0 ||
+		repos.length > 0 ||
+		generalItems.length > 0 ||
+		systemItems.length > 0;
 
-	const showEmpty = search.trim() !== '' && !hasAnyResults;
+	const showEmpty = search.trim() !== "" && !hasAnyResults;
 
 	// Reset search when dialog closes so next open starts fresh
 	React.useEffect(() => {
-		if (!open) setSearch('');
+		if (!open) setSearch("");
 	}, [open]);
 
 	return (
 		<ResponsiveCommandDialog
 			open={open}
 			onOpenChange={setOpen}
-			title='Command palette'
-			description='Search pages, repositories, or run an action.'
+			title="Command palette"
+			description="Search pages, repositories, or run an action."
 		>
 			<Command shouldFilter={false}>
 				<CommandInput
-					placeholder='Type a command or search...'
+					placeholder="Type a command or search..."
 					value={search}
 					onValueChange={setSearch}
-					aria-label='Search commands and pages'
+					aria-label="Search commands and pages"
 				/>
 				<CommandList aria-busy={reposLoading}>
-					{showEmpty && <CommandEmpty>No results for &quot;{search.trim()}&quot;</CommandEmpty>}
+					{showEmpty && (
+						<CommandEmpty>
+							No results for &quot;{search.trim()}&quot;
+						</CommandEmpty>
+					)}
 
 					{!showEmpty && navFiltered.length > 0 && (
-						<CommandGroup
-							heading='Navigation'
-							aria-label='Navigation'
-						>
+						<CommandGroup heading="Navigation" aria-label="Navigation">
 							{navFiltered.map((item) => (
 								<CommandItem
 									key={item.href}
 									value={`nav-${item.href}`}
 									onSelect={() => runAndClose(setOpen, item.action)}
 								>
-									<item.icon
-										className='size-4 mr-2 shrink-0'
-										aria-hidden
-									/>
+									<item.icon className="size-4 mr-2 shrink-0" aria-hidden />
 									<span>{item.title}</span>
 								</CommandItem>
 							))}
@@ -217,18 +222,15 @@ export function CommandMenu() {
 					)}
 
 					{!showEmpty && (reposLoading || repos.length > 0) && (
-						<CommandGroup
-							heading='Repositories'
-							aria-label='Repositories'
-						>
+						<CommandGroup heading="Repositories" aria-label="Repositories">
 							{reposLoading && repos.length === 0 ? (
 								<output
-									className='flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground'
-									aria-live='polite'
-									aria-busy='true'
+									className="flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground"
+									aria-live="polite"
+									aria-busy="true"
 								>
 									<Spinner
-										className='size-4 animate-spin shrink-0'
+										className="size-4 animate-spin shrink-0"
 										aria-hidden
 									/>
 									<span>Loading repositories…</span>
@@ -241,9 +243,9 @@ export function CommandMenu() {
 										onSelect={() =>
 											runAndClose(setOpen, () =>
 												navigate({
-													to: '/repos/$slug',
+													to: "/repos/$slug",
 													params: { slug: repo.slug },
-												})
+												}),
 											)
 										}
 									/>
@@ -253,20 +255,14 @@ export function CommandMenu() {
 					)}
 
 					{!showEmpty && generalItems.length > 0 && (
-						<CommandGroup
-							heading='General'
-							aria-label='General actions'
-						>
+						<CommandGroup heading="General" aria-label="General actions">
 							{generalItems.map((item) => (
 								<CommandItem
 									key={item.label}
 									value={`general-${item.label}`}
 									onSelect={() => runAndClose(setOpen, item.action)}
 								>
-									<item.icon
-										className='size-4 mr-2 shrink-0'
-										aria-hidden
-									/>
+									<item.icon className="size-4 mr-2 shrink-0" aria-hidden />
 									<span>{item.label}</span>
 								</CommandItem>
 							))}
@@ -274,21 +270,15 @@ export function CommandMenu() {
 					)}
 
 					{!showEmpty && systemItems.length > 0 && (
-						<CommandGroup
-							heading='System'
-							aria-label='System actions'
-						>
+						<CommandGroup heading="System" aria-label="System actions">
 							{systemItems.map((item) => (
 								<CommandItem
 									key={item.label}
 									value={`system-${item.label}`}
 									onSelect={() => runAndClose(setOpen, item.action)}
-									className='text-destructive data-[selected=true]:bg-destructive/10 data-[selected=true]:text-destructive'
+									className="text-destructive data-[selected=true]:bg-destructive/10 data-[selected=true]:text-destructive"
 								>
-									<item.icon
-										className='size-4 mr-2 shrink-0'
-										aria-hidden
-									/>
+									<item.icon className="size-4 mr-2 shrink-0" aria-hidden />
 									<span>{item.label}</span>
 								</CommandItem>
 							))}
@@ -297,11 +287,11 @@ export function CommandMenu() {
 				</CommandList>
 
 				<CommandFooter>
-					<div className='flex items-center gap-1.5'>
+					<div className="flex items-center gap-1.5">
 						<Kbd>↵</Kbd>
 						<span>Go to Page</span>
 					</div>
-					<div className='ml-auto flex items-center gap-2'>
+					<div className="ml-auto flex items-center gap-2">
 						<Kbd>⇧⌘Q</Kbd>
 						<span>Logout</span>
 					</div>
@@ -311,19 +301,19 @@ export function CommandMenu() {
 	);
 }
 
-function RepoCommandItem({ repo, onSelect }: { repo: Project; onSelect: () => void }) {
+function RepoCommandItem({
+	repo,
+	onSelect,
+}: {
+	repo: Project;
+	onSelect: () => void;
+}) {
 	return (
-		<CommandItem
-			value={`${repo.name} ${repo.slug}`}
-			onSelect={onSelect}
-		>
-			<FolderOpenIcon
-				className='size-4 mr-2 shrink-0'
-				aria-hidden
-			/>
-			<span className='truncate flex-1'>{repo.name}</span>
+		<CommandItem value={`${repo.name} ${repo.slug}`} onSelect={onSelect}>
+			<FolderOpenIcon className="size-4 mr-2 shrink-0" aria-hidden />
+			<span className="truncate flex-1">{repo.name}</span>
 			<span
-				className='text-muted-foreground text-xs shrink-0'
+				className="text-muted-foreground text-xs shrink-0"
 				title={repo.slug}
 			>
 				{repo.slug}

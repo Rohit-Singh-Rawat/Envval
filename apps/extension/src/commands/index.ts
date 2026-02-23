@@ -172,7 +172,9 @@ export class Commands {
 			}),
 
 			vscode.commands.registerCommand(Commands.SHOW_INIT_PROMPT, async () => {
-				await envInitService.performInitialCheck();
+				// force=true bypasses the workspace-level registration skip so the user
+				// can explicitly register after having previously clicked "Skip".
+				await envInitService.performInitialCheck(0, true);
 			}),
 
 			// Connection

@@ -1,9 +1,9 @@
-import { Suspense } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { RepoHeader } from '@/components/repos/repo-header';
-import { RepoEnvLists } from '@/components/repos/repo-env-lists';
+import { createFileRoute } from "@tanstack/react-router";
+import { Suspense } from "react";
+import { RepoEnvLists } from "@/components/repos/repo-env-lists";
+import { RepoHeader } from "@/components/repos/repo-header";
 
-export const Route = createFileRoute('/_dashboard/repos/$slug')({
+export const Route = createFileRoute("/_dashboard/repos/$slug")({
 	component: RouteComponent,
 });
 

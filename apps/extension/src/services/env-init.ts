@@ -19,7 +19,7 @@ import { EnvvalVsCodeSecrets } from '../utils/secrets';
 import { hashEnv, encryptEnv, decryptEnv, deriveKeyAsync, countEnvVars } from '../utils/crypto';
 import { StatusBar } from '../ui/status-bar';
 import { Logger } from '../utils/logger';
-import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES } from '../lib/constants';
+import { IGNORE_INTERVAL_MS, MAX_ENV_FILE_SIZE_BYTES, REPO_REGISTRATION_SKIPPED_KEY } from '../lib/constants';
 import { validateFilePath, toWorkspaceRelativePath } from '../utils/path-validator';
 import { formatError } from '../utils/format-error';
 import {
@@ -98,7 +98,7 @@ export class EnvInitService {
 	 * Orchestrates the primary startup check.
 	 * @param depth - Internal recursion guard. Max 1 re-entry after a successful migration.
 	 */
-	async performInitialCheck(depth = 0): Promise<void> {
+	async performInitialCheck(depth = 0, force = false): Promise<void> {
 		StatusBar.getInstance().setLoading(true, 'Validating workspace...');
 		try {
 			this.logger.info('Performing initial check for repo and env files');
@@ -142,7 +142,7 @@ export class EnvInitService {
 					// Re-run once so downstream steps see the new repoId.
 					// depth guard prevents an infinite loop if migration keeps reporting success.
 					if (depth < 1) {
-						return this.performInitialCheck(depth + 1);
+						return this.performInitialCheck(depth + 1, force);
 					}
 					this.logger.warn('performInitialCheck: migration re-entry limit reached, continuing');
 				}
@@ -152,8 +152,15 @@ export class EnvInitService {
 
 			const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
 			if (!repoExistsResponse.exists) {
+				const skippedRepos = this.context.workspaceState.get<Record<string, boolean>>(REPO_REGISTRATION_SKIPPED_KEY) ?? {};
+				if (!force && skippedRepos[repoId]) {
+					this.logger.info('User previously declined repo registration for this workspace — skipping');
+					return;
+				}
+
 				const shouldRegister = await showRepoRegistrationPrompt();
 				if (shouldRegister !== 'register') {
+					await this.context.workspaceState.update(REPO_REGISTRATION_SKIPPED_KEY, { ...skippedRepos, [repoId]: true });
 					this.logger.info('User declined repo registration, skipping initial sync');
 					return;
 				}
@@ -172,6 +179,9 @@ export class EnvInitService {
 						gitRemoteUrl: workspace.gitRemoteUrl,
 					});
 					this.logger.info(`Repo registered: ${repoId} — "${nameResult.name}"`);
+					const currentSkipped = this.context.workspaceState.get<Record<string, boolean>>(REPO_REGISTRATION_SKIPPED_KEY) ?? {};
+					delete currentSkipped[repoId];
+					await this.context.workspaceState.update(REPO_REGISTRATION_SKIPPED_KEY, currentSkipped);
 					showSuccess(`Project "${nameResult.name}" registered successfully.`);
 				} catch (error) {
 					this.logger.error(`Failed to register repo: ${formatError(error)}`);
@@ -342,6 +352,15 @@ export class EnvInitService {
 			return;
 		}
 
+		// Honour the workspace-level registration skip: if the user declined during startup,
+		// suppress all automatic prompts from file events. Only the Initialize button
+		// (which calls performInitialCheck with force=true) should re-open the flow.
+		const skippedRepos = this.context.workspaceState.get<Record<string, boolean>>(REPO_REGISTRATION_SKIPPED_KEY) ?? {};
+		if (skippedRepos[repoId]) {
+			this.logger.debug(`Skipping auto-prompt for ${fileName} — workspace registration previously declined`);
+			return;
+		}
+
 		const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
 		if (!repoExistsResponse.exists) {
 			const nameResult = await showRepoNamePrompt(workspacePath);
@@ -452,12 +471,17 @@ export class EnvInitService {
 		if ((await showRestorePrompt(fileName)) !== 'restore') {return;}
 
 		try {
-			if (!remoteEnv) {
+			if (!remoteEnv?.content) {
 				remoteEnv = await this.apiClient.getEnv(envId);
 				if (!remoteEnv) {
 					showError(`Failed to fetch remote ${fileName}`);
 					return;
 				}
+			}
+			if (!remoteEnv?.content) {
+				this.logger.error(`No content from server for ${fileName}`);
+				showError(`Failed to restore ${fileName}: no content from server.`);
+				return;
 			}
 
 			const key = await this.getEncryptionKey();
@@ -504,6 +528,10 @@ export class EnvInitService {
 			if (!remoteEnv?.content) {
 				remoteEnv = await this.apiClient.getEnv(envId);
 				if (!remoteEnv) {return;}
+			}
+			if (!remoteEnv?.content) {
+				this.logger.error(`No content from server for ${fileName}`);
+				return;
 			}
 
 			const key = await this.getEncryptionKey();

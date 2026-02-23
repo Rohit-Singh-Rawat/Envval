@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import {
-	GitBranchIcon,
-	Delete01Icon,
-	Copy01Icon,
-	CheckmarkCircle02Icon,
-	MoreVerticalIcon,
-} from 'hugeicons-react';
-import { Button } from '@envval/ui/components/button';
+import { Button } from "@envval/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from '@envval/ui/components/dropdown-menu';
-import { useRepoSummaryBySlug } from '@/hooks/envs/use-repo-envs';
-import { DeleteRepoDialog } from './delete-repo-dialog';
+} from "@envval/ui/components/dropdown-menu";
+import {
+	CheckmarkCircle02Icon,
+	Copy01Icon,
+	Delete01Icon,
+	GitBranchIcon,
+	MoreVerticalIcon,
+} from "hugeicons-react";
+import { useState } from "react";
+import { useRepoSummaryBySlug } from "@/hooks/envs/use-repo-envs";
+import { DeleteRepoDialog } from "./delete-repo-dialog";
 
 interface RepoHeaderProps {
 	slug: string;
@@ -27,16 +27,20 @@ export function RepoHeader({ slug }: RepoHeaderProps) {
 	const [copied, setCopied] = useState(false);
 
 	const handleCopyUrl = async () => {
-		if (repoSummary && 'gitRemoteUrl' in repoSummary && repoSummary.gitRemoteUrl) {
+		if (
+			repoSummary &&
+			"gitRemoteUrl" in repoSummary &&
+			repoSummary.gitRemoteUrl
+		) {
 			await navigator.clipboard.writeText(repoSummary.gitRemoteUrl);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		}
 	};
 
-	if (!repoSummary || 'error' in repoSummary) {
+	if (!repoSummary || "error" in repoSummary) {
 		return (
-			<header className="w-full bg-background" role="banner">
+			<header className="w-full bg-background">
 				<div className="flex items-center gap-4 w-full">
 					<div className="text-destructive">Error loading repository</div>
 				</div>
@@ -46,10 +50,12 @@ export function RepoHeader({ slug }: RepoHeaderProps) {
 
 	return (
 		<>
-			<header className="w-full bg-background" role="banner">
+			<header className="w-full bg-background">
 				<div className="flex items-center justify-between w-full">
 					<div className="flex flex-col min-w-0">
-						<h1 className="text-xl font-semibold truncate">{repoSummary.name}</h1>
+						<h1 className="text-xl font-semibold truncate">
+							{repoSummary.name}
+						</h1>
 						{repoSummary.gitRemoteUrl && (
 							<button
 								type="button"
@@ -57,8 +63,13 @@ export function RepoHeader({ slug }: RepoHeaderProps) {
 								className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group w-fit"
 								aria-label="Copy git remote URL"
 							>
-								<GitBranchIcon className="size-3.5 shrink-0" aria-hidden="true" />
-								<span className="truncate max-w-[280px]">{repoSummary.gitRemoteUrl}</span>
+								<GitBranchIcon
+									className="size-3.5 shrink-0"
+									aria-hidden="true"
+								/>
+								<span className="truncate max-w-[280px]">
+									{repoSummary.gitRemoteUrl}
+								</span>
 								{copied ? (
 									<CheckmarkCircle02Icon
 										className="size-3.5 text-emerald-500 shrink-0"
@@ -76,8 +87,7 @@ export function RepoHeader({ slug }: RepoHeaderProps) {
 
 					<div className="flex items-center gap-2 shrink-0">
 						<DropdownMenu>
-							<DropdownMenuTrigger
-								className='rounded-b-none' >
+							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
 									size="icon-sm"

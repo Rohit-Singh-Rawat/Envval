@@ -1,19 +1,23 @@
-import { useState } from 'react';
-import { Button } from '@envval/ui/components/button';
+import { Button } from "@envval/ui/components/button";
+import { Input } from "@envval/ui/components/input";
 import {
 	ResponsiveAlert,
 	ResponsiveAlertContent,
-	ResponsiveAlertHeader,
 	ResponsiveAlertFooter,
+	ResponsiveAlertHeader,
 	ResponsiveAlertTitle,
-} from '@envval/ui/components/responsive-alert';
-import { Input } from '@envval/ui/components/input';
-import { useDeleteAllRepos, useDeleteAccount } from '@/hooks/user/use-user';
-import { useNavigate } from '@tanstack/react-router';
-import { toast } from '@/lib/toast';
-import { normalizeClientError } from '@/lib/error';
-import { Alert02Icon, ArrowTurnBackwardIcon, Delete02Icon } from 'hugeicons-react';
-import { InlineCopyButton } from '../repos/delete-repo-dialog';
+} from "@envval/ui/components/responsive-alert";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	Alert02Icon,
+	ArrowTurnBackwardIcon,
+	Delete02Icon,
+} from "hugeicons-react";
+import { useState } from "react";
+import { useDeleteAccount, useDeleteAllRepos } from "@/hooks/user/use-user";
+import { normalizeClientError } from "@/lib/error";
+import { toast } from "@/lib/toast";
+import { InlineCopyButton } from "../repos/delete-repo-dialog";
 
 function Kbd({ children }: { children: React.ReactNode }) {
 	return (
@@ -29,7 +33,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 export function DangerZoneSection() {
 	const [showDeleteRepos, setShowDeleteRepos] = useState(false);
 	const [showDeleteAccount, setShowDeleteAccount] = useState(false);
-	const [confirmText, setConfirmText] = useState('');
+	const [confirmText, setConfirmText] = useState("");
 
 	const deleteAllRepos = useDeleteAllRepos();
 	const deleteAccount = useDeleteAccount();
@@ -38,37 +42,37 @@ export function DangerZoneSection() {
 	const handleDeleteRepos = async () => {
 		try {
 			await deleteAllRepos.mutateAsync();
-			toast.success('All repositories deleted');
+			toast.success("All repositories deleted");
 			setShowDeleteRepos(false);
-			navigate({ to: '/dashboard' });
+			navigate({ to: "/dashboard" });
 		} catch (error) {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to delete repositories'
+				"Failed to delete repositories",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		}
 	};
 
 	const handleDeleteAccount = async () => {
-		if (confirmText !== 'DELETE') {
-			toast.error('Confirmation text does not match');
+		if (confirmText !== "DELETE") {
+			toast.error("Confirmation text does not match");
 			return;
 		}
 
 		try {
 			await deleteAccount.mutateAsync(confirmText);
-			toast.success('Account deleted');
+			toast.success("Account deleted");
 			setShowDeleteAccount(false);
 			// Redirect to home/login after account deletion
-			window.location.href = '/';
+			window.location.href = "/";
 		} catch (error) {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to delete account'
+				"Failed to delete account",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		}
 	};
@@ -80,8 +84,13 @@ export function DangerZoneSection() {
 					{/* Header */}
 					<div className="px-4 py-3 border-b border-destructive/20 bg-destructive/5">
 						<div className="flex items-center gap-2">
-							<Alert02Icon className="size-4 text-destructive" aria-hidden="true" />
-							<h3 className="text-sm font-medium text-destructive">Danger Zone</h3>
+							<Alert02Icon
+								className="size-4 text-destructive"
+								aria-hidden="true"
+							/>
+							<h3 className="text-sm font-medium text-destructive">
+								Danger Zone
+							</h3>
 						</div>
 					</div>
 
@@ -90,10 +99,12 @@ export function DangerZoneSection() {
 						{/* Delete All Repositories */}
 						<div className="flex items-end justify-between gap-4 p-4 border-b">
 							<div className="flex-1">
-								<h4 className="text-sm font-medium text-foreground">Delete All Repositories</h4>
+								<h4 className="text-sm font-medium text-foreground">
+									Delete All Repositories
+								</h4>
 								<p className="text-xs text-muted-foreground mt-1">
-									Permanently delete all your repositories and their environment files. This action cannot
-									be undone.
+									Permanently delete all your repositories and their environment
+									files. This action cannot be undone.
 								</p>
 							</div>
 							<Button
@@ -110,10 +121,13 @@ export function DangerZoneSection() {
 						{/* Delete Account */}
 						<div className="flex items-end justify-between gap-4 p-4">
 							<div className="flex-1">
-								<h4 className="text-sm font-medium text-foreground">Delete Account</h4>
+								<h4 className="text-sm font-medium text-foreground">
+									Delete Account
+								</h4>
 								<p className="text-xs text-muted-foreground mt-1">
-									Permanently delete your account and all associated data. This will delete all
-									repositories, environments, devices, and sessions.
+									Permanently delete your account and all associated data. This
+									will delete all repositories, environments, devices, and
+									sessions.
 								</p>
 							</div>
 							<Button
@@ -135,16 +149,22 @@ export function DangerZoneSection() {
 				<ResponsiveAlertContent>
 					<ResponsiveAlertHeader>
 						<ResponsiveAlertTitle className="flex items-center gap-2">
-							<Alert02Icon className="size-5 text-destructive" aria-hidden="true" />
+							<Alert02Icon
+								className="size-5 text-destructive"
+								aria-hidden="true"
+							/>
 							Delete All Repositories?
 						</ResponsiveAlertTitle>
 					</ResponsiveAlertHeader>
 
 					<div className="mt-1 space-y-3">
 						<p className="text-sm text-muted-foreground">
-							This will permanently delete all your repositories and their environment files.
+							This will permanently delete all your repositories and their
+							environment files.
 						</p>
-						<p className="text-sm font-medium text-destructive">This action cannot be undone.</p>
+						<p className="text-sm font-medium text-destructive">
+							This action cannot be undone.
+						</p>
 					</div>
 
 					<ResponsiveAlertFooter className="mt-6">
@@ -156,9 +176,16 @@ export function DangerZoneSection() {
 							pendingText="Deleting..."
 						>
 							Delete All Repositories
-							<ArrowTurnBackwardIcon className="size-3.5 rotate-180" aria-hidden="true" />
+							<ArrowTurnBackwardIcon
+								className="size-3.5 rotate-180"
+								aria-hidden="true"
+							/>
 						</Button>
-						<Button variant="outline" onClick={() => setShowDeleteRepos(false)} disabled={deleteAllRepos.isPending}>
+						<Button
+							variant="outline"
+							onClick={() => setShowDeleteRepos(false)}
+							disabled={deleteAllRepos.isPending}
+						>
 							Cancel
 							<Kbd>Esc</Kbd>
 						</Button>
@@ -171,13 +198,16 @@ export function DangerZoneSection() {
 				open={showDeleteAccount}
 				onOpenChange={(open) => {
 					setShowDeleteAccount(open);
-					if (!open) setConfirmText('');
+					if (!open) setConfirmText("");
 				}}
 			>
 				<ResponsiveAlertContent>
 					<ResponsiveAlertHeader>
 						<ResponsiveAlertTitle className="flex items-center gap-2">
-							<Alert02Icon className="size-5 text-destructive" aria-hidden="true" />
+							<Alert02Icon
+								className="size-5 text-destructive"
+								aria-hidden="true"
+							/>
 							Delete Account Permanently?
 						</ResponsiveAlertTitle>
 					</ResponsiveAlertHeader>
@@ -185,7 +215,8 @@ export function DangerZoneSection() {
 					<div className="mt-1 space-y-4">
 						<div className="space-y-1">
 							<p className="text-sm text-muted-foreground">
-								This will permanently delete your account and all associated data including:
+								This will permanently delete your account and all associated
+								data including:
 							</p>
 							<ul className="text-sm text-muted-foreground list-disc list-inside space-y-0.5 ml-2">
 								<li>All repositories and environments</li>
@@ -216,13 +247,20 @@ export function DangerZoneSection() {
 							variant="destructive"
 							onClick={handleDeleteAccount}
 							pending={deleteAccount.isPending}
-							disabled={confirmText !== 'DELETE' || deleteAccount.isPending}
+							disabled={confirmText !== "DELETE" || deleteAccount.isPending}
 							pendingText="Deleting..."
 						>
 							Delete Account Forever
-							<ArrowTurnBackwardIcon className="size-3.5 rotate-180" aria-hidden="true" />
+							<ArrowTurnBackwardIcon
+								className="size-3.5 rotate-180"
+								aria-hidden="true"
+							/>
 						</Button>
-						<Button variant="outline" onClick={() => setShowDeleteAccount(false)} disabled={deleteAccount.isPending}>
+						<Button
+							variant="outline"
+							onClick={() => setShowDeleteAccount(false)}
+							disabled={deleteAccount.isPending}
+						>
 							Cancel
 							<Kbd>Esc</Kbd>
 						</Button>

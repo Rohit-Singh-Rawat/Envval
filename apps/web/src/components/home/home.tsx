@@ -1,9 +1,9 @@
-import Header from './header';
-import Hero from './hero';
-import FeaturesGrid from './features/features-grid';
-import ExtensionWorkflowSection from './sections/extension-workflow-section';
-import FAQSection from './sections/faq-section';
-import Footer from './footer';
+import FeaturesGrid from "./features/features-grid";
+import Footer from "./footer";
+import Header from "./header";
+import Hero from "./hero";
+import ExtensionWorkflowSection from "./sections/extension-workflow-section";
+import FAQSection from "./sections/faq-section";
 
 const Home = () => {
 	return (

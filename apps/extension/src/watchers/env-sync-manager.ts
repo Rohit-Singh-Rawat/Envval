@@ -195,7 +195,7 @@ export class SyncManager implements Disposable {
 						throw error;
 					}
 
-					if (!remoteEnv) {
+					if (!remoteEnv?.content) {
 						continue;
 					}
 
@@ -254,7 +254,7 @@ export class SyncManager implements Disposable {
 					}
 
 					if (localHash === syncedHash) {
-						await this.applyRemoteUpdate(Uri.file(localFilePath), remoteContent, remoteHash);
+						await this.applyRemoteUpdate(Uri.file(localFilePath), remoteContent, remoteHash, localMeta.envId);
 					} else {
 						await this.handleConflict(
 							Uri.file(localFilePath),
@@ -279,13 +279,20 @@ export class SyncManager implements Disposable {
 		}
 	}
 
-	private async applyRemoteUpdate(uri: Uri, content: string, hash: string): Promise<void> {
+	private async applyRemoteUpdate(uri: Uri, content: string, hash: string, knownEnvId?: string): Promise<void> {
 		await this.updateFileInVscode(uri, content);
 		const envCount = countEnvVars(content);
 		const fileName = toWorkspaceRelativePath(uri);
-		const result = await getRepoAndEnvIds(fileName, this.context);
-		if (result) {
-			await this.metadataStore.saveEnvMetadataSync(result.envId, fileName, hash, envCount);
+		// Prefer the caller-supplied server envId over a recomputed one.
+		// getRepoAndEnvIds returns a *computed* ID that may differ from the server's ID,
+		// which would save the hash under the wrong key and cause false conflicts on the next poll.
+		let targetEnvId = knownEnvId;
+		if (!targetEnvId) {
+			const existing = await this.metadataStore.loadEnvMetadataByFileName(fileName);
+			targetEnvId = existing?.envId ?? (await getRepoAndEnvIds(fileName, this.context))?.envId;
+		}
+		if (targetEnvId) {
+			await this.metadataStore.saveEnvMetadataSync(targetEnvId, fileName, hash, envCount);
 			this.logger.debug(`Auto-pulled updates for ${fileName}`);
 		}
 	}
@@ -299,7 +306,6 @@ export class SyncManager implements Disposable {
 	): Promise<void> {
 		const choice = await window.showWarningMessage(
 			`Envval Conflict: ${fileName} has local and remote changes.`,
-			{ modal: true },
 			'Use Local',
 			'Use Remote'
 		);
@@ -308,7 +314,7 @@ export class SyncManager implements Disposable {
 			if (choice === 'Use Local') {
 				await this.pushEnv(envId);
 			} else if (choice === 'Use Remote') {
-				await this.applyRemoteUpdate(uri, remoteContent, remoteHash);
+				await this.applyRemoteUpdate(uri, remoteContent, remoteHash, envId);
 			}
 		} catch (error: unknown) {
 			this.logger.error(`Conflict resolution failed: ${formatError(error)}`);
@@ -451,7 +457,7 @@ export class SyncManager implements Disposable {
 		} else if (choice === 'Use Remote (discard local)') {
 			const pulled = await this.pullAndDecrypt(envId);
 			if (pulled) {
-				await this.applyRemoteUpdate(uri, pulled.content, pulled.hash);
+				await this.applyRemoteUpdate(uri, pulled.content, pulled.hash, envId);
 			}
 		}
 	}
@@ -549,7 +555,8 @@ export class SyncManager implements Disposable {
 					await this.applyRemoteUpdate(
 						Uri.file(path.join(workspacePath, metadata.fileName)),
 						pulled.content,
-						pulled.hash
+						pulled.hash,
+						envId
 					);
 				}
 			}
@@ -590,7 +597,7 @@ export class SyncManager implements Disposable {
 	/** Fetches and decrypts the remote env. Returns null if unavailable or malformed. */
 	private async pullAndDecrypt(envId: string): Promise<{ content: string; hash: string } | null> {
 		const remoteEnv = await this.apiClient.getEnv(envId);
-		if (!remoteEnv) {
+		if (!remoteEnv?.content) {
 			return null;
 		}
 		const [ciphertext, iv] = remoteEnv.content.split(':');

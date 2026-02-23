@@ -1,27 +1,27 @@
-import { useState } from 'react';
-import {
-	ComputerIcon,
-	ChromeIcon,
-	Delete01Icon,
-	CheckmarkCircle02Icon,
-} from 'hugeicons-react';
-import {
-	useReactTable,
-	getCoreRowModel,
-	createColumnHelper,
-	flexRender,
-} from '@tanstack/react-table';
-import { motion } from 'motion/react';
-import { Button } from '@envval/ui/components/button';
+import { Button } from "@envval/ui/components/button";
 import {
 	ResponsiveAlert,
 	ResponsiveAlertContent,
-	ResponsiveAlertHeader,
 	ResponsiveAlertFooter,
+	ResponsiveAlertHeader,
 	ResponsiveAlertTitle,
-} from '@envval/ui/components/responsive-alert';
-import { cn } from '@/lib/utils';
-import type { Device } from '@/hooks/devices/use-devices';
+} from "@envval/ui/components/responsive-alert";
+import {
+	createColumnHelper,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
+import {
+	CheckmarkCircle02Icon,
+	ChromeIcon,
+	ComputerIcon,
+	Delete01Icon,
+} from "hugeicons-react";
+import { motion } from "motion/react";
+import { useState } from "react";
+import type { Device } from "@/hooks/devices/use-devices";
+import { cn } from "@/lib/utils";
 
 const columnHelper = createColumnHelper<Device>();
 
@@ -34,43 +34,46 @@ interface DevicesTableProps {
 
 function formatDate(dateString: string): string {
 	const date = new Date(dateString);
-	const day = String(date.getDate()).padStart(2, '0');
-	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, "0");
+	const month = String(date.getMonth() + 1).padStart(2, "0");
 	const year = String(date.getFullYear()).slice(-2);
 	return `${day}/${month}/${year}`;
 }
 
-function getDeviceIcon(type: Device['type']) {
-	return type === 'DEVICE_EXTENSION' ? ComputerIcon : ChromeIcon;
+function getDeviceIcon(type: Device["type"]) {
+	return type === "DEVICE_EXTENSION" ? ComputerIcon : ChromeIcon;
 }
 
 function parseUserAgent(userAgent: string | null): string {
-	if (!userAgent) return 'Unknown';
+	if (!userAgent) return "Unknown";
 
-	if (userAgent.includes('Windows')) return 'Windows';
-	if (userAgent.includes('Macintosh')) return 'macOS';
-	if (userAgent.includes('Linux')) return 'Linux';
-	if (userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS';
-	if (userAgent.includes('Android')) return 'Android';
+	if (userAgent.includes("Windows")) return "Windows";
+	if (userAgent.includes("Macintosh")) return "macOS";
+	if (userAgent.includes("Linux")) return "Linux";
+	if (userAgent.includes("iPhone") || userAgent.includes("iPad")) return "iOS";
+	if (userAgent.includes("Android")) return "Android";
 
-	return 'Unknown OS';
+	return "Unknown OS";
 }
 
 function getDeviceDisplayName(device: Device): string {
 	const os = parseUserAgent(device.lastUserAgent);
-	const deviceType = device.type === 'DEVICE_EXTENSION' ? 'VS Code' : 'Web Browser';
+	const deviceType =
+		device.type === "DEVICE_EXTENSION" ? "VS Code" : "Web Browser";
 	return device.name || `${deviceType} on ${os}`;
 }
 
 function getDeviceStatus(lastSeenAt: string): { label: string; color: string } {
 	const lastSeen = new Date(lastSeenAt);
 	const now = new Date();
-	const daysSinceActive = Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60 * 60 * 24));
+	const daysSinceActive = Math.floor(
+		(now.getTime() - lastSeen.getTime()) / (1000 * 60 * 60 * 24),
+	);
 
 	if (daysSinceActive < 7) {
-		return { label: 'Active', color: 'text-emerald-600 dark:text-emerald-500' };
+		return { label: "Active", color: "text-emerald-600 dark:text-emerald-500" };
 	}
-	return { label: 'Inactive', color: 'text-amber-600 dark:text-amber-500' };
+	return { label: "Inactive", color: "text-amber-600 dark:text-amber-500" };
 }
 
 function Kbd({ children }: { children: React.ReactNode }) {
@@ -108,11 +111,15 @@ function RemoveDeviceDialog({
 
 				<div className="mt-1 space-y-3">
 					<p className="text-sm text-muted-foreground">
-						Are you sure you want to remove access for{' '}
-						<strong className="font-semibold text-foreground">"{deviceName}"</strong>?
+						Are you sure you want to remove access for{" "}
+						<strong className="font-semibold text-foreground">
+							"{deviceName}"
+						</strong>
+						?
 					</p>
 					<p className="text-sm font-medium text-destructive">
-						This device will need to re-authenticate to access your environment variables.
+						This device will need to re-authenticate to access your environment
+						variables.
 					</p>
 				</div>
 
@@ -126,7 +133,11 @@ function RemoveDeviceDialog({
 					>
 						Remove Access
 					</Button>
-					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+					<Button
+						variant="outline"
+						onClick={() => onOpenChange(false)}
+						disabled={isPending}
+					>
 						Cancel
 						<Kbd>Esc</Kbd>
 					</Button>
@@ -151,7 +162,8 @@ function DeviceCard({
 	const Icon = getDeviceIcon(device.type);
 	const displayName = getDeviceDisplayName(device);
 	const isCurrentDevice = device.id === currentDeviceId;
-	const deviceType = device.type === 'DEVICE_EXTENSION' ? 'VS Code' : 'Web Browser';
+	const deviceType =
+		device.type === "DEVICE_EXTENSION" ? "VS Code" : "Web Browser";
 	const status = getDeviceStatus(device.lastSeenAt);
 
 	return (
@@ -175,7 +187,10 @@ function DeviceCard({
 							</span>
 							{isCurrentDevice && (
 								<span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
-									<CheckmarkCircle02Icon className="size-3" aria-hidden="true" />
+									<CheckmarkCircle02Icon
+										className="size-3"
+										aria-hidden="true"
+									/>
 									Current
 								</span>
 							)}
@@ -199,18 +214,27 @@ function DeviceCard({
 			<div className="flex items-center gap-4 text-sm">
 				<div className="flex items-center gap-1.5">
 					<span className="text-muted-foreground">Status:</span>
-					<span className={cn('font-medium', status.color)}>{status.label}</span>
+					<span className={cn("font-medium", status.color)}>
+						{status.label}
+					</span>
 				</div>
 				<div className="flex items-center gap-1.5">
 					<span className="text-muted-foreground">Last active:</span>
-					<span className="text-foreground">{formatDate(device.lastSeenAt)}</span>
+					<span className="text-foreground">
+						{formatDate(device.lastSeenAt)}
+					</span>
 				</div>
 			</div>
 		</motion.div>
 	);
 }
 
-export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: DevicesTableProps) {
+export function DevicesTable({
+	devices,
+	currentDeviceId,
+	onRemove,
+	isPending,
+}: DevicesTableProps) {
 	const [deviceToRemove, setDeviceToRemove] = useState<Device | null>(null);
 
 	const handleRemoveClick = (device: Device) => {
@@ -225,19 +249,23 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 	};
 
 	const columns = [
-		columnHelper.accessor('name', {
-			header: 'Device',
+		columnHelper.accessor("name", {
+			header: "Device",
 			cell: (info) => {
 				const device = info.row.original;
 				const Icon = getDeviceIcon(device.type);
 				const displayName = getDeviceDisplayName(device);
 				const isCurrentDevice = device.id === currentDeviceId;
-				const deviceType = device.type === 'DEVICE_EXTENSION' ? 'VS Code' : 'Web Browser';
+				const deviceType =
+					device.type === "DEVICE_EXTENSION" ? "VS Code" : "Web Browser";
 
 				return (
 					<div className="flex items-center gap-3 py-1">
 						<div className="p-2 rounded-lg bg-muted/50 shrink-0">
-							<Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+							<Icon
+								className="size-4 text-muted-foreground"
+								aria-hidden="true"
+							/>
 						</div>
 						<div className="min-w-0 flex-1">
 							<div className="flex items-center gap-2">
@@ -249,7 +277,10 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 								</span>
 								{isCurrentDevice && (
 									<span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
-										<CheckmarkCircle02Icon className="size-3" aria-hidden="true" />
+										<CheckmarkCircle02Icon
+											className="size-3"
+											aria-hidden="true"
+										/>
 										Current
 									</span>
 								)}
@@ -260,28 +291,36 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 				);
 			},
 		}),
-		columnHelper.accessor('lastSeenAt', {
-			header: 'Status',
+		columnHelper.accessor("lastSeenAt", {
+			header: "Status",
 			cell: (info) => {
 				const status = getDeviceStatus(info.getValue());
-				return <span className={cn('text-sm font-medium', status.color)}>{status.label}</span>;
+				return (
+					<span className={cn("text-sm font-medium", status.color)}>
+						{status.label}
+					</span>
+				);
 			},
 		}),
-		columnHelper.accessor('lastSeenAt', {
-			id: 'lastActive',
-			header: 'Last Active',
+		columnHelper.accessor("lastSeenAt", {
+			id: "lastActive",
+			header: "Last Active",
 			cell: (info) => (
-				<span className="text-sm text-muted-foreground">{formatDate(info.getValue())}</span>
+				<span className="text-sm text-muted-foreground">
+					{formatDate(info.getValue())}
+				</span>
 			),
 		}),
-		columnHelper.accessor('createdAt', {
-			header: 'Added',
+		columnHelper.accessor("createdAt", {
+			header: "Added",
 			cell: (info) => (
-				<span className="text-sm text-muted-foreground">{formatDate(info.getValue())}</span>
+				<span className="text-sm text-muted-foreground">
+					{formatDate(info.getValue())}
+				</span>
 			),
 		}),
 		columnHelper.display({
-			id: 'actions',
+			id: "actions",
 			header: () => <span className="sr-only">Actions</span>,
 			cell: (info) => {
 				const device = info.row.original;
@@ -331,7 +370,7 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 
 			{/* Desktop view - table layout */}
 			<div className="hidden md:block w-full devices-table-wrapper rounded-xl p-1 bg-muted/50">
-				<table className="devices-table w-full" role="grid" aria-label="Devices list">
+				<table className="devices-table w-full" aria-label="Devices list">
 					<thead>
 						{table.getHeaderGroups().map((headerGroup) => (
 							<tr key={headerGroup.id} className="bg-muted/50">
@@ -343,7 +382,10 @@ export function DevicesTable({ devices, currentDeviceId, onRemove, isPending }: 
 									>
 										{header.isPlaceholder
 											? null
-											: flexRender(header.column.columnDef.header, header.getContext())}
+											: flexRender(
+													header.column.columnDef.header,
+													header.getContext(),
+												)}
 									</th>
 								))}
 							</tr>

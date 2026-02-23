@@ -1,17 +1,17 @@
-import { useSession } from '@/lib/auth-client';
-import { EXTENSION_URL } from '@/lib/constants';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@envval/ui/components/button';
-import { Link } from '@tanstack/react-router';
+import { buttonVariants } from "@envval/ui/components/button";
+import { Link } from "@tanstack/react-router";
 import {
 	AnimatePresence,
+	motion,
 	type SVGMotionProps,
 	type Transition,
-	Variants,
-	motion,
-} from 'motion/react';
-import { useState } from 'react';
-import { EnvvalLogo } from '../logo/envval';
+	type Variants,
+} from "motion/react";
+import { useId, useState } from "react";
+import { useSession } from "@/lib/auth-client";
+import { EXTENSION_URL } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import { EnvvalLogo } from "../logo/envval";
 
 /** Marketing nav link; href is a path or hash. */
 interface NavItem {
@@ -22,35 +22,37 @@ interface NavItem {
 interface MenuToggleProps {
 	isOpen: boolean;
 	toggle: () => void;
+	menuId: string;
 }
 
 interface MobileMenuProps {
 	isOpen: boolean;
 	onClose: () => void;
 	isLoggedIn: boolean;
+	menuId: string;
 }
 
 /** Desktop: compact button; mobile: full-width block. onNavigate used to close mobile menu. */
 interface AuthNavLinkProps {
 	isLoggedIn: boolean;
-	variant: 'desktop' | 'mobile';
+	variant: "desktop" | "mobile";
 	onNavigate?: () => void;
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
-	{ label: 'Features', href: '/#features' },
-	{ label: 'FAQ', href: '/#faq' },
-	{ label: 'Blog', href: '/blog' },
+	{ label: "Features", href: "/#features" },
+	{ label: "FAQ", href: "/#faq" },
+	{ label: "Blog", href: "/blog" },
 ] as const;
 
 const AUTH_LINK_TRANSITION: Transition = {
 	duration: 0.25,
-	ease: 'easeInOut',
+	ease: "easeInOut",
 };
 
 const HEADER_TRANSITION: Transition = {
 	duration: 0.3,
-	ease: 'easeInOut',
+	ease: "easeInOut",
 };
 
 const Path = (props: SVGMotionProps<SVGPathElement>) => (
@@ -63,24 +65,24 @@ const Path = (props: SVGMotionProps<SVGPathElement>) => (
 	/>
 );
 
-const MenuToggle = ({ isOpen, toggle }: MenuToggleProps) => (
+const MenuToggle = ({ isOpen, toggle, menuId }: MenuToggleProps) => (
 	<button
 		type="button"
 		onClick={toggle}
 		className="md:hidden stroke-1 p-2 z-50 relative outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md text-foreground"
-		aria-label={isOpen ? 'Close menu' : 'Open menu'}
+		aria-label={isOpen ? "Close menu" : "Open menu"}
 		aria-expanded={isOpen}
-		aria-controls="mobile-menu"
+		aria-controls={menuId}
 	>
-		<svg width="23" height="23" viewBox="0 0 23 23" aria-hidden>
+		<svg width="23" height="23" viewBox="0 0 23 23" aria-hidden={true}>
 			<Path
 				variants={{
-					closed: { d: 'M 2 2.5 L 20 2.5' },
-					open: { d: 'M 3 16.5 L 17 2.5' },
+					closed: { d: "M 2 2.5 L 20 2.5" },
+					open: { d: "M 3 16.5 L 17 2.5" },
 				}}
 				strokeWidth="1"
 				initial="closed"
-				animate={isOpen ? 'open' : 'closed'}
+				animate={isOpen ? "open" : "closed"}
 				transition={HEADER_TRANSITION}
 			/>
 			<Path
@@ -91,17 +93,17 @@ const MenuToggle = ({ isOpen, toggle }: MenuToggleProps) => (
 				}}
 				strokeWidth="1"
 				initial="closed"
-				animate={isOpen ? 'open' : 'closed'}
-				transition={{ duration: 0.1, ease: 'easeInOut' }}
+				animate={isOpen ? "open" : "closed"}
+				transition={{ duration: 0.1, ease: "easeInOut" }}
 			/>
 			<Path
 				variants={{
-					closed: { d: 'M 2 16.346 L 20 16.346' },
-					open: { d: 'M 3 2.5 L 17 16.346' },
+					closed: { d: "M 2 16.346 L 20 16.346" },
+					open: { d: "M 3 2.5 L 17 16.346" },
 				}}
 				strokeWidth="1"
 				initial="closed"
-				animate={isOpen ? 'open' : 'closed'}
+				animate={isOpen ? "open" : "closed"}
 				transition={HEADER_TRANSITION}
 			/>
 		</svg>
@@ -115,26 +117,26 @@ const menuVariants: Variants = {
 		transition: {
 			staggerChildren: 0.02,
 			staggerDirection: -1,
-			when: 'afterChildren',
-			ease: 'easeInOut',
+			when: "afterChildren",
+			ease: "easeInOut",
 			duration: 0.35,
 		},
 	},
 	open: {
 		opacity: 1,
-		height: 'auto',
+		height: "auto",
 		transition: {
 			staggerChildren: 0.07,
 			delayChildren: 0.2,
-			ease: 'easeInOut',
+			ease: "easeInOut",
 			duration: 0.3,
 		},
 	},
 };
 
 const itemVariants: Variants = {
-	closed: { opacity: 0, y: -10, filter: 'blur(4px)' },
-	open: { opacity: 1, y: 0, filter: 'blur(0px)' },
+	closed: { opacity: 0, y: -10, filter: "blur(4px)" },
+	open: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
 
 /**
@@ -143,13 +145,16 @@ const itemVariants: Variants = {
  * when session state resolves (avoids flash and overlap).
  */
 function AuthNavLink({ isLoggedIn, variant, onNavigate }: AuthNavLinkProps) {
-	const isMobile = variant === 'mobile';
+	const isMobile = variant === "mobile";
 	const linkClass = isMobile
-		? cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-full justify-start')
-		: buttonVariants({ variant: 'ghost', size: 'sm' });
+		? cn(
+				buttonVariants({ variant: "ghost", size: "sm" }),
+				"w-full justify-start",
+			)
+		: buttonVariants({ variant: "ghost", size: "sm" });
 	const wrapperClass = isMobile
-		? 'absolute inset-0 flex items-center'
-		: 'absolute inset-0 flex items-center justify-center';
+		? "absolute inset-0 flex items-center"
+		: "absolute inset-0 flex items-center justify-center";
 
 	return (
 		<AnimatePresence mode="wait" initial={false}>
@@ -194,7 +199,7 @@ function AuthNavLink({ isLoggedIn, variant, onNavigate }: AuthNavLinkProps) {
 	);
 }
 
-function MobileMenu({ isOpen, onClose, isLoggedIn }: MobileMenuProps) {
+function MobileMenu({ isOpen, onClose, isLoggedIn, menuId }: MobileMenuProps) {
 	return (
 		<AnimatePresence mode="sync">
 			{isOpen && (
@@ -203,7 +208,7 @@ function MobileMenu({ isOpen, onClose, isLoggedIn }: MobileMenuProps) {
 					animate="open"
 					exit="closed"
 					variants={menuVariants}
-					id="mobile-menu"
+					id={menuId}
 					className="absolute top-16 left-0 right-0 bg-background border-b md:hidden z-50 overflow-hidden"
 				>
 					<nav className="flex flex-col px-6 py-4 gap-4" aria-label="Main menu">
@@ -231,7 +236,7 @@ function MobileMenu({ isOpen, onClose, isLoggedIn }: MobileMenuProps) {
 							</div>
 							<Link
 								to={EXTENSION_URL}
-								className={cn(buttonVariants({ size: 'sm' }), 'w-full')}
+								className={cn(buttonVariants({ size: "sm" }), "w-full")}
 								onClick={onClose}
 							>
 								Download
@@ -245,6 +250,7 @@ function MobileMenu({ isOpen, onClose, isLoggedIn }: MobileMenuProps) {
 }
 
 function Header() {
+	const menuId = useId();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { data: session } = useSession();
 	const isLoggedIn = Boolean(session?.user);
@@ -285,7 +291,7 @@ function Header() {
 					</div>
 					<Link
 						to={EXTENSION_URL}
-						className={cn(buttonVariants({ size: 'sm' }), 'group')}
+						className={cn(buttonVariants({ size: "sm" }), "group")}
 					>
 						<span className="inline-flex items-center gap-2 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] [text-shadow:0_-2lh_currentColor] group-hover:translate-y-[2lh]">
 							Download
@@ -293,11 +299,12 @@ function Header() {
 					</Link>
 				</div>
 
-				<MenuToggle isOpen={isMenuOpen} toggle={toggleMenu} />
+				<MenuToggle isOpen={isMenuOpen} toggle={toggleMenu} menuId={menuId} />
 				<MobileMenu
 					isOpen={isMenuOpen}
 					onClose={closeMenu}
 					isLoggedIn={isLoggedIn}
+					menuId={menuId}
 				/>
 			</div>
 		</motion.header>

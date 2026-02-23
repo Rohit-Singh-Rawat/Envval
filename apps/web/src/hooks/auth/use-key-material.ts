@@ -1,15 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getFromIndexedDB } from '@/utils/indexeddb';
-import { unwrapKeyMaterial, importPrivateKeyFromJWK } from '@/utils/crypto';
-import { DEVICE_KEYS_DB, DEVICE_KEYS_STORAGE } from '@/lib/constants';
-import { useSession } from '@/lib/auth-client';
-
-const DB_OPTIONS = {
-	dbName: DEVICE_KEYS_DB.name,
-	version: DEVICE_KEYS_DB.version,
-	storeName: DEVICE_KEYS_DB.storeName,
-	keyPath: DEVICE_KEYS_DB.keyPath,
-} as const;
+import { useCallback, useEffect, useState } from "react";
+import { useSession } from "@/lib/auth-client";
+import { DEVICE_KEYS_DB_OPTIONS, DEVICE_KEYS_STORAGE } from "@/lib/constants";
+import { importPrivateKeyFromJWK, unwrapKeyMaterial } from "@/utils/crypto";
+import { getFromIndexedDB } from "@/utils/indexeddb";
 
 interface KeyMaterialState {
 	readonly keyMaterial: string | null;
@@ -17,12 +10,6 @@ interface KeyMaterialState {
 	readonly error: Error | null;
 }
 
-/**
- * Manages retrieval and unwrapping of user's encryption key material.
- * Caches the unwrapped key material to avoid repeated crypto operations.
- * 
- * @returns Key material state with unwrapped key, loading, and error states
- */
 export function useKeyMaterial() {
 	const { data: session } = useSession();
 	const userId = session?.user?.id ?? null;
@@ -35,15 +22,23 @@ export function useKeyMaterial() {
 
 	const unwrapAndCache = useCallback(async () => {
 		try {
-			setState(prev => ({ ...prev, isLoading: true, error: null }));
+			setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
 			const [wrappedKeyMaterial, privateKeyJwk] = await Promise.all([
-				getFromIndexedDB<string>(DB_OPTIONS, DEVICE_KEYS_STORAGE.wrappedKeyMaterial),
-				getFromIndexedDB<JsonWebKey>(DB_OPTIONS, DEVICE_KEYS_STORAGE.privateKey),
+				getFromIndexedDB<string>(
+					DEVICE_KEYS_DB_OPTIONS,
+					DEVICE_KEYS_STORAGE.wrappedKeyMaterial,
+				),
+				getFromIndexedDB<JsonWebKey>(
+					DEVICE_KEYS_DB_OPTIONS,
+					DEVICE_KEYS_STORAGE.privateKey,
+				),
 			]);
 
 			if (!wrappedKeyMaterial || !privateKeyJwk) {
-				throw new Error('Key material not found. Please re-authenticate your device.');
+				throw new Error(
+					"Key material not found. Please re-authenticate your device.",
+				);
 			}
 
 			const privateKey = await importPrivateKeyFromJWK(privateKeyJwk);
@@ -58,7 +53,10 @@ export function useKeyMaterial() {
 			setState({
 				keyMaterial: null,
 				isLoading: false,
-				error: error instanceof Error ? error : new Error('Failed to retrieve key material'),
+				error:
+					error instanceof Error
+						? error
+						: new Error("Failed to retrieve key material"),
 			});
 		}
 	}, []);

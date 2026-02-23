@@ -1,14 +1,18 @@
-import { Suspense } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { ComputerIcon } from 'hugeicons-react';
-import { useDevices, useDeleteDevice, useDeleteAllDevices } from '@/hooks/devices/use-devices';
-import { toast } from '@/lib/toast';
-import { normalizeClientError } from '@/lib/error';
-import { DevicesTable } from '@/components/devices/device-card';
-import { DangerZone } from '@/components/devices/danger-zone';
-import { Heading } from '@/components/dashboard/shared/heading';
+import { createFileRoute } from "@tanstack/react-router";
+import { ComputerIcon } from "hugeicons-react";
+import { Suspense } from "react";
+import { Heading } from "@/components/dashboard/shared/heading";
+import { DangerZone } from "@/components/devices/danger-zone";
+import { DevicesTable } from "@/components/devices/device-card";
+import {
+	useDeleteAllDevices,
+	useDeleteDevice,
+	useDevices,
+} from "@/hooks/devices/use-devices";
+import { normalizeClientError } from "@/lib/error";
+import { toast } from "@/lib/toast";
 
-export const Route = createFileRoute('/_dashboard/devices')({
+export const Route = createFileRoute("/_dashboard/devices")({
 	component: RouteComponent,
 });
 
@@ -39,32 +43,32 @@ function DevicesContent() {
 	const handleDeleteDevice = async (deviceId: string) => {
 		try {
 			await deleteDevice.mutateAsync(deviceId);
-			toast.success('Device removed successfully');
+			toast.success("Device removed successfully");
 		} catch (error) {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to remove device'
+				"Failed to remove device",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		}
 	};
 
 	const handleDeleteAll = async () => {
 		if (!currentDeviceId) {
-			toast.error('Cannot identify current device');
+			toast.error("Cannot identify current device");
 			return;
 		}
 
 		try {
 			await deleteAllDevices.mutateAsync(currentDeviceId);
-			toast.success('All other devices have been removed');
+			toast.success("All other devices have been removed");
 		} catch (error) {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to remove devices'
+				"Failed to remove devices",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		}
 	};
@@ -80,7 +84,7 @@ function DevicesContent() {
 					Active Devices
 				</h2>
 				<span className="text-sm text-muted-foreground">
-					{data.devices.length} device{data.devices.length !== 1 ? 's' : ''}
+					{data.devices.length} device{data.devices.length !== 1 ? "s" : ""}
 				</span>
 			</div>
 
@@ -108,12 +112,15 @@ function EmptyState() {
 			aria-label="No devices registered"
 		>
 			<div className="p-3 rounded-full bg-muted/50 mb-3">
-				<ComputerIcon className="size-6 text-muted-foreground" aria-hidden="true" />
+				<ComputerIcon
+					className="size-6 text-muted-foreground"
+					aria-hidden="true"
+				/>
 			</div>
 			<p className="font-medium text-foreground">No Devices Yet</p>
 			<p className="text-sm text-muted-foreground mt-1 max-w-xs">
-				Add your first device by installing the VS Code extension or logging in from another
-				browser.
+				Add your first device by installing the VS Code extension or logging in
+				from another browser.
 			</p>
 		</div>
 	);

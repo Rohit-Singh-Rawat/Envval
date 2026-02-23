@@ -1,10 +1,14 @@
-import { Switch } from '@envval/ui/components/switch';
-import { Label } from '@envval/ui/components/label';
-import { useUpdateNotifications, type NotificationPreferences, type UserProfile } from '@/hooks/user/use-user';
-import { useState } from 'react';
-import { toast } from '@/lib/toast';
-import { playUiSound } from '@/lib/sound';
-import { normalizeClientError } from '@/lib/error';
+import { Label } from "@envval/ui/components/label";
+import { Switch } from "@envval/ui/components/switch";
+import { useState } from "react";
+import {
+	type NotificationPreferences,
+	type UserProfile,
+	useUpdateNotifications,
+} from "@/hooks/user/use-user";
+import { normalizeClientError } from "@/lib/error";
+import { playUiSound } from "@/lib/sound";
+import { toast } from "@/lib/toast";
 
 interface NotificationsSectionProps {
 	profile: UserProfile;
@@ -15,9 +19,14 @@ interface NotificationsSectionProps {
  */
 export function NotificationsSection({ profile }: NotificationsSectionProps) {
 	const updateNotifications = useUpdateNotifications();
-	const [loadingKey, setLoadingKey] = useState<keyof NotificationPreferences | null>(null);
+	const [loadingKey, setLoadingKey] = useState<
+		keyof NotificationPreferences | null
+	>(null);
 
-	const handleToggle = async (key: keyof NotificationPreferences, value: boolean) => {
+	const handleToggle = async (
+		key: keyof NotificationPreferences,
+		value: boolean,
+	) => {
 		setLoadingKey(key);
 		const newPreferences: NotificationPreferences = {
 			...profile.notificationPreferences,
@@ -26,13 +35,13 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 
 		try {
 			await updateNotifications.mutateAsync(newPreferences);
-			toast.success('Notification preferences updated');
+			toast.success("Notification preferences updated");
 		} catch (error) {
 			const { message, kind } = normalizeClientError(
 				error,
-				'Failed to update preferences'
+				"Failed to update preferences",
 			);
-			const showToast = kind === 'rate_limit' ? toast.warning : toast.error;
+			const showToast = kind === "rate_limit" ? toast.warning : toast.error;
 			showToast(message);
 		} finally {
 			setLoadingKey(null);
@@ -66,12 +75,14 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 						<Switch
 							id="new-repo"
 							checked={profile.notificationPreferences.newRepoAdded}
-							onCheckedChange={(checked) => handleToggle('newRepoAdded', checked)}
+							onCheckedChange={(checked) =>
+								handleToggle("newRepoAdded", checked)
+							}
 							onToggleSound={(checked) => {
-								playUiSound(checked ? 'toggle-on' : 'toggle-off');
+								playUiSound(checked ? "toggle-on" : "toggle-off");
 							}}
 							disabled={loadingKey !== null}
-							loading={loadingKey === 'newRepoAdded'}
+							loading={loadingKey === "newRepoAdded"}
 							aria-label="Toggle new repository notifications"
 						/>
 					</div>
@@ -89,12 +100,14 @@ export function NotificationsSection({ profile }: NotificationsSectionProps) {
 						<Switch
 							id="new-device"
 							checked={profile.notificationPreferences.newDeviceLogin}
-							onCheckedChange={(checked) => handleToggle('newDeviceLogin', checked)}
+							onCheckedChange={(checked) =>
+								handleToggle("newDeviceLogin", checked)
+							}
 							onToggleSound={(checked) => {
-								playUiSound(checked ? 'toggle-on' : 'toggle-off');
+								playUiSound(checked ? "toggle-on" : "toggle-off");
 							}}
 							disabled={loadingKey !== null}
-							loading={loadingKey === 'newDeviceLogin'}
+							loading={loadingKey === "newDeviceLogin"}
 							aria-label="Toggle new device notifications"
 						/>
 					</div>

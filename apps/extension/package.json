@@ -2,7 +2,7 @@
 	"name": "Envval-ext",
 	"displayName": "EnvVal",
 	"description": "Securely sync, back up, and manage your .env files across machines and teammates — powered by Envval.",
-	"version": "1.0.3",
+	"version": "1.0.36",
 	"publisher": "Envval-ext",
 	"icon": "./assets/icons/envval.png",
 	"keywords": [
