@@ -1,24 +1,24 @@
-import { auth } from './auth.service';
+import { auth } from "./auth.service";
 
 type UpdateUserData = {
-	name?: string;
+  name?: string;
 };
 
 export class UserService {
-	async updateUser(userId: string, data: UpdateUserData, headers: HeadersInit) {
-		const { name } = data;
+  async updateUser(userId: string, data: UpdateUserData, headers: HeadersInit) {
+    const { name } = data;
 
-		if (name !== undefined) {
-			await auth.api.updateUser({
-				headers,
-				body: {
-					name,
-				},
-			});
-		}
+    if (name !== undefined) {
+      await auth.api.updateUser({
+        headers,
+        body: {
+          name,
+        },
+      });
+    }
 
-		// Fetch updated user
-		const session = await auth.api.getSession({ headers });
-		return session?.user ?? null;
-	}
+    // Fetch updated user
+    const session = await auth.api.getSession({ headers });
+    return session?.user ?? null;
+  }
 }

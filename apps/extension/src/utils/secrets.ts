@@ -1,14 +1,14 @@
-import { ExtensionContext } from 'vscode';
-import { generateKeyPair, unwrapKeyMaterial } from './crypto';
+import { ExtensionContext } from "vscode";
+import { generateKeyPair, unwrapKeyMaterial } from "./crypto";
 
 /** Single source of truth for VS Code secret storage keys. */
 const SecretKeys = {
-	accessToken: 'envval.accessToken',
-	deviceId: 'envval.deviceId',
-	userId: 'envval.userId',
-	privateKey: 'envval.privateKey',
-	publicKey: 'envval.publicKey',
-	wrappedKeyMaterial: 'envval.wrappedKeyMaterial',
+  accessToken: "envval.accessToken",
+  deviceId: "envval.deviceId",
+  userId: "envval.userId",
+  privateKey: "envval.privateKey",
+  publicKey: "envval.publicKey",
+  wrappedKeyMaterial: "envval.wrappedKeyMaterial",
 } as const;
 
 /**
@@ -18,137 +18,147 @@ const SecretKeys = {
  * Uses the singleton pattern to ensure consistent access across the extension.
  */
 export class EnvvalVsCodeSecrets {
-	private static instance: EnvvalVsCodeSecrets;
-	private ctx: ExtensionContext;
+  private static instance: EnvvalVsCodeSecrets;
+  private ctx: ExtensionContext;
 
-	private constructor(ctx: ExtensionContext) {
-		this.ctx = ctx;
-	}
+  private constructor(ctx: ExtensionContext) {
+    this.ctx = ctx;
+  }
 
-	/**
-	 * Returns the singleton instance, creating it if necessary.
-	 * @param ctx - Required on first call to initialize the secret storage.
-	 * @throws Error if ctx is not provided on first initialization.
-	 */
-	public static getInstance(ctx?: ExtensionContext): EnvvalVsCodeSecrets {
-		if (!EnvvalVsCodeSecrets.instance) {
-			if (!ctx) {
-				throw new Error('ExtensionContext is required for first initialization');
-			}
-			EnvvalVsCodeSecrets.instance = new EnvvalVsCodeSecrets(ctx);
-		}
-		return EnvvalVsCodeSecrets.instance;
-	}
+  /**
+   * Returns the singleton instance, creating it if necessary.
+   * @param ctx - Required on first call to initialize the secret storage.
+   * @throws Error if ctx is not provided on first initialization.
+   */
+  public static getInstance(ctx?: ExtensionContext): EnvvalVsCodeSecrets {
+    if (!EnvvalVsCodeSecrets.instance) {
+      if (!ctx) {
+        throw new Error(
+          "ExtensionContext is required for first initialization",
+        );
+      }
+      EnvvalVsCodeSecrets.instance = new EnvvalVsCodeSecrets(ctx);
+    }
+    return EnvvalVsCodeSecrets.instance;
+  }
 
-	/** Retrieves the stored JWT access token for API authentication. */
-	public getAccessToken(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.accessToken);
-	}
+  /** Retrieves the stored JWT access token for API authentication. */
+  public getAccessToken(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.accessToken);
+  }
 
-	/** Stores the JWT access token received after successful authentication. */
-	public async setAccessToken(token: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.accessToken, token);
-	}
+  /** Stores the JWT access token received after successful authentication. */
+  public async setAccessToken(token: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.accessToken, token);
+  }
 
-	/** Retrieves the unique device identifier assigned during authentication. */
-	public getDeviceId(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.deviceId);
-	}
+  /** Retrieves the unique device identifier assigned during authentication. */
+  public getDeviceId(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.deviceId);
+  }
 
-	/** Stores the device ID used to identify this VS Code instance. */
-	public async setDeviceId(id: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.deviceId, id);
-	}
+  /** Stores the device ID used to identify this VS Code instance. */
+  public async setDeviceId(id: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.deviceId, id);
+  }
 
-	/** Retrieves the user ID for use in key derivation (PBKDF2 salt). */
-	public getUserId(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.userId);
-	}
+  /** Retrieves the user ID for use in key derivation (PBKDF2 salt). */
+  public getUserId(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.userId);
+  }
 
-	/** Stores the user ID received during authentication. */
-	public async setUserId(id: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.userId, id);
-	}
+  /** Stores the user ID received during authentication. */
+  public async setUserId(id: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.userId, id);
+  }
 
-	/** Retrieves the RSA private key (PEM format) used for decrypting environment secrets. */
-	public getPrivateKey(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.privateKey);
-	}
+  /** Retrieves the RSA private key (PEM format) used for decrypting environment secrets. */
+  public getPrivateKey(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.privateKey);
+  }
 
-	/** Stores the RSA private key (PEM format) for local decryption operations. */
-	public async setPrivateKey(privateKeyPem: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.privateKey, privateKeyPem);
-	}
+  /** Stores the RSA private key (PEM format) for local decryption operations. */
+  public async setPrivateKey(privateKeyPem: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.privateKey, privateKeyPem);
+  }
 
-	/** Retrieves the RSA public key (PEM format) shared with the server. */
-	public getPublicKey(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.publicKey);
-	}
+  /** Retrieves the RSA public key (PEM format) shared with the server. */
+  public getPublicKey(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.publicKey);
+  }
 
-	/** Stores the RSA public key (PEM format) sent to server during authentication. */
-	public async setPublicKey(publicKeyPem: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.publicKey, publicKeyPem);
-	}
+  /** Stores the RSA public key (PEM format) sent to server during authentication. */
+  public async setPublicKey(publicKeyPem: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.publicKey, publicKeyPem);
+  }
 
-	/** Retrieves the server-encrypted key material (base64) for decryption. */
-	public getWrappedKeyMaterial(): Thenable<string | undefined> {
-		return this.ctx.secrets.get(SecretKeys.wrappedKeyMaterial);
-	}
+  /** Retrieves the server-encrypted key material (base64) for decryption. */
+  public getWrappedKeyMaterial(): Thenable<string | undefined> {
+    return this.ctx.secrets.get(SecretKeys.wrappedKeyMaterial);
+  }
 
-	/** Stores the wrapped key material received from the server. */
-	public async setWrappedKeyMaterial(wrappedKey: string): Promise<void> {
-		await this.ctx.secrets.store(SecretKeys.wrappedKeyMaterial, wrappedKey);
-	}
+  /** Stores the wrapped key material received from the server. */
+  public async setWrappedKeyMaterial(wrappedKey: string): Promise<void> {
+    await this.ctx.secrets.store(SecretKeys.wrappedKeyMaterial, wrappedKey);
+  }
 
-	/**
-	 * Gets the decrypted key material by unwrapping with the stored private key.
-	 * Returns undefined if either private key or wrapped key material is missing.
-	 */
-	public async getKeyMaterial(): Promise<string | undefined> {
-		const privateKey = await this.getPrivateKey();
-		const wrappedKeyMaterial = await this.getWrappedKeyMaterial();
+  /**
+   * Gets the decrypted key material by unwrapping with the stored private key.
+   * Returns undefined if either private key or wrapped key material is missing.
+   */
+  public async getKeyMaterial(): Promise<string | undefined> {
+    const privateKey = await this.getPrivateKey();
+    const wrappedKeyMaterial = await this.getWrappedKeyMaterial();
 
-		if (!privateKey || !wrappedKeyMaterial) {
-			return undefined;
-		}
+    if (!privateKey || !wrappedKeyMaterial) {
+      return undefined;
+    }
 
-		try {
-			return unwrapKeyMaterial(privateKey, wrappedKeyMaterial);
-		} catch {
-			// Unwrap failure is expected when keys are rotated or corrupted.
-			// Callers handle undefined by re-authenticating.
-			return undefined;
-		}
-	}
+    try {
+      return unwrapKeyMaterial(privateKey, wrappedKeyMaterial);
+    } catch {
+      // Unwrap failure is expected when keys are rotated or corrupted.
+      // Callers handle undefined by re-authenticating.
+      return undefined;
+    }
+  }
 
-	/**
-	 * Generates a new RSA keypair and stores both keys.
-	 * Returns the public key PEM to send to the server.
-	 */
-	public async generateAndStoreKeyPair(): Promise<string> {
-		const { publicKeyPem, privateKeyPem } = generateKeyPair();
-		await Promise.all([this.setPrivateKey(privateKeyPem), this.setPublicKey(publicKeyPem)]);
-		return publicKeyPem;
-	}
+  /**
+   * Generates a new RSA keypair and stores both keys.
+   * Returns the public key PEM to send to the server.
+   */
+  public async generateAndStoreKeyPair(): Promise<string> {
+    const { publicKeyPem, privateKeyPem } = generateKeyPair();
+    await Promise.all([
+      this.setPrivateKey(privateKeyPem),
+      this.setPublicKey(publicKeyPem),
+    ]);
+    return publicKeyPem;
+  }
 
-	/**
-	 * Gets the stored public key (for sending to server during polling).
-	 * Returns undefined if no keypair has been generated.
-	 */
-	public async getStoredPublicKey(): Promise<string | undefined> {
-		return this.getPublicKey();
-	}
+  /**
+   * Gets the stored public key (for sending to server during polling).
+   * Returns undefined if no keypair has been generated.
+   */
+  public async getStoredPublicKey(): Promise<string | undefined> {
+    return this.getPublicKey();
+  }
 
-	/**
-	 * Checks if we have a stored keypair (for resuming login flow).
-	 */
-	public async hasKeyPair(): Promise<boolean> {
-		const [privateKey, publicKey] = await Promise.all([this.getPrivateKey(), this.getPublicKey()]);
-		return !!privateKey && !!publicKey;
-	}
+  /**
+   * Checks if we have a stored keypair (for resuming login flow).
+   */
+  public async hasKeyPair(): Promise<boolean> {
+    const [privateKey, publicKey] = await Promise.all([
+      this.getPrivateKey(),
+      this.getPublicKey(),
+    ]);
+    return !!privateKey && !!publicKey;
+  }
 
-	/** Removes all stored secrets. Used during logout or credential reset. */
-	public async clearAll(): Promise<void> {
-		await Promise.all(Object.values(SecretKeys).map((key) => this.ctx.secrets.delete(key)));
-	}
+  /** Removes all stored secrets. Used during logout or credential reset. */
+  public async clearAll(): Promise<void> {
+    await Promise.all(
+      Object.values(SecretKeys).map((key) => this.ctx.secrets.delete(key)),
+    );
+  }
 }

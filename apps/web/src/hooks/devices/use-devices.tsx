@@ -1,24 +1,24 @@
 import {
-	useMutation,
-	useQueryClient,
-	useSuspenseQuery,
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
 } from "@tanstack/react-query";
 import client from "@/lib/api";
 
 export interface Device {
-	id: string;
-	userId: string;
-	name: string;
-	type: "DEVICE_EXTENSION" | "DEVICE_WEB";
-	lastIpAddress: string | null;
-	lastUserAgent: string | null;
-	createdAt: string;
-	lastSeenAt: string;
+  id: string;
+  userId: string;
+  name: string;
+  type: "DEVICE_EXTENSION" | "DEVICE_WEB";
+  lastIpAddress: string | null;
+  lastUserAgent: string | null;
+  createdAt: string;
+  lastSeenAt: string;
 }
 
 export interface DevicesResponse {
-	devices: Device[];
-	currentDeviceId: string | null;
+  devices: Device[];
+  currentDeviceId: string | null;
 }
 
 const DEVICES_QUERY_KEY = ["devices"] as const;
@@ -28,14 +28,14 @@ const DEVICES_QUERY_KEY = ["devices"] as const;
  * Uses suspense query for automatic loading states.
  */
 export function useDevices() {
-	return useSuspenseQuery({
-		queryKey: DEVICES_QUERY_KEY,
-		queryFn: async (): Promise<DevicesResponse> => {
-			const response = await client.api.v1.devices.$get();
-			return response.json();
-		},
-		refetchInterval: 30000,
-	});
+  return useSuspenseQuery({
+    queryKey: DEVICES_QUERY_KEY,
+    queryFn: async (): Promise<DevicesResponse> => {
+      const response = await client.api.v1.devices.$get();
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
 }
 
 /**
@@ -43,19 +43,19 @@ export function useDevices() {
  * Automatically invalidates devices query on success.
  */
 export function useDeleteDevice() {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async (deviceId: string) => {
-			const response = await client.api.v1.devices[":deviceId"].$delete({
-				param: { deviceId },
-			});
-			return response.json();
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: DEVICES_QUERY_KEY });
-		},
-	});
+  return useMutation({
+    mutationFn: async (deviceId: string) => {
+      const response = await client.api.v1.devices[":deviceId"].$delete({
+        param: { deviceId },
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEVICES_QUERY_KEY });
+    },
+  });
 }
 
 /**
@@ -63,17 +63,17 @@ export function useDeleteDevice() {
  * Critical security action with automatic query invalidation.
  */
 export function useDeleteAllDevices() {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async (exceptDeviceId: string) => {
-			const response = await client.api.v1.devices["revoke-all"].$post({
-				json: { exceptDeviceId },
-			});
-			return response.json();
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: DEVICES_QUERY_KEY });
-		},
-	});
+  return useMutation({
+    mutationFn: async (exceptDeviceId: string) => {
+      const response = await client.api.v1.devices["revoke-all"].$post({
+        json: { exceptDeviceId },
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DEVICES_QUERY_KEY });
+    },
+  });
 }

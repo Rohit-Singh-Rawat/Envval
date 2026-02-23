@@ -1,7 +1,7 @@
-import { honoFactory } from '@/shared/utils/factory';
-import { UserService } from './user.service';
-import { HTTPException } from 'hono/http-exception';
-import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
+import { honoFactory } from "@/shared/utils/factory";
+import { UserService } from "./user.service";
+import { HTTPException } from "hono/http-exception";
+import { rateLimitMiddleware } from "@/shared/middleware/rate-limit.middleware";
 
 /**
  * DELETE /api/v1/user/repositories
@@ -9,18 +9,18 @@ import { rateLimitMiddleware } from '@/shared/middleware/rate-limit.middleware';
  * Critical destructive action.
  */
 export const deleteUserRepositoriesHandler = honoFactory.createHandlers(
-	rateLimitMiddleware({ tier: 'sensitive' }),
-	async (c) => {
-		const user = c.get('user');
-		if (!user?.id) {
-			throw new HTTPException(401, { message: 'Unauthorized' });
-		}
+  rateLimitMiddleware({ tier: "sensitive" }),
+  async (c) => {
+    const user = c.get("user");
+    if (!user?.id) {
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
 
-		const deleted = await UserService.deleteAllRepositories(user.id);
+    const deleted = await UserService.deleteAllRepositories(user.id);
 
-		return c.json({
-			success: true,
-			deletedCount: deleted.length,
-		});
-	}
+    return c.json({
+      success: true,
+      deletedCount: deleted.length,
+    });
+  },
 );

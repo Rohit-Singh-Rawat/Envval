@@ -3,9 +3,11 @@
 @import "./zodiak.css";
 
 @import "tailwindcss";
-@plugin "@toolwind/corner-shape";
-
 @import "tw-animate-css";
+@import '@envval/ui/globals.css';
+
+
+@plugin "@toolwind/corner-shape";
 
 
 @custom-variant dark (&:is(.dark *));
@@ -41,7 +43,6 @@ code {
 			rotate(calc(var(--angle) * -1deg - 360deg));
 	}
 }
-/* 
 :root {
 	--background: oklch(0.9965 0.013 115.03);
 	--foreground: oklch(0.141 0.005 285.823);
@@ -163,7 +164,7 @@ code {
 	body {
 		@apply bg-background text-foreground;
 	}
-} */
+}
 
 /* Devices Table Styling */
 .devices-table {

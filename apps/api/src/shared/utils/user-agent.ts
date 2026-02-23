@@ -5,48 +5,48 @@
  * Falls back to "Unknown Device" for unrecognised or missing UA strings.
  */
 export function parseDeviceName(ua: string | null | undefined): string {
-	if (!ua) return 'Unknown Device';
+  if (!ua) return "Unknown Device";
 
-	const browser = detectBrowser(ua);
-	const os = detectOS(ua);
+  const browser = detectBrowser(ua);
+  const os = detectOS(ua);
 
-	if (browser && os) return `${browser} on ${os}`;
-	if (browser) return browser;
-	if (os) return os;
+  if (browser && os) return `${browser} on ${os}`;
+  if (browser) return browser;
+  if (os) return os;
 
-	return 'Unknown Device';
+  return "Unknown Device";
 }
 
 const BROWSER_PATTERNS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
-	{ name: 'Edge', pattern: /Edg(?:e|A|iOS)?\/[\d.]+/ },
-	{ name: 'Chrome', pattern: /(?:Chrome|CriOS)\/[\d.]+/ },
-	{ name: 'Firefox', pattern: /(?:Firefox|FxiOS)\/[\d.]+/ },
-	{ name: 'Safari', pattern: /Safari\/[\d.]+/ },
-	{ name: 'Opera', pattern: /(?:OPR|Opera)\/[\d.]+/ },
-	{ name: 'Samsung Internet', pattern: /SamsungBrowser\/[\d.]+/ },
+  { name: "Edge", pattern: /Edg(?:e|A|iOS)?\/[\d.]+/ },
+  { name: "Chrome", pattern: /(?:Chrome|CriOS)\/[\d.]+/ },
+  { name: "Firefox", pattern: /(?:Firefox|FxiOS)\/[\d.]+/ },
+  { name: "Safari", pattern: /Safari\/[\d.]+/ },
+  { name: "Opera", pattern: /(?:OPR|Opera)\/[\d.]+/ },
+  { name: "Samsung Internet", pattern: /SamsungBrowser\/[\d.]+/ },
 ];
 
 function detectBrowser(ua: string): string | null {
-	for (const { name, pattern } of BROWSER_PATTERNS) {
-		if (pattern.test(ua)) return name;
-	}
-	return null;
+  for (const { name, pattern } of BROWSER_PATTERNS) {
+    if (pattern.test(ua)) return name;
+  }
+  return null;
 }
 
 const OS_PATTERNS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
-	{ name: 'Windows', pattern: /Windows NT/ },
-	{ name: 'macOS', pattern: /Macintosh|Mac OS X/ },
-	{ name: 'Linux', pattern: /Linux(?!.*Android)/ },
-	{ name: 'Android', pattern: /Android/ },
-	{ name: 'iOS', pattern: /iPhone|iPad|iPod/ },
-	{ name: 'Chrome OS', pattern: /CrOS/ },
+  { name: "Windows", pattern: /Windows NT/ },
+  { name: "macOS", pattern: /Macintosh|Mac OS X/ },
+  { name: "Linux", pattern: /Linux(?!.*Android)/ },
+  { name: "Android", pattern: /Android/ },
+  { name: "iOS", pattern: /iPhone|iPad|iPod/ },
+  { name: "Chrome OS", pattern: /CrOS/ },
 ];
 
 function detectOS(ua: string): string | null {
-	for (const { name, pattern } of OS_PATTERNS) {
-		if (pattern.test(ua)) return name;
-	}
-	return null;
+  for (const { name, pattern } of OS_PATTERNS) {
+    if (pattern.test(ua)) return name;
+  }
+  return null;
 }
 
 /**
@@ -54,14 +54,14 @@ function detectOS(ua: string): string | null {
  * e.g. "February 14, 2026, 10:30 AM UTC"
  */
 export function formatEmailTimestamp(date: Date): string {
-	return date.toLocaleString('en-US', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-		hour: 'numeric',
-		minute: '2-digit',
-		hour12: true,
-		timeZone: 'UTC',
-		timeZoneName: 'short',
-	});
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
 }

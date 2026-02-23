@@ -1,5 +1,12 @@
 import path from "path";
-import { EventEmitter, ExtensionContext, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
+import {
+  EventEmitter,
+  ExtensionContext,
+  FileSystemWatcher,
+  RelativePattern,
+  Uri,
+  workspace,
+} from "vscode";
 import { IGNORED_ENV_FILES } from "../lib/constants";
 import { ENV_FILE_INCLUDE_PATTERN } from "../lib/file-patterns";
 import { toWorkspaceRelativePath } from "../utils/path-validator";
@@ -34,11 +41,17 @@ export class EnvFileWatcher {
   public readonly onDidDelete = this.deleteEmitter.event;
   private readonly logger: Logger;
 
-  private constructor(private context: ExtensionContext, logger: Logger) {
+  private constructor(
+    private context: ExtensionContext,
+    logger: Logger,
+  ) {
     this.logger = logger;
   }
 
-  public static getInstance(context: ExtensionContext, logger: Logger): EnvFileWatcher {
+  public static getInstance(
+    context: ExtensionContext,
+    logger: Logger,
+  ): EnvFileWatcher {
     if (!EnvFileWatcher.instance) {
       EnvFileWatcher.instance = new EnvFileWatcher(context, logger);
     }
@@ -49,7 +62,7 @@ export class EnvFileWatcher {
     return {
       uri,
       fileName: toWorkspaceRelativePath(uri),
-      workspacePath: workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
+      workspacePath: workspace.workspaceFolders?.[0]?.uri.fsPath ?? "",
     };
   }
 
@@ -64,7 +77,7 @@ export class EnvFileWatcher {
   private debouncePerUri(
     timers: Map<string, NodeJS.Timeout>,
     emitter: EventEmitter<EnvFileEvent>,
-    uri: Uri
+    uri: Uri,
   ): void {
     const key = uri.fsPath;
     const existing = timers.get(key);
@@ -79,61 +92,75 @@ export class EnvFileWatcher {
   }
 
   private handleChange(uri: Uri): void {
-    if (this.isIgnored(uri)) { return; }
+    if (this.isIgnored(uri)) {
+      return;
+    }
     this.logger.debug(`File change detected: ${uri.fsPath}`);
     this.debouncePerUri(this.changeTimers, this.changeEmitter, uri);
   }
 
   private handleCreate(uri: Uri): void {
-    if (this.isIgnored(uri)) { return; }
+    if (this.isIgnored(uri)) {
+      return;
+    }
     this.logger.debug(`File creation detected: ${uri.fsPath}`);
     this.debouncePerUri(this.createTimers, this.createEmitter, uri);
   }
 
   private handleDelete(uri: Uri): void {
-    if (this.isIgnored(uri)) { return; }
+    if (this.isIgnored(uri)) {
+      return;
+    }
     this.logger.debug(`File deletion detected: ${uri.fsPath}`);
     this.debouncePerUri(this.deleteTimers, this.deleteEmitter, uri);
   }
 
   public start(): void {
     if (this.watchers.length > 0) {
-      this.logger.debug('EnvFileWatcher already started, skipping');
+      this.logger.debug("EnvFileWatcher already started, skipping");
       return;
     }
 
     const rootUri = workspace.workspaceFolders?.[0]?.uri;
     if (!rootUri) {
-      this.logger.warn('EnvFileWatcher: No workspace folder — cannot start');
+      this.logger.warn("EnvFileWatcher: No workspace folder — cannot start");
       return;
     }
 
     const pattern = new RelativePattern(rootUri, ENV_FILE_INCLUDE_PATTERN);
-    this.logger.debug(`Starting EnvFileWatcher with pattern: ${pattern.pattern}`);
+    this.logger.debug(
+      `Starting EnvFileWatcher with pattern: ${pattern.pattern}`,
+    );
 
     const watcher = workspace.createFileSystemWatcher(pattern);
 
-    watcher.onDidCreate(uri => this.handleCreate(uri));
-    watcher.onDidChange(uri => this.handleChange(uri));
-    watcher.onDidDelete(uri => this.handleDelete(uri));
+    watcher.onDidCreate((uri) => this.handleCreate(uri));
+    watcher.onDidChange((uri) => this.handleChange(uri));
+    watcher.onDidDelete((uri) => this.handleDelete(uri));
 
     this.watchers.push(watcher);
     this.context.subscriptions.push(watcher);
   }
 
   private clearAllTimers(): void {
-    for (const timer of this.changeTimers.values()) { clearTimeout(timer); }
-    for (const timer of this.createTimers.values()) { clearTimeout(timer); }
-    for (const timer of this.deleteTimers.values()) { clearTimeout(timer); }
+    for (const timer of this.changeTimers.values()) {
+      clearTimeout(timer);
+    }
+    for (const timer of this.createTimers.values()) {
+      clearTimeout(timer);
+    }
+    for (const timer of this.deleteTimers.values()) {
+      clearTimeout(timer);
+    }
     this.changeTimers.clear();
     this.createTimers.clear();
     this.deleteTimers.clear();
   }
 
   public stop(): void {
-    this.logger.debug('Stopping EnvFileWatcher');
+    this.logger.debug("Stopping EnvFileWatcher");
     this.clearAllTimers();
-    this.watchers.forEach(w => w.dispose());
+    this.watchers.forEach((w) => w.dispose());
     this.watchers = [];
   }
 

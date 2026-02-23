@@ -1,6 +1,6 @@
-import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
-import { cn } from "@envval/ui/lib/utils"
-import { Spinner } from "@envval/ui/components/icons/spinner"
+import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
+import { cn } from "@envval/ui/lib/utils";
+import { Spinner } from "@envval/ui/components/icons/spinner";
 
 function Switch({
   className,
@@ -8,8 +8,8 @@ function Switch({
   loading = false,
   ...props
 }: SwitchPrimitive.Root.Props & {
-  size?: "sm" | "default"
-  loading?: boolean
+  size?: "sm" | "default";
+  loading?: boolean;
 }) {
   return (
     <SwitchPrimitive.Root
@@ -17,7 +17,7 @@ function Switch({
       data-size={size}
       className={cn(
         "data-checked:bg-primary data-unchecked:bg-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 dark:data-unchecked:bg-input/80 shrink-0 rounded-full border border-transparent focus-visible:ring-3 aria-invalid:ring-3 data-[size=default]:h-[18.4px] data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px] peer group/switch relative inline-flex items-center transition-all outline-none after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50",
-        className
+        className,
       )}
       {...props}
     >
@@ -29,14 +29,14 @@ function Switch({
           <Spinner
             className={cn(
               "animate-spin text-muted-foreground absolute inset-0 m-auto",
-              size === "sm" ? "size-2.5" : "size-3"
+              size === "sm" ? "size-2.5" : "size-3",
             )}
             aria-hidden="true"
           />
         )}
       </SwitchPrimitive.Thumb>
     </SwitchPrimitive.Root>
-  )
+  );
 }
 
-export { Switch }
+export { Switch };

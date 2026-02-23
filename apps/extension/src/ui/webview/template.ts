@@ -1,9 +1,9 @@
-import { icons } from './icons';
-import { script } from './script';
-import { styles } from './styles';
+import { icons } from "./icons";
+import { script } from "./script";
+import { styles } from "./styles";
 
 export function getLoginWebviewContent(): string {
-	return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">

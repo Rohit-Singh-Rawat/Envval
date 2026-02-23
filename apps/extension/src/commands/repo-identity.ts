@@ -1,11 +1,16 @@
-import * as vscode from 'vscode';
-import { RepoIdentityStore } from '../services/repo-identity-store';
-import { RepoMigrationService } from '../services/repo-migration';
-import { EnvvalMetadataStore } from '../services/metadata-store';
-import { getCurrentWorkspaceId, detectMonorepoStructure, getAllGitRemotes, getGitRemoteUrl } from '../utils/repo-detection';
-import { EnvvalApiClient } from '../api/client';
-import type { Logger } from '../utils/logger';
-import { formatError } from '../utils/format-error';
+import * as vscode from "vscode";
+import { RepoIdentityStore } from "../services/repo-identity-store";
+import { RepoMigrationService } from "../services/repo-migration";
+import { EnvvalMetadataStore } from "../services/metadata-store";
+import {
+  getCurrentWorkspaceId,
+  detectMonorepoStructure,
+  getAllGitRemotes,
+  getGitRemoteUrl,
+} from "../utils/repo-detection";
+import { EnvvalApiClient } from "../api/client";
+import type { Logger } from "../utils/logger";
+import { formatError } from "../utils/format-error";
 
 /**
  * Command implementations for repository identity management
@@ -17,7 +22,7 @@ export class RepoIdentityCommands {
   constructor(
     private context: vscode.ExtensionContext,
     private metadataStore: EnvvalMetadataStore,
-    private logger: Logger
+    private logger: Logger,
   ) {}
 
   private get identityStore(): RepoIdentityStore {
@@ -34,7 +39,7 @@ export class RepoIdentityCommands {
         this.metadataStore,
         this.identityStore,
         this.apiClient,
-        this.logger
+        this.logger,
       );
     }
     return this._migrationService;
@@ -50,14 +55,16 @@ export class RepoIdentityCommands {
   async viewRepoIdentity(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
     try {
       const identity = await getCurrentWorkspaceId(this.context);
       if (!identity) {
-        vscode.window.showErrorMessage('Unable to determine repository identity.');
+        vscode.window.showErrorMessage(
+          "Unable to determine repository identity.",
+        );
         return;
       }
 
@@ -80,7 +87,10 @@ export class RepoIdentityCommands {
 
       if (identity.monorepoDetected) {
         message += `**Monorepo Detected:** Yes\n`;
-        if (identity.availableSubProjects && identity.availableSubProjects.length > 0) {
+        if (
+          identity.availableSubProjects &&
+          identity.availableSubProjects.length > 0
+        ) {
           message += `**Available Sub-Projects:** ${identity.availableSubProjects.length}\n`;
         }
       }
@@ -98,24 +108,27 @@ export class RepoIdentityCommands {
       const selection = await vscode.window.showInformationMessage(
         message,
         { modal: false },
-        'Copy Repo ID',
-        'View Migration History',
-        'Close'
+        "Copy Repo ID",
+        "View Migration History",
+        "Close",
       );
 
       switch (selection) {
-        case 'Copy Repo ID':
+        case "Copy Repo ID":
           await vscode.env.clipboard.writeText(identity.repoId);
-          vscode.window.showInformationMessage('Repository ID copied to clipboard.');
+          vscode.window.showInformationMessage(
+            "Repository ID copied to clipboard.",
+          );
           break;
-        case 'View Migration History':
+        case "View Migration History":
           await this.showMigrationHistory(workspacePath);
           break;
       }
-
     } catch (error) {
       this.logger.error(`Error viewing repo identity: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Failed to retrieve repository identity information.');
+      vscode.window.showErrorMessage(
+        "Failed to retrieve repository identity information.",
+      );
     }
   }
 
@@ -125,27 +138,27 @@ export class RepoIdentityCommands {
   async setManualRepoIdentity(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
     try {
       const currentIdentity = await getCurrentWorkspaceId(this.context);
-      const currentId = currentIdentity?.repoId || '';
+      const currentId = currentIdentity?.repoId || "";
 
       const newIdentity = await vscode.window.showInputBox({
-        prompt: 'Enter custom repository identity',
-        placeHolder: 'e.g., my-custom-repo-name',
+        prompt: "Enter custom repository identity",
+        placeHolder: "e.g., my-custom-repo-name",
         value: currentId,
         validateInput: (value) => {
           if (!value || value.trim().length === 0) {
-            return 'Repository identity cannot be empty';
+            return "Repository identity cannot be empty";
           }
           if (value.length > 100) {
-            return 'Repository identity must be 100 characters or less';
+            return "Repository identity must be 100 characters or less";
           }
           return null;
-        }
+        },
       });
 
       if (!newIdentity) {
@@ -154,43 +167,55 @@ export class RepoIdentityCommands {
 
       // Check if this is different from current identity
       if (currentId && newIdentity.trim() === currentId) {
-        vscode.window.showInformationMessage('Repository identity is already set to this value.');
+        vscode.window.showInformationMessage(
+          "Repository identity is already set to this value.",
+        );
         return;
       }
 
       // Store the manual identity
-      await this.identityStore.setManualIdentity(workspacePath, newIdentity.trim());
+      await this.identityStore.setManualIdentity(
+        workspacePath,
+        newIdentity.trim(),
+      );
 
       // Offer to migrate existing metadata
       const envCount = await this.getEnvCountForRepo(currentId);
       if (envCount > 0) {
         const migrate = await vscode.window.showInformationMessage(
           `Found ${envCount} environment variable entries for the current identity. Would you like to migrate them to the new identity?`,
-          'Migrate Now',
-          'Skip Migration'
+          "Migrate Now",
+          "Skip Migration",
         );
 
-        if (migrate === 'Migrate Now' && currentId) {
-          await this.migrationService.performMigration(currentId, newIdentity.trim(), workspacePath);
+        if (migrate === "Migrate Now" && currentId) {
+          await this.migrationService.performMigration(
+            currentId,
+            newIdentity.trim(),
+            workspacePath,
+          );
         }
       }
 
-      vscode.window.showInformationMessage(`Repository identity set to: ${newIdentity.trim()}`);
+      vscode.window.showInformationMessage(
+        `Repository identity set to: ${newIdentity.trim()}`,
+      );
 
       // Suggest reloading the window
       const reload = await vscode.window.showInformationMessage(
-        'Repository identity updated. Reload window to apply changes?',
-        'Reload Now',
-        'Later'
+        "Repository identity updated. Reload window to apply changes?",
+        "Reload Now",
+        "Later",
       );
 
-      if (reload === 'Reload Now') {
-        vscode.commands.executeCommand('workbench.action.reloadWindow');
+      if (reload === "Reload Now") {
+        vscode.commands.executeCommand("workbench.action.reloadWindow");
       }
-
     } catch (error) {
-      this.logger.error(`Error setting manual repo identity: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Failed to set repository identity.');
+      this.logger.error(
+        `Error setting manual repo identity: ${formatError(error)}`,
+      );
+      vscode.window.showErrorMessage("Failed to set repository identity.");
     }
   }
 
@@ -200,7 +225,7 @@ export class RepoIdentityCommands {
   async setSubProjectPath(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
@@ -213,47 +238,50 @@ export class RepoIdentityCommands {
       if (subProjects.length === 0) {
         // No detected sub-projects, allow manual input
         selectedPath = await vscode.window.showInputBox({
-          prompt: 'Enter sub-project path (relative to workspace root)',
-          placeHolder: 'e.g., packages/my-app or apps/web',
-          value: storedIdentity?.subProjectPath || '',
+          prompt: "Enter sub-project path (relative to workspace root)",
+          placeHolder: "e.g., packages/my-app or apps/web",
+          value: storedIdentity?.subProjectPath || "",
           validateInput: (value) => {
             if (!value || value.trim().length === 0) {
-              return 'Sub-project path cannot be empty';
+              return "Sub-project path cannot be empty";
             }
-            if (value.startsWith('/') || value.startsWith('\\')) {
-              return 'Path should be relative (not start with / or \\)';
+            if (value.startsWith("/") || value.startsWith("\\")) {
+              return "Path should be relative (not start with / or \\)";
             }
             return null;
-          }
+          },
         });
       } else {
         // Show quick pick of detected sub-projects
         const items = [
-          { label: 'Custom Path...', description: 'Enter a custom sub-project path' },
-          ...subProjects.map(path => ({
+          {
+            label: "Custom Path...",
+            description: "Enter a custom sub-project path",
+          },
+          ...subProjects.map((path) => ({
             label: path,
-            description: 'Detected sub-project'
-          }))
+            description: "Detected sub-project",
+          })),
         ];
 
         const selection = await vscode.window.showQuickPick(items, {
-          placeHolder: 'Select sub-project path'
+          placeHolder: "Select sub-project path",
         });
 
         if (!selection) {
           return;
         }
 
-        if (selection.label === 'Custom Path...') {
+        if (selection.label === "Custom Path...") {
           selectedPath = await vscode.window.showInputBox({
-            prompt: 'Enter sub-project path',
-            placeHolder: 'e.g., packages/my-app',
+            prompt: "Enter sub-project path",
+            placeHolder: "e.g., packages/my-app",
             validateInput: (value) => {
               if (!value || value.trim().length === 0) {
-                return 'Sub-project path cannot be empty';
+                return "Sub-project path cannot be empty";
               }
               return null;
-            }
+            },
           });
         } else {
           selectedPath = selection.label;
@@ -265,29 +293,42 @@ export class RepoIdentityCommands {
       }
 
       // Store the sub-project path
-      await this.identityStore.setSubProjectPath(workspacePath, selectedPath.trim());
+      await this.identityStore.setSubProjectPath(
+        workspacePath,
+        selectedPath.trim(),
+      );
 
       // Offer to migrate if current identity changes
       const currentIdentity = await getCurrentWorkspaceId(this.context);
       const newIdentity = await getCurrentWorkspaceId(this.context);
 
-      if (currentIdentity?.repoId !== newIdentity?.repoId && currentIdentity?.repoId) {
+      if (
+        currentIdentity?.repoId !== newIdentity?.repoId &&
+        currentIdentity?.repoId
+      ) {
         const migrate = await vscode.window.showInformationMessage(
-          'Sub-project path change will update repository identity. Migrate existing metadata?',
-          'Migrate Now',
-          'Skip Migration'
+          "Sub-project path change will update repository identity. Migrate existing metadata?",
+          "Migrate Now",
+          "Skip Migration",
         );
 
-        if (migrate === 'Migrate Now' && newIdentity?.repoId) {
-          await this.migrationService.performMigration(currentIdentity.repoId, newIdentity.repoId, workspacePath);
+        if (migrate === "Migrate Now" && newIdentity?.repoId) {
+          await this.migrationService.performMigration(
+            currentIdentity.repoId,
+            newIdentity.repoId,
+            workspacePath,
+          );
         }
       }
 
-      vscode.window.showInformationMessage(`Sub-project path set to: ${selectedPath.trim()}`);
-
+      vscode.window.showInformationMessage(
+        `Sub-project path set to: ${selectedPath.trim()}`,
+      );
     } catch (error) {
-      this.logger.error(`Error setting sub-project path: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Failed to set sub-project path.');
+      this.logger.error(
+        `Error setting sub-project path: ${formatError(error)}`,
+      );
+      vscode.window.showErrorMessage("Failed to set sub-project path.");
     }
   }
 
@@ -297,39 +338,40 @@ export class RepoIdentityCommands {
   async resetRepoIdentity(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
     try {
       const confirm = await vscode.window.showWarningMessage(
-        'This will clear all manual repository identity overrides and return to automatic detection. Continue?',
-        'Reset Identity',
-        'Cancel'
+        "This will clear all manual repository identity overrides and return to automatic detection. Continue?",
+        "Reset Identity",
+        "Cancel",
       );
 
-      if (confirm !== 'Reset Identity') {
+      if (confirm !== "Reset Identity") {
         return;
       }
 
       await this.identityStore.clearIdentity(workspacePath);
 
-      vscode.window.showInformationMessage('Repository identity reset to automatic detection.');
+      vscode.window.showInformationMessage(
+        "Repository identity reset to automatic detection.",
+      );
 
       // Suggest reloading the window
       const reload = await vscode.window.showInformationMessage(
-        'Repository identity reset. Reload window to apply changes?',
-        'Reload Now',
-        'Later'
+        "Repository identity reset. Reload window to apply changes?",
+        "Reload Now",
+        "Later",
       );
 
-      if (reload === 'Reload Now') {
-        vscode.commands.executeCommand('workbench.action.reloadWindow');
+      if (reload === "Reload Now") {
+        vscode.commands.executeCommand("workbench.action.reloadWindow");
       }
-
     } catch (error) {
       this.logger.error(`Error resetting repo identity: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Failed to reset repository identity.');
+      vscode.window.showErrorMessage("Failed to reset repository identity.");
     }
   }
 
@@ -339,32 +381,49 @@ export class RepoIdentityCommands {
   async migrateRepoIdentity(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
     try {
-      const migrationCheck = await this.migrationService.detectMigrationNeeded(workspacePath);
+      const migrationCheck =
+        await this.migrationService.detectMigrationNeeded(workspacePath);
 
-      if (!migrationCheck.needsMigration || !migrationCheck.oldRepoId || !migrationCheck.newRepoId || !migrationCheck.reason) {
-        vscode.window.showInformationMessage('No migration needed for this workspace.');
+      if (
+        !migrationCheck.needsMigration ||
+        !migrationCheck.oldRepoId ||
+        !migrationCheck.newRepoId ||
+        !migrationCheck.reason
+      ) {
+        vscode.window.showInformationMessage(
+          "No migration needed for this workspace.",
+        );
         return;
       }
 
       const { oldRepoId, newRepoId, reason } = migrationCheck;
 
-      const userChoice = await this.migrationService.promptUserForMigration(oldRepoId, newRepoId, reason);
+      const userChoice = await this.migrationService.promptUserForMigration(
+        oldRepoId,
+        newRepoId,
+        reason,
+      );
 
-      if (userChoice === 'migrate') {
-        await this.migrationService.performMigration(oldRepoId, newRepoId, workspacePath);
-      } else if (userChoice === 'keep') {
+      if (userChoice === "migrate") {
+        await this.migrationService.performMigration(
+          oldRepoId,
+          newRepoId,
+          workspacePath,
+        );
+      } else if (userChoice === "keep") {
         await this.identityStore.setManualIdentity(workspacePath, oldRepoId);
-        vscode.window.showInformationMessage('Current identity preserved as manual override.');
+        vscode.window.showInformationMessage(
+          "Current identity preserved as manual override.",
+        );
       }
-
     } catch (error) {
       this.logger.error(`Error during manual migration: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Migration failed. Please try again.');
+      vscode.window.showErrorMessage("Migration failed. Please try again.");
     }
   }
 
@@ -375,28 +434,34 @@ export class RepoIdentityCommands {
     const storedData = this.identityStore.getRepoIdentity(workspacePath);
 
     if (!storedData?.migrationHistory.length) {
-      vscode.window.showInformationMessage('No migration history found for this workspace.');
+      vscode.window.showInformationMessage(
+        "No migration history found for this workspace.",
+      );
       return;
     }
 
     const historyItems = storedData.migrationHistory
-      .sort((a, b) => new Date(b.migratedAt).getTime() - new Date(a.migratedAt).getTime())
-      .map(migration => ({
+      .sort(
+        (a, b) =>
+          new Date(b.migratedAt).getTime() - new Date(a.migratedAt).getTime(),
+      )
+      .map((migration) => ({
         label: `${migration.fromRepoId.substring(0, 8)}... → ${migration.toRepoId.substring(0, 8)}...`,
         description: new Date(migration.migratedAt).toLocaleString(),
-        detail: `Reason: ${migration.reason}`
+        detail: `Reason: ${migration.reason}`,
       }));
 
     const selection = await vscode.window.showQuickPick(historyItems, {
-      placeHolder: 'Select migration to view details'
+      placeHolder: "Select migration to view details",
     });
 
     if (selection) {
-      const fullMessage = `**Migration Details**\n\n` +
-        `**From:** ${selection.label.split(' → ')[0].replace('...', '')}\n` +
-        `**To:** ${selection.label.split(' → ')[1].replace('...', '')}\n` +
+      const fullMessage =
+        `**Migration Details**\n\n` +
+        `**From:** ${selection.label.split(" → ")[0].replace("...", "")}\n` +
+        `**To:** ${selection.label.split(" → ")[1].replace("...", "")}\n` +
         `**Date:** ${selection.description}\n` +
-        `**Reason:** ${selection.detail.replace('Reason: ', '')}`;
+        `**Reason:** ${selection.detail.replace("Reason: ", "")}`;
 
       vscode.window.showInformationMessage(fullMessage);
     }
@@ -408,82 +473,113 @@ export class RepoIdentityCommands {
   async diagnoseRepoDetection(): Promise<void> {
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspacePath) {
-      vscode.window.showErrorMessage('No workspace is currently open.');
+      vscode.window.showErrorMessage("No workspace is currently open.");
       return;
     }
 
     try {
       // Create output channel
-      const outputChannel = vscode.window.createOutputChannel('EnvVal Repo Detection Diagnostics');
+      const outputChannel = vscode.window.createOutputChannel(
+        "EnvVal Repo Detection Diagnostics",
+      );
       outputChannel.show();
 
-      outputChannel.appendLine('='.repeat(60));
-      outputChannel.appendLine('ENVVAL REPOSITORY DETECTION DIAGNOSTICS');
-      outputChannel.appendLine('='.repeat(60));
+      outputChannel.appendLine("=".repeat(60));
+      outputChannel.appendLine("ENVVAL REPOSITORY DETECTION DIAGNOSTICS");
+      outputChannel.appendLine("=".repeat(60));
       outputChannel.appendLine(`Workspace Path: ${workspacePath}`);
       outputChannel.appendLine(`Timestamp: ${new Date().toISOString()}`);
-      outputChannel.appendLine('');
+      outputChannel.appendLine("");
 
       // Current identity detection
-      outputChannel.appendLine('1. CURRENT IDENTITY DETECTION:');
-      outputChannel.appendLine('-'.repeat(30));
+      outputChannel.appendLine("1. CURRENT IDENTITY DETECTION:");
+      outputChannel.appendLine("-".repeat(30));
 
       const identity = await getCurrentWorkspaceId(this.context);
       if (identity) {
         outputChannel.appendLine(`Repo ID: ${identity.repoId}`);
         outputChannel.appendLine(`Identity Source: ${identity.identitySource}`);
-        outputChannel.appendLine(`Git Remote: ${identity.gitRemote || 'None'}`);
+        outputChannel.appendLine(`Git Remote: ${identity.gitRemote || "None"}`);
         if (identity.gitRemoteType) {
-          outputChannel.appendLine(`Git Remote Type: ${identity.gitRemoteType}`);
+          outputChannel.appendLine(
+            `Git Remote Type: ${identity.gitRemoteType}`,
+          );
         }
-        outputChannel.appendLine(`Sub-Project Path: ${identity.subProjectPath || 'None'}`);
-        outputChannel.appendLine(`Monorepo Detected: ${identity.monorepoDetected ? 'Yes' : 'No'}`);
+        outputChannel.appendLine(
+          `Sub-Project Path: ${identity.subProjectPath || "None"}`,
+        );
+        outputChannel.appendLine(
+          `Monorepo Detected: ${identity.monorepoDetected ? "Yes" : "No"}`,
+        );
         if (identity.availableSubProjects) {
-          outputChannel.appendLine(`Available Sub-Projects: ${identity.availableSubProjects.join(', ')}`);
+          outputChannel.appendLine(
+            `Available Sub-Projects: ${identity.availableSubProjects.join(", ")}`,
+          );
         }
         if (identity.requiresMigration) {
           outputChannel.appendLine(`Migration Required: Yes`);
-          outputChannel.appendLine(`Suggested New ID: ${identity.suggestedMigration?.newRepoId}`);
-          outputChannel.appendLine(`Migration Reason: ${identity.suggestedMigration?.reason}`);
+          outputChannel.appendLine(
+            `Suggested New ID: ${identity.suggestedMigration?.newRepoId}`,
+          );
+          outputChannel.appendLine(
+            `Migration Reason: ${identity.suggestedMigration?.reason}`,
+          );
         } else {
           outputChannel.appendLine(`Migration Required: No`);
         }
       } else {
-        outputChannel.appendLine('ERROR: Unable to determine workspace identity');
+        outputChannel.appendLine(
+          "ERROR: Unable to determine workspace identity",
+        );
       }
-      outputChannel.appendLine('');
+      outputChannel.appendLine("");
 
       // Stored identity data
-      outputChannel.appendLine('2. STORED IDENTITY DATA:');
-      outputChannel.appendLine('-'.repeat(30));
+      outputChannel.appendLine("2. STORED IDENTITY DATA:");
+      outputChannel.appendLine("-".repeat(30));
 
       const storedData = this.identityStore.getRepoIdentity(workspacePath);
       if (storedData) {
-        outputChannel.appendLine(`Manual Identity: ${storedData.manualIdentity || 'None'}`);
-        outputChannel.appendLine(`Sub-Project Path: ${storedData.subProjectPath || 'None'}`);
-        outputChannel.appendLine(`Identity Source: ${storedData.identitySource}`);
+        outputChannel.appendLine(
+          `Manual Identity: ${storedData.manualIdentity || "None"}`,
+        );
+        outputChannel.appendLine(
+          `Sub-Project Path: ${storedData.subProjectPath || "None"}`,
+        );
+        outputChannel.appendLine(
+          `Identity Source: ${storedData.identitySource}`,
+        );
         outputChannel.appendLine(`Created: ${storedData.createdAt}`);
         outputChannel.appendLine(`Last Updated: ${storedData.lastUpdatedAt}`);
 
-        outputChannel.appendLine(`Git Remote History (${storedData.gitRemoteHistory.length} entries):`);
-        for (const remote of storedData.gitRemoteHistory.slice(-3)) { // Show last 3
-          outputChannel.appendLine(`  - ${remote.url} (${remote.normalizedUrl}) - ${remote.detectedAt}`);
+        outputChannel.appendLine(
+          `Git Remote History (${storedData.gitRemoteHistory.length} entries):`,
+        );
+        for (const remote of storedData.gitRemoteHistory.slice(-3)) {
+          // Show last 3
+          outputChannel.appendLine(
+            `  - ${remote.url} (${remote.normalizedUrl}) - ${remote.detectedAt}`,
+          );
         }
 
-        outputChannel.appendLine(`Migration History (${storedData.migrationHistory.length} entries):`);
-        for (const migration of storedData.migrationHistory.slice(-3)) { // Show last 3
-          outputChannel.appendLine(`  - ${migration.fromRepoId.substring(0, 8)}... → ${migration.toRepoId.substring(0, 8)}... (${migration.migratedAt})`);
+        outputChannel.appendLine(
+          `Migration History (${storedData.migrationHistory.length} entries):`,
+        );
+        for (const migration of storedData.migrationHistory.slice(-3)) {
+          // Show last 3
+          outputChannel.appendLine(
+            `  - ${migration.fromRepoId.substring(0, 8)}... → ${migration.toRepoId.substring(0, 8)}... (${migration.migratedAt})`,
+          );
           outputChannel.appendLine(`    Reason: ${migration.reason}`);
         }
       } else {
-        outputChannel.appendLine('No stored identity data found');
+        outputChannel.appendLine("No stored identity data found");
       }
-      outputChannel.appendLine('');
+      outputChannel.appendLine("");
 
       // Git analysis
-      outputChannel.appendLine('3. GIT ANALYSIS:');
-      outputChannel.appendLine('-'.repeat(30));
-
+      outputChannel.appendLine("3. GIT ANALYSIS:");
+      outputChannel.appendLine("-".repeat(30));
 
       try {
         const allRemotes = await getAllGitRemotes(workspacePath);
@@ -498,56 +594,70 @@ export class RepoIdentityCommands {
       // Monorepo analysis
       try {
         const subProjects = await detectMonorepoStructure(workspacePath);
-        outputChannel.appendLine(`Monorepo Sub-Projects Found: ${subProjects.length}`);
+        outputChannel.appendLine(
+          `Monorepo Sub-Projects Found: ${subProjects.length}`,
+        );
         if (subProjects.length > 0) {
-          for (const subProject of subProjects.slice(0, 10)) { // Limit to first 10
+          for (const subProject of subProjects.slice(0, 10)) {
+            // Limit to first 10
             outputChannel.appendLine(`  - ${subProject}`);
           }
           if (subProjects.length > 10) {
-            outputChannel.appendLine(`  ... and ${subProjects.length - 10} more`);
+            outputChannel.appendLine(
+              `  ... and ${subProjects.length - 10} more`,
+            );
           }
         }
       } catch (error) {
         outputChannel.appendLine(`Monorepo Analysis Error: ${error}`);
       }
 
-      outputChannel.appendLine('');
+      outputChannel.appendLine("");
 
       // Configuration
-      outputChannel.appendLine('4. CONFIGURATION:');
-      outputChannel.appendLine('-'.repeat(30));
+      outputChannel.appendLine("4. CONFIGURATION:");
+      outputChannel.appendLine("-".repeat(30));
 
-      const config = vscode.workspace.getConfiguration('envval');
-      outputChannel.appendLine(`Auto-detect Monorepo: ${config.get('autoDetectMonorepo', true)}`);
-      outputChannel.appendLine(`Preferred Remote: ${config.get('preferredRemote', 'origin')}`);
-      outputChannel.appendLine(`Prompt for Migration: ${config.get('promptForMigration', true)}`);
+      const config = vscode.workspace.getConfiguration("envval");
+      outputChannel.appendLine(
+        `Auto-detect Monorepo: ${config.get("autoDetectMonorepo", true)}`,
+      );
+      outputChannel.appendLine(
+        `Preferred Remote: ${config.get("preferredRemote", "origin")}`,
+      );
+      outputChannel.appendLine(
+        `Prompt for Migration: ${config.get("promptForMigration", true)}`,
+      );
 
-      outputChannel.appendLine('');
+      outputChannel.appendLine("");
 
       // Environment metadata
-      outputChannel.appendLine('5. ENVIRONMENT METADATA:');
-      outputChannel.appendLine('-'.repeat(30));
+      outputChannel.appendLine("5. ENVIRONMENT METADATA:");
+      outputChannel.appendLine("-".repeat(30));
 
       try {
         const currentRepoId = identity?.repoId;
         if (currentRepoId) {
           const envCount = await this.getEnvCountForRepo(currentRepoId);
-          outputChannel.appendLine(`Envs for Current Repo ID (${currentRepoId.substring(0, 8)}...): ${envCount}`);
+          outputChannel.appendLine(
+            `Envs for Current Repo ID (${currentRepoId.substring(0, 8)}...): ${envCount}`,
+          );
         } else {
-          outputChannel.appendLine('No current repo ID available');
+          outputChannel.appendLine("No current repo ID available");
         }
       } catch (error) {
         outputChannel.appendLine(`Metadata Analysis Error: ${error}`);
       }
 
-      outputChannel.appendLine('');
-      outputChannel.appendLine('='.repeat(60));
-      outputChannel.appendLine('DIAGNOSTIC COMPLETE');
-      outputChannel.appendLine('='.repeat(60));
-
+      outputChannel.appendLine("");
+      outputChannel.appendLine("=".repeat(60));
+      outputChannel.appendLine("DIAGNOSTIC COMPLETE");
+      outputChannel.appendLine("=".repeat(60));
     } catch (error) {
-      this.logger.error(`Error during repo detection diagnostics: ${formatError(error)}`);
-      vscode.window.showErrorMessage('Failed to generate diagnostic report.');
+      this.logger.error(
+        `Error during repo detection diagnostics: ${formatError(error)}`,
+      );
+      vscode.window.showErrorMessage("Failed to generate diagnostic report.");
     }
   }
 

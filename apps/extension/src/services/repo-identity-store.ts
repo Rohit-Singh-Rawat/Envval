@@ -1,6 +1,6 @@
 // repo-identity-store.ts
-import * as vscode from 'vscode';
-import { REPO_IDENTITIES_STORAGE_KEY } from '../lib/constants';
+import * as vscode from "vscode";
+import { REPO_IDENTITIES_STORAGE_KEY } from "../lib/constants";
 
 /**
  * Data structure for storing repo identity information
@@ -15,7 +15,7 @@ interface RepoIdentityData {
   }>;
   contentSignature?: string;
   subProjectPath?: string;
-  identitySource: 'manual' | 'git' | 'stored-git' | 'content';
+  identitySource: "manual" | "git" | "stored-git" | "content";
   createdAt: string;
   lastUpdatedAt: string;
   migrationHistory: Array<{
@@ -40,17 +40,27 @@ export class RepoIdentityStore {
    * Get stored identity data for a workspace
    */
   private getStoredData(workspacePath: string): RepoIdentityData | undefined {
-    const allData = this.context.globalState.get<{ [workspacePath: string]: RepoIdentityData }>(RepoIdentityStore.STORAGE_KEY, {});
+    const allData = this.context.globalState.get<{
+      [workspacePath: string]: RepoIdentityData;
+    }>(RepoIdentityStore.STORAGE_KEY, {});
     return allData[workspacePath];
   }
 
   /**
    * Store identity data for a workspace
    */
-  private setStoredData(workspacePath: string, data: RepoIdentityData): Thenable<void> {
-    const allData = this.context.globalState.get<{ [workspacePath: string]: RepoIdentityData }>(RepoIdentityStore.STORAGE_KEY, {});
+  private setStoredData(
+    workspacePath: string,
+    data: RepoIdentityData,
+  ): Thenable<void> {
+    const allData = this.context.globalState.get<{
+      [workspacePath: string]: RepoIdentityData;
+    }>(RepoIdentityStore.STORAGE_KEY, {});
     allData[workspacePath] = data;
-    return this.context.globalState.update(RepoIdentityStore.STORAGE_KEY, allData);
+    return this.context.globalState.update(
+      RepoIdentityStore.STORAGE_KEY,
+      allData,
+    );
   }
 
   /**
@@ -63,10 +73,15 @@ export class RepoIdentityStore {
   /**
    * Set manual repo identity override
    */
-  async setManualIdentity(workspacePath: string, identity: string): Promise<void> {
-    const data = this.getStoredData(workspacePath) || this.createDefaultData(workspacePath);
+  async setManualIdentity(
+    workspacePath: string,
+    identity: string,
+  ): Promise<void> {
+    const data =
+      this.getStoredData(workspacePath) ||
+      this.createDefaultData(workspacePath);
     data.manualIdentity = identity;
-    data.identitySource = 'manual';
+    data.identitySource = "manual";
     data.lastUpdatedAt = new Date().toISOString();
     await this.setStoredData(workspacePath, data);
   }
@@ -74,20 +89,29 @@ export class RepoIdentityStore {
   /**
    * Update Git remote history for a workspace
    */
-  async updateGitRemote(workspacePath: string, remoteUrl: string, normalizedUrl: string): Promise<void> {
-    const data = this.getStoredData(workspacePath) || this.createDefaultData(workspacePath);
+  async updateGitRemote(
+    workspacePath: string,
+    remoteUrl: string,
+    normalizedUrl: string,
+  ): Promise<void> {
+    const data =
+      this.getStoredData(workspacePath) ||
+      this.createDefaultData(workspacePath);
 
     // Check if this remote is already in history
-    const existingIndex = data.gitRemoteHistory.findIndex(h => h.normalizedUrl === normalizedUrl);
+    const existingIndex = data.gitRemoteHistory.findIndex(
+      (h) => h.normalizedUrl === normalizedUrl,
+    );
     if (existingIndex >= 0) {
       // Update detection time
-      data.gitRemoteHistory[existingIndex].detectedAt = new Date().toISOString();
+      data.gitRemoteHistory[existingIndex].detectedAt =
+        new Date().toISOString();
     } else {
       // Add new remote to history
       data.gitRemoteHistory.push({
         url: remoteUrl,
         normalizedUrl,
-        detectedAt: new Date().toISOString()
+        detectedAt: new Date().toISOString(),
       });
     }
 
@@ -98,8 +122,13 @@ export class RepoIdentityStore {
   /**
    * Set sub-project path for monorepos
    */
-  async setSubProjectPath(workspacePath: string, subPath: string): Promise<void> {
-    const data = this.getStoredData(workspacePath) || this.createDefaultData(workspacePath);
+  async setSubProjectPath(
+    workspacePath: string,
+    subPath: string,
+  ): Promise<void> {
+    const data =
+      this.getStoredData(workspacePath) ||
+      this.createDefaultData(workspacePath);
     data.subProjectPath = subPath;
     data.lastUpdatedAt = new Date().toISOString();
     await this.setStoredData(workspacePath, data);
@@ -108,9 +137,15 @@ export class RepoIdentityStore {
   /**
    * Record a repo ID migration
    */
-  async migrateRepoId(oldRepoId: string, newRepoId: string, reason: string = 'automatic'): Promise<void> {
+  async migrateRepoId(
+    oldRepoId: string,
+    newRepoId: string,
+    reason: string = "automatic",
+  ): Promise<void> {
     // Find all workspaces that might have this repoId and update their migration history
-    const allData = this.context.globalState.get<{ [workspacePath: string]: RepoIdentityData }>(RepoIdentityStore.STORAGE_KEY, {});
+    const allData = this.context.globalState.get<{
+      [workspacePath: string]: RepoIdentityData;
+    }>(RepoIdentityStore.STORAGE_KEY, {});
 
     for (const [workspacePath, data] of Object.entries(allData)) {
       // Add migration record
@@ -118,7 +153,7 @@ export class RepoIdentityStore {
         fromRepoId: oldRepoId,
         toRepoId: newRepoId,
         migratedAt: new Date().toISOString(),
-        reason
+        reason,
       });
 
       // Update last modified time
@@ -129,14 +164,17 @@ export class RepoIdentityStore {
     }
   }
 
-
-
   /**
    * Update the last active repo ID for a workspace.
    * This is used to track "successful" identity usage to detect subsequent changes.
    */
-  async updateLastActiveRepoId(workspacePath: string, repoId: string): Promise<void> {
-    const data = this.getStoredData(workspacePath) || this.createDefaultData(workspacePath);
+  async updateLastActiveRepoId(
+    workspacePath: string,
+    repoId: string,
+  ): Promise<void> {
+    const data =
+      this.getStoredData(workspacePath) ||
+      this.createDefaultData(workspacePath);
     // Only update if it's different to save writes
     if (data.lastActiveRepoId !== repoId) {
       data.lastActiveRepoId = repoId;
@@ -152,7 +190,7 @@ export class RepoIdentityStore {
     const data = this.getStoredData(workspacePath);
     if (data) {
       data.manualIdentity = undefined;
-      data.identitySource = 'content'; // Reset to content-based detection
+      data.identitySource = "content"; // Reset to content-based detection
       data.lastActiveRepoId = undefined; // Reset active ID so we don't migrate from old garbage
       data.lastUpdatedAt = new Date().toISOString();
       await this.setStoredData(workspacePath, data);
@@ -163,7 +201,9 @@ export class RepoIdentityStore {
    * Get all workspaces with stored identity data
    */
   getAllStoredIdentities(): { [workspacePath: string]: RepoIdentityData } {
-    return this.context.globalState.get<{ [workspacePath: string]: RepoIdentityData }>(RepoIdentityStore.STORAGE_KEY, {});
+    return this.context.globalState.get<{
+      [workspacePath: string]: RepoIdentityData;
+    }>(RepoIdentityStore.STORAGE_KEY, {});
   }
 
   /**
@@ -177,20 +217,23 @@ export class RepoIdentityStore {
   /**
    * Get the most recent Git remote for a workspace from history
    */
-  getMostRecentGitRemote(workspacePath: string): { url: string; normalizedUrl: string } | undefined {
+  getMostRecentGitRemote(
+    workspacePath: string,
+  ): { url: string; normalizedUrl: string } | undefined {
     const data = this.getStoredData(workspacePath);
     if (!data?.gitRemoteHistory.length) {
       return undefined;
     }
 
     // Sort by detection time, most recent first
-    const sorted = data.gitRemoteHistory.sort((a, b) =>
-      new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
+    const sorted = data.gitRemoteHistory.sort(
+      (a, b) =>
+        new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime(),
     );
 
     return {
       url: sorted[0].url,
-      normalizedUrl: sorted[0].normalizedUrl
+      normalizedUrl: sorted[0].normalizedUrl,
     };
   }
 
@@ -201,11 +244,11 @@ export class RepoIdentityStore {
     return {
       workspacePath,
       gitRemoteHistory: [],
-      identitySource: 'content',
+      identitySource: "content",
       createdAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString(),
       migrationHistory: [],
-      lastActiveRepoId: undefined
+      lastActiveRepoId: undefined,
     };
   }
 }

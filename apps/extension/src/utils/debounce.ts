@@ -10,7 +10,7 @@ export interface DebouncedFunction<T extends (...args: never[]) => void> {
  */
 export function debounce<T extends (...args: never[]) => void>(
   func: T,
-  wait: number
+  wait: number,
 ): DebouncedFunction<T> {
   let timeoutId: NodeJS.Timeout | undefined;
 

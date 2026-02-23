@@ -1,29 +1,29 @@
 import type {
-	SendEmailPayload,
-	TemplateName,
-	OtpEmailData,
-	WelcomeEmailData,
-	NewRepoEmailData,
-	NewDeviceEmailData,
-} from './schema';
-import type { EmailSendResult } from './provider';
+  SendEmailPayload,
+  TemplateName,
+  OtpEmailData,
+  WelcomeEmailData,
+  NewRepoEmailData,
+  NewDeviceEmailData,
+} from "./schema";
+import type { EmailSendResult } from "./provider";
 
 export interface RenderedEmail {
-	subject: string;
-	text?: string;
-	html?: string;
+  subject: string;
+  text?: string;
+  html?: string;
 }
 
 export interface SendEmailResult extends EmailSendResult {
-	template: TemplateName;
-	to: SendEmailPayload['to'];
+  template: TemplateName;
+  to: SendEmailPayload["to"];
 }
 
 export type {
-	SendEmailPayload,
-	TemplateName,
-	OtpEmailData,
-	WelcomeEmailData,
-	NewRepoEmailData,
-	NewDeviceEmailData,
+  SendEmailPayload,
+  TemplateName,
+  OtpEmailData,
+  WelcomeEmailData,
+  NewRepoEmailData,
+  NewDeviceEmailData,
 };

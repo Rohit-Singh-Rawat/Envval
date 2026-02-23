@@ -6,16 +6,16 @@ import ExtensionWorkflowSection from "./sections/extension-workflow-section";
 import FAQSection from "./sections/faq-section";
 
 const Home = () => {
-	return (
-		<>
-			<Header />
-			<Hero />
-			<FeaturesGrid />
-			<ExtensionWorkflowSection />
-			<FAQSection />
-			<Footer />
-		</>
-	);
+  return (
+    <>
+      <Header />
+      <Hero />
+      <FeaturesGrid />
+      <ExtensionWorkflowSection />
+      <FAQSection />
+      <Footer />
+    </>
+  );
 };
 
 export default Home;
