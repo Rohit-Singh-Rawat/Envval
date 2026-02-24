@@ -4,7 +4,10 @@ import { promisify } from "util";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { IGNORED_ENV_FILES } from "../lib/constants";
+import {
+  IGNORED_ENV_FILES,
+  LAST_AUTHENTICATED_USER_KEY,
+} from "../lib/constants";
 import {
   ENV_FILE_INCLUDE_PATTERN,
   ENV_FILE_EXCLUDE_PATTERN,
@@ -406,12 +409,26 @@ export async function detectMonorepoStructure(
   return subProjects.sort();
 }
 
+/**
+ * Computes a stable, opaque repo identifier.
+ *
+ * scopePrefix isolates IDs per ownership unit so two different users (or teams)
+ * working on the same OSS repo never collide in the backend.
+ * Format: SHA256("<scopePrefix>:<identifier>[:<subProjectPath>]")
+ * e.g.    SHA256("user:abc123:github.com/org/repo")
+ *
+ * When no scopePrefix is provided (unauthenticated context or legacy paths) the
+ * identifier is hashed as-is, preserving backward-compatible behaviour.
+ */
 export async function computeStableRepoId(
   identifier: string,
   subProjectPath?: string,
+  scopePrefix?: string,
 ): Promise<string> {
-  const input = subProjectPath ? `${identifier}:${subProjectPath}` : identifier;
-  return crypto.createHash("sha256").update(input).digest("hex");
+  const parts = [scopePrefix, identifier, subProjectPath].filter(
+    (p): p is string => p !== undefined && p !== "",
+  );
+  return crypto.createHash("sha256").update(parts.join(":")).digest("hex");
 }
 
 export function computeEnvId(repoId: string, fileName: string): string {
@@ -440,9 +457,16 @@ export async function getCurrentWorkspaceId(
 
   logger?.debug(`Resolving identity for: ${workspacePath}`);
 
-  const identityStore = context ? new RepoIdentityStore(context) : null;
+  const identityStore = context ? RepoIdentityStore.getInstance(context) : null;
   const storedIdentity = identityStore?.getRepoIdentity(workspacePath) ?? null;
   const subProjectPath = storedIdentity?.subProjectPath;
+
+  // Build a scope prefix so each user's repos are fully isolated in the backend.
+  // Stored by extension.ts immediately after login, so it is always present when
+  // services are running. Falls back to undefined when called without context
+  // (e.g. unit-test helpers or early startup), which preserves the pre-scope hash.
+  const userId = context?.globalState.get<string>(LAST_AUTHENTICATED_USER_KEY);
+  const scopePrefix = userId ? `user:${userId}` : undefined;
 
   // ── Priority 1: Manual override ────────────────────────────────────────────
   if (storedIdentity?.manualIdentity) {
@@ -450,6 +474,7 @@ export async function getCurrentWorkspaceId(
     const repoId = await computeStableRepoId(
       storedIdentity.manualIdentity,
       subProjectPath,
+      scopePrefix,
     );
     return { repoId, identitySource: "manual", subProjectPath, workspacePath };
   }
@@ -463,14 +488,21 @@ export async function getCurrentWorkspaceId(
     );
 
     if (identityStore) {
-      await identityStore.updateGitRemote(
-        workspacePath,
-        gitRemoteResult.remoteUrl,
-        normalizedRemote,
-      );
+      const storedRemote = identityStore.getMostRecentGitRemote(workspacePath);
+      if (storedRemote?.normalizedUrl !== normalizedRemote) {
+        await identityStore.updateGitRemote(
+          workspacePath,
+          gitRemoteResult.remoteUrl,
+          normalizedRemote,
+        );
+      }
     }
 
-    const repoId = await computeStableRepoId(normalizedRemote, subProjectPath);
+    const repoId = await computeStableRepoId(
+      normalizedRemote,
+      subProjectPath,
+      scopePrefix,
+    );
     return {
       repoId,
       identitySource: "git",
@@ -495,6 +527,7 @@ export async function getCurrentWorkspaceId(
     const repoId = await computeStableRepoId(
       storedGitRemote.normalizedUrl,
       subProjectPath,
+      scopePrefix,
     );
     return {
       repoId,
@@ -517,7 +550,11 @@ export async function getCurrentWorkspaceId(
   const availableSubProjects = await detectMonorepoStructure(workspacePath);
   const effectiveSubPath =
     availableSubProjects.length > 0 ? subProjectPath : undefined;
-  const repoId = await computeStableRepoId(contentSignature, effectiveSubPath);
+  const repoId = await computeStableRepoId(
+    contentSignature,
+    effectiveSubPath,
+    scopePrefix,
+  );
 
   logger?.debug(`Content signature repoId: ${repoId}`);
 

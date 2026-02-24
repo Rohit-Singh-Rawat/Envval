@@ -50,6 +50,12 @@ export class PromptIgnoreStore {
     });
   }
 
+  public async clearAll(): Promise<void> {
+    return this.enqueueWrite(async () => {
+      await this.ctx.workspaceState.update(PROMPT_IGNORE_STORAGE_KEY, {});
+    });
+  }
+
   public async clearIgnored(repoId: string, fileName: string): Promise<void> {
     const key = this.makeKey(repoId, fileName);
     return this.enqueueWrite(async () => {

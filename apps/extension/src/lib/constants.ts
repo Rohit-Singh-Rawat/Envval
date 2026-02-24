@@ -29,6 +29,8 @@ export const METADATA_STORAGE_KEY = "envval.metadata";
 export const PROMPT_IGNORE_STORAGE_KEY = "envval.promptIgnore";
 export const REPO_IDENTITIES_STORAGE_KEY = "envval.repoIdentities";
 export const REPO_REGISTRATION_SKIPPED_KEY = "envval.repoRegistrationSkipped";
+/** Persisted in globalState. Used to detect when a different account logs in so we can clear user-scoped workspace state. */
+export const LAST_AUTHENTICATED_USER_KEY = "envval.lastAuthenticatedUserId";
 export const IGNORED_ENV_FILES: readonly string[] = [
   ".env.example",
   ".env.sample",

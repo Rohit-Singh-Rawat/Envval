@@ -28,6 +28,9 @@ export class EnvvalMetadataStore {
    */
   private writeQueue: Promise<void> = Promise.resolve();
 
+  // Lazy-built index for O(1) lookups by fileName → envId.
+  private fileNameIndex: Map<string, string> | null = null;
+
   private constructor(ctx: ExtensionContext) {
     this.ctx = ctx;
   }
@@ -64,13 +67,26 @@ export class EnvvalMetadataStore {
   public async loadEnvMetadataByFileName(
     fileName: string,
   ): Promise<EnvMetadata | undefined> {
+    const envId = this.getOrBuildIndex().get(fileName);
+    if (!envId) return undefined;
     const stored =
       this.ctx.workspaceState.get<EnvvalMetadataStorage>(
         METADATA_STORAGE_KEY,
       ) ?? {};
-    return Object.values(stored).find(
-      (metadata) => metadata.fileName === fileName,
-    );
+    return stored[envId];
+  }
+
+  private getOrBuildIndex(): Map<string, string> {
+    if (this.fileNameIndex === null) {
+      const stored =
+        this.ctx.workspaceState.get<EnvvalMetadataStorage>(
+          METADATA_STORAGE_KEY,
+        ) ?? {};
+      this.fileNameIndex = new Map(
+        Object.values(stored).map((m) => [m.fileName, m.envId]),
+      );
+    }
+    return this.fileNameIndex;
   }
 
   public async getAllTrackedEnvs(): Promise<EnvMetadata[]> {
@@ -99,6 +115,9 @@ export class EnvvalMetadataStore {
         ) ?? {};
       stored[envId] = metadata;
       await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, stored);
+      if (this.fileNameIndex !== null) {
+        this.fileNameIndex.set(metadata.fileName, envId);
+      }
       this._onDidChangeMetadata.fire(envId);
     });
   }
@@ -111,6 +130,11 @@ export class EnvvalMetadataStore {
         METADATA_STORAGE_KEY,
         Object.fromEntries(metadata),
       );
+      if (this.fileNameIndex !== null) {
+        this.fileNameIndex = new Map(
+          Array.from(metadata.values()).map((m) => [m.fileName, m.envId]),
+        );
+      }
       this._onDidChangeMetadata.fire("*");
     });
   }
@@ -139,13 +163,18 @@ export class EnvvalMetadataStore {
           this.ctx.workspaceState.get<EnvvalMetadataStorage>(
             METADATA_STORAGE_KEY,
           ) ?? {};
+        const entry = stored[envId];
         delete stored[envId];
         await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, stored);
+        if (this.fileNameIndex !== null && entry) {
+          this.fileNameIndex.delete(entry.fileName);
+        }
         this._onDidChangeMetadata.fire(envId);
       });
     }
     return this.enqueueWrite(async () => {
       await this.ctx.workspaceState.update(METADATA_STORAGE_KEY, {});
+      this.fileNameIndex = new Map();
       this._onDidChangeMetadata.fire("*");
     });
   }
@@ -180,6 +209,9 @@ export class EnvvalMetadataStore {
 
         delete stored[metadata.envId];
         stored[newEnvId] = { ...metadata, envId: newEnvId };
+        if (this.fileNameIndex !== null) {
+          this.fileNameIndex.set(metadata.fileName, newEnvId);
+        }
         migratedCount++;
         changed = true;
       }

@@ -6,6 +6,7 @@ import {
   getRepoAndEnvIds,
   getAllEnvFiles,
   getCurrentWorkspaceId,
+  type WorkspaceIdentity,
 } from "../utils/repo-detection";
 import type { Env } from "../api/types";
 import { EnvvalMetadataStore, type EnvMetadata } from "./metadata-store";
@@ -116,41 +117,10 @@ export class EnvInitService {
   async performInitialCheck(depth = 0, force = false): Promise<void> {
     StatusBar.getInstance().setLoading(true, "Validating workspace...");
     try {
-      this.logger.info("Performing initial check for repo and env files");
+      const ctx = await this.resolveWorkspaceContext();
+      if (!ctx) return;
 
-      const wsContext =
-        WorkspaceContextProvider.getInstance().getWorkspaceContext();
-      if (wsContext.mode === "none" || !wsContext.primaryPath) {
-        this.logger.warn("No workspace or file open");
-        return;
-      }
-
-      const workspacePath = wsContext.primaryPath;
-      const validator = WorkspaceValidator.getInstance(this.logger);
-      if (!(await validator.validateAndPromptIfNeeded(workspacePath))) {
-        this.logger.info("Workspace validation failed or user cancelled");
-        return;
-      }
-
-      StatusBar.getInstance().updateState("Loading", "Scanning workspace...");
-
-      const workspace = await getCurrentWorkspaceId(this.context, this.logger);
-      if (!workspace) {
-        this.logger.error("Failed to get workspace identity");
-        return;
-      }
-
-      const { repoId } = workspace;
-
-      // Single shared instances for this invocation
-      const identityStore = new RepoIdentityStore(this.context);
-      const migrationService = new RepoMigrationService(
-        this.context,
-        this.metadataStore,
-        identityStore,
-        this.apiClient,
-        this.logger,
-      );
+      const { workspacePath, workspace, identityStore, migrationService } = ctx;
 
       if (workspace.requiresMigration && workspace.suggestedMigration) {
         const migrated =
@@ -167,67 +137,17 @@ export class EnvInitService {
         }
       }
 
-      await identityStore.updateLastActiveRepoId(workspacePath, repoId);
+      await identityStore.updateLastActiveRepoId(workspacePath, workspace.repoId);
 
-      const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
-      if (!repoExistsResponse.exists) {
-        const skippedRepos =
-          this.context.workspaceState.get<Record<string, boolean>>(
-            REPO_REGISTRATION_SKIPPED_KEY,
-          ) ?? {};
-        if (!force && skippedRepos[repoId]) {
-          this.logger.info(
-            "User previously declined repo registration for this workspace — skipping",
-          );
-          return;
-        }
+      const registered = await this.ensureRepoRegistered(
+        workspace.repoId,
+        workspace,
+        workspacePath,
+        force,
+      );
+      if (!registered) return;
 
-        const shouldRegister = await showRepoRegistrationPrompt();
-        if (shouldRegister !== "register") {
-          await this.context.workspaceState.update(
-            REPO_REGISTRATION_SKIPPED_KEY,
-            { ...skippedRepos, [repoId]: true },
-          );
-          this.logger.info(
-            "User declined repo registration, skipping initial sync",
-          );
-          return;
-        }
-
-        const nameResult = await showRepoNamePrompt(workspacePath);
-        if (nameResult.action === "skip" || !nameResult.name) {
-          this.logger.info(
-            "User skipped repo name input, cancelling registration",
-          );
-          return;
-        }
-
-        try {
-          await this.apiClient.createRepo({
-            repoId,
-            name: nameResult.name,
-            workspacePath,
-            gitRemoteUrl: workspace.gitRemoteUrl,
-          });
-          this.logger.info(`Repo registered: ${repoId} — "${nameResult.name}"`);
-          const currentSkipped =
-            this.context.workspaceState.get<Record<string, boolean>>(
-              REPO_REGISTRATION_SKIPPED_KEY,
-            ) ?? {};
-          delete currentSkipped[repoId];
-          await this.context.workspaceState.update(
-            REPO_REGISTRATION_SKIPPED_KEY,
-            currentSkipped,
-          );
-          showSuccess(`Project "${nameResult.name}" registered successfully.`);
-        } catch (error) {
-          this.logger.error(`Failed to register repo: ${formatError(error)}`);
-          showError("Failed to register repository. Please try again.");
-          return;
-        }
-      }
-
-      await this.syncRepoEnvs(repoId, workspacePath);
+      await this.syncRepoEnvs(workspace.repoId, workspacePath);
 
       // Secondary pass: catch any Git-remote changes that surfaced during sync
       await migrationService.handleAutomaticMigrationPrompt(workspacePath);
@@ -235,6 +155,115 @@ export class EnvInitService {
       this.logger.error(`Initial check failed: ${formatError(error)}`);
     } finally {
       StatusBar.getInstance().setLoading(false);
+    }
+  }
+
+  private async resolveWorkspaceContext(): Promise<
+    | {
+        workspacePath: string;
+        workspace: WorkspaceIdentity;
+        identityStore: RepoIdentityStore;
+        migrationService: RepoMigrationService;
+      }
+    | undefined
+  > {
+    this.logger.info("Performing initial check for repo and env files");
+
+    const wsContext =
+      WorkspaceContextProvider.getInstance().getWorkspaceContext();
+    if (wsContext.mode === "none" || !wsContext.primaryPath) {
+      this.logger.warn("No workspace or file open");
+      return undefined;
+    }
+
+    const workspacePath = wsContext.primaryPath;
+    const validator = WorkspaceValidator.getInstance(this.logger);
+    if (!(await validator.validateAndPromptIfNeeded(workspacePath))) {
+      this.logger.info("Workspace validation failed or user cancelled");
+      return undefined;
+    }
+
+    StatusBar.getInstance().updateState("Loading", "Scanning workspace...");
+
+    const workspace = await getCurrentWorkspaceId(this.context, this.logger);
+    if (!workspace) {
+      this.logger.error("Failed to get workspace identity");
+      return undefined;
+    }
+
+    const identityStore = RepoIdentityStore.getInstance(this.context);
+    const migrationService = new RepoMigrationService(
+      this.context,
+      this.metadataStore,
+      identityStore,
+      this.apiClient,
+      this.logger,
+    );
+
+    return { workspacePath, workspace, identityStore, migrationService };
+  }
+
+  private async ensureRepoRegistered(
+    repoId: string,
+    workspace: WorkspaceIdentity,
+    workspacePath: string,
+    force: boolean,
+  ): Promise<boolean> {
+    const repoExistsResponse = await this.apiClient.checkRepoExists(repoId);
+    if (repoExistsResponse.exists) {
+      return true;
+    }
+
+    const skippedRepos =
+      this.context.workspaceState.get<Record<string, boolean>>(
+        REPO_REGISTRATION_SKIPPED_KEY,
+      ) ?? {};
+    if (!force && skippedRepos[repoId]) {
+      this.logger.info(
+        "User previously declined repo registration for this workspace — skipping",
+      );
+      return false;
+    }
+
+    const shouldRegister = await showRepoRegistrationPrompt();
+    if (shouldRegister !== "register") {
+      await this.context.workspaceState.update(REPO_REGISTRATION_SKIPPED_KEY, {
+        ...skippedRepos,
+        [repoId]: true,
+      });
+      this.logger.info("User declined repo registration, skipping initial sync");
+      return false;
+    }
+
+    const nameResult = await showRepoNamePrompt(workspacePath);
+    if (nameResult.action === "skip" || !nameResult.name) {
+      this.logger.info("User skipped repo name input, cancelling registration");
+      return false;
+    }
+
+    try {
+      await this.apiClient.createRepo({
+        repoId,
+        name: nameResult.name,
+        workspacePath,
+        gitRemoteUrl: workspace.gitRemoteUrl,
+      });
+      this.logger.info(`Repo registered: ${repoId} — "${nameResult.name}"`);
+      const currentSkipped =
+        this.context.workspaceState.get<Record<string, boolean>>(
+          REPO_REGISTRATION_SKIPPED_KEY,
+        ) ?? {};
+      delete currentSkipped[repoId];
+      await this.context.workspaceState.update(
+        REPO_REGISTRATION_SKIPPED_KEY,
+        currentSkipped,
+      );
+      showSuccess(`Project "${nameResult.name}" registered successfully.`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to register repo: ${formatError(error)}`);
+      showError("Failed to register repository. Please try again.");
+      return false;
     }
   }
 

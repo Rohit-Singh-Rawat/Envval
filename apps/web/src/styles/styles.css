@@ -1,14 +1,11 @@
-@import "./satoshi.css";
+@import './satoshi.css';
 
-@import "./zodiak.css";
+@import './zodiak.css';
 
-@import "tailwindcss";
-@import "tw-animate-css";
-@import '@envval/ui/globals.css';
-
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @plugin "@toolwind/corner-shape";
-
 
 @custom-variant dark (&:is(.dark *));
 
@@ -19,27 +16,34 @@ html {
 body {
 	@apply m-0;
 	font-family:
-		"Satoshi-Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-		"Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+		'Satoshi-Variable',
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		'Roboto',
+		'Oxygen',
+		'Ubuntu',
+		'Cantarell',
+		'Fira Sans',
+		'Droid Sans',
+		'Helvetica Neue',
 		sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
 code {
-	font-family:
-		source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 /* Orbit animation for integrations page */
 @keyframes orbit {
 	0% {
-		transform: rotate(calc(var(--angle) * 1deg))
-			translateY(calc(var(--radius) * -1)) rotate(calc(var(--angle) * -1deg));
+		transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * -1))
+			rotate(calc(var(--angle) * -1deg));
 	}
 	100% {
-		transform: rotate(calc(var(--angle) * 1deg + 360deg))
-			translateY(calc(var(--radius) * -1))
+		transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * -1))
 			rotate(calc(var(--angle) * -1deg - 360deg));
 	}
 }

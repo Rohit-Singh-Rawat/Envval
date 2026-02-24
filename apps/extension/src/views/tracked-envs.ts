@@ -130,6 +130,7 @@ export class TrackedEnvsProvider
           `File deleted: ${event.fileName}, refreshing tree view`,
         );
         this.statusCalculator.invalidateCache(event.fileName);
+        this.itemRegistry.delete(event.fileName);
         this.refresh();
       }),
     );

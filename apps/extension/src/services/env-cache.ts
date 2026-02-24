@@ -102,14 +102,11 @@ export class EnvCacheService implements Disposable {
       return;
     }
 
-    // Remove stale cache entry without firing a premature update event.
-    // (The public removeFile() also fires _onDidUpdate, which would cause
-    // consumers to see a half-updated state before re-parsing is done.)
+    // Remove stale key-index entries for this file before re-parsing,
+    // then add fresh entries in one pass — avoids a full index rebuild.
+    // (Don't fire _onDidUpdate yet — consumers would see half-updated state.)
+    this.removeFileFromIndex(fileName);
     this.fileCache.delete(fileName);
-
-    // Rebuild the key index to clear stale variable entries for this file,
-    // then re-parse and add the fresh entries back in one pass.
-    this.rebuildKeyIndex();
     await this.parseAndCacheFile(fileName, path.join(workspacePath, fileName));
 
     // Single consolidated notification after all state is updated.
@@ -122,11 +119,26 @@ export class EnvCacheService implements Disposable {
       return;
     }
 
+    this.removeFileFromIndex(fileName);
     this.fileCache.delete(fileName);
-    this.rebuildKeyIndex();
     this._onDidUpdate.fire();
 
     this.logger.debug(`EnvCacheService: Removed ${fileName} from cache`);
+  }
+
+  private removeFileFromIndex(fileName: string): void {
+    const fileVars = this.fileCache.get(fileName);
+    if (!fileVars) return;
+    for (const variable of fileVars.values()) {
+      const entries = this.keyIndex.get(variable.key);
+      if (!entries) continue;
+      const updated = entries.filter((v) => v.fileName !== fileName);
+      if (updated.length === 0) {
+        this.keyIndex.delete(variable.key);
+      } else {
+        this.keyIndex.set(variable.key, updated);
+      }
+    }
   }
 
   private async parseAndCacheFile(

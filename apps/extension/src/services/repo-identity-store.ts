@@ -1,10 +1,6 @@
-// repo-identity-store.ts
 import * as vscode from "vscode";
 import { REPO_IDENTITIES_STORAGE_KEY } from "../lib/constants";
 
-/**
- * Data structure for storing repo identity information
- */
 interface RepoIdentityData {
   workspacePath: string;
   manualIdentity?: string;
@@ -27,87 +23,87 @@ interface RepoIdentityData {
   lastActiveRepoId?: string;
 }
 
+type IdentityStorage = { [workspacePath: string]: RepoIdentityData };
+
 /**
  * Service for managing persistent repo identity mappings across workspaces.
  * Uses VSCode's globalState for persistence and cross-device sync when VSCode settings sync is enabled.
  */
 export class RepoIdentityStore {
+  private static instance: RepoIdentityStore;
   private static readonly STORAGE_KEY = REPO_IDENTITIES_STORAGE_KEY;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  // All data loaded once from globalState; mutations kept in-memory and flushed on write.
+  private cache: IdentityStorage | null = null;
 
-  /**
-   * Get stored identity data for a workspace
-   */
-  private getStoredData(workspacePath: string): RepoIdentityData | undefined {
-    const allData = this.context.globalState.get<{
-      [workspacePath: string]: RepoIdentityData;
-    }>(RepoIdentityStore.STORAGE_KEY, {});
-    return allData[workspacePath];
+  private constructor(private context: vscode.ExtensionContext) {}
+
+  public static getInstance(ctx: vscode.ExtensionContext): RepoIdentityStore {
+    if (!RepoIdentityStore.instance) {
+      RepoIdentityStore.instance = new RepoIdentityStore(ctx);
+    }
+    return RepoIdentityStore.instance;
   }
 
-  /**
-   * Store identity data for a workspace
-   */
-  private setStoredData(
+  private getAllData(): IdentityStorage {
+    if (this.cache === null) {
+      this.cache = this.context.globalState.get<IdentityStorage>(
+        RepoIdentityStore.STORAGE_KEY,
+        {},
+      );
+    }
+    return this.cache;
+  }
+
+  private getStoredData(workspacePath: string): RepoIdentityData | undefined {
+    return this.getAllData()[workspacePath];
+  }
+
+  private async setStoredData(
     workspacePath: string,
     data: RepoIdentityData,
-  ): Thenable<void> {
-    const allData = this.context.globalState.get<{
-      [workspacePath: string]: RepoIdentityData;
-    }>(RepoIdentityStore.STORAGE_KEY, {});
+  ): Promise<void> {
+    const allData = this.getAllData();
     allData[workspacePath] = data;
-    return this.context.globalState.update(
-      RepoIdentityStore.STORAGE_KEY,
-      allData,
-    );
+    await this.context.globalState.update(RepoIdentityStore.STORAGE_KEY, allData);
   }
 
-  /**
-   * Get repo identity for a workspace path
-   */
+  /** Clears all stored identities and the in-memory cache. Call on user account switch. */
+  public async clearAll(): Promise<void> {
+    this.cache = null;
+    await this.context.globalState.update(RepoIdentityStore.STORAGE_KEY, {});
+  }
+
   getRepoIdentity(workspacePath: string): RepoIdentityData | undefined {
     return this.getStoredData(workspacePath);
   }
 
-  /**
-   * Set manual repo identity override
-   */
   async setManualIdentity(
     workspacePath: string,
     identity: string,
   ): Promise<void> {
     const data =
-      this.getStoredData(workspacePath) ||
-      this.createDefaultData(workspacePath);
+      this.getStoredData(workspacePath) ?? this.createDefaultData(workspacePath);
     data.manualIdentity = identity;
     data.identitySource = "manual";
     data.lastUpdatedAt = new Date().toISOString();
     await this.setStoredData(workspacePath, data);
   }
 
-  /**
-   * Update Git remote history for a workspace
-   */
   async updateGitRemote(
     workspacePath: string,
     remoteUrl: string,
     normalizedUrl: string,
   ): Promise<void> {
     const data =
-      this.getStoredData(workspacePath) ||
-      this.createDefaultData(workspacePath);
+      this.getStoredData(workspacePath) ?? this.createDefaultData(workspacePath);
 
-    // Check if this remote is already in history
     const existingIndex = data.gitRemoteHistory.findIndex(
       (h) => h.normalizedUrl === normalizedUrl,
     );
     if (existingIndex >= 0) {
-      // Update detection time
-      data.gitRemoteHistory[existingIndex].detectedAt =
-        new Date().toISOString();
+      data.gitRemoteHistory[existingIndex].detectedAt = new Date().toISOString();
     } else {
-      // Add new remote to history
       data.gitRemoteHistory.push({
         url: remoteUrl,
         normalizedUrl,
@@ -119,63 +115,49 @@ export class RepoIdentityStore {
     await this.setStoredData(workspacePath, data);
   }
 
-  /**
-   * Set sub-project path for monorepos
-   */
   async setSubProjectPath(
     workspacePath: string,
     subPath: string,
   ): Promise<void> {
     const data =
-      this.getStoredData(workspacePath) ||
-      this.createDefaultData(workspacePath);
+      this.getStoredData(workspacePath) ?? this.createDefaultData(workspacePath);
     data.subProjectPath = subPath;
     data.lastUpdatedAt = new Date().toISOString();
     await this.setStoredData(workspacePath, data);
   }
 
   /**
-   * Record a repo ID migration
+   * Records a repo ID migration for a specific workspace only.
+   * Only the named workspace's migration history is updated.
    */
   async migrateRepoId(
+    workspacePath: string,
     oldRepoId: string,
     newRepoId: string,
-    reason: string = "automatic",
+    reason = "automatic",
   ): Promise<void> {
-    // Find all workspaces that might have this repoId and update their migration history
-    const allData = this.context.globalState.get<{
-      [workspacePath: string]: RepoIdentityData;
-    }>(RepoIdentityStore.STORAGE_KEY, {});
-
-    for (const [workspacePath, data] of Object.entries(allData)) {
-      // Add migration record
-      data.migrationHistory.push({
-        fromRepoId: oldRepoId,
-        toRepoId: newRepoId,
-        migratedAt: new Date().toISOString(),
-        reason,
-      });
-
-      // Update last modified time
-      data.lastUpdatedAt = new Date().toISOString();
-
-      // Update the stored data
-      await this.setStoredData(workspacePath, data);
-    }
+    const data =
+      this.getStoredData(workspacePath) ?? this.createDefaultData(workspacePath);
+    data.migrationHistory.push({
+      fromRepoId: oldRepoId,
+      toRepoId: newRepoId,
+      migratedAt: new Date().toISOString(),
+      reason,
+    });
+    data.lastUpdatedAt = new Date().toISOString();
+    await this.setStoredData(workspacePath, data);
   }
 
   /**
-   * Update the last active repo ID for a workspace.
-   * This is used to track "successful" identity usage to detect subsequent changes.
+   * Updates the last active repo ID for a workspace.
+   * Used to detect subsequent identity changes so migration is only triggered when needed.
    */
   async updateLastActiveRepoId(
     workspacePath: string,
     repoId: string,
   ): Promise<void> {
     const data =
-      this.getStoredData(workspacePath) ||
-      this.createDefaultData(workspacePath);
-    // Only update if it's different to save writes
+      this.getStoredData(workspacePath) ?? this.createDefaultData(workspacePath);
     if (data.lastActiveRepoId !== repoId) {
       data.lastActiveRepoId = repoId;
       data.lastUpdatedAt = new Date().toISOString();
@@ -183,40 +165,25 @@ export class RepoIdentityStore {
     }
   }
 
-  /**
-   * Clear identity for a workspace (reset to automatic detection)
-   */
   async clearIdentity(workspacePath: string): Promise<void> {
     const data = this.getStoredData(workspacePath);
     if (data) {
       data.manualIdentity = undefined;
-      data.identitySource = "content"; // Reset to content-based detection
-      data.lastActiveRepoId = undefined; // Reset active ID so we don't migrate from old garbage
+      data.identitySource = "content";
+      data.lastActiveRepoId = undefined;
       data.lastUpdatedAt = new Date().toISOString();
       await this.setStoredData(workspacePath, data);
     }
   }
 
-  /**
-   * Get all workspaces with stored identity data
-   */
-  getAllStoredIdentities(): { [workspacePath: string]: RepoIdentityData } {
-    return this.context.globalState.get<{
-      [workspacePath: string]: RepoIdentityData;
-    }>(RepoIdentityStore.STORAGE_KEY, {});
+  getAllStoredIdentities(): IdentityStorage {
+    return this.getAllData();
   }
 
-  /**
-   * Check if a workspace has a manual identity override
-   */
   hasManualIdentity(workspacePath: string): boolean {
-    const data = this.getStoredData(workspacePath);
-    return data?.manualIdentity !== undefined;
+    return this.getStoredData(workspacePath)?.manualIdentity !== undefined;
   }
 
-  /**
-   * Get the most recent Git remote for a workspace from history
-   */
   getMostRecentGitRemote(
     workspacePath: string,
   ): { url: string; normalizedUrl: string } | undefined {
@@ -225,21 +192,14 @@ export class RepoIdentityStore {
       return undefined;
     }
 
-    // Sort by detection time, most recent first
-    const sorted = data.gitRemoteHistory.sort(
+    const sorted = [...data.gitRemoteHistory].sort(
       (a, b) =>
         new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime(),
     );
 
-    return {
-      url: sorted[0].url,
-      normalizedUrl: sorted[0].normalizedUrl,
-    };
+    return { url: sorted[0].url, normalizedUrl: sorted[0].normalizedUrl };
   }
 
-  /**
-   * Create default identity data structure
-   */
   private createDefaultData(workspacePath: string): RepoIdentityData {
     return {
       workspacePath,

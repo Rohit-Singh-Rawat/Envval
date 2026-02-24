@@ -16,7 +16,6 @@ import { formatError } from "../utils/format-error";
  * Command implementations for repository identity management
  */
 export class RepoIdentityCommands {
-  private _identityStore: RepoIdentityStore | undefined;
   private _migrationService: RepoMigrationService | undefined;
 
   constructor(
@@ -26,10 +25,7 @@ export class RepoIdentityCommands {
   ) {}
 
   private get identityStore(): RepoIdentityStore {
-    if (!this._identityStore) {
-      this._identityStore = new RepoIdentityStore(this.context);
-    }
-    return this._identityStore;
+    return RepoIdentityStore.getInstance(this.context);
   }
 
   private get migrationService(): RepoMigrationService {

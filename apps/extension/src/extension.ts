@@ -17,6 +17,7 @@ import { SyncManager } from "./watchers/env-sync-manager";
 import { EnvvalMetadataStore } from "./services/metadata-store";
 import { EnvInitService } from "./services/env-init";
 import { RepoIdentityCommands } from "./commands/repo-identity";
+import { RepoIdentityStore } from "./services/repo-identity-store";
 import { TrackedEnvsProvider } from "./views/tracked-envs";
 import { EnvCacheService } from "./services/env-cache";
 import { EnvStatusCalculator } from "./services/env-status-calculator";
@@ -27,7 +28,11 @@ import {
 import { ConnectionMonitor } from "./services/connection-monitor";
 import { OperationQueueService } from "./services/operation-queue";
 import { PromptIgnoreStore } from "./services/prompt-ignore-store";
-import { NOTIFICATION_DEBOUNCE_MS } from "./lib/constants";
+import {
+  NOTIFICATION_DEBOUNCE_MS,
+  LAST_AUTHENTICATED_USER_KEY,
+  REPO_REGISTRATION_SKIPPED_KEY,
+} from "./lib/constants";
 import { WorkspaceValidator } from "./services/workspace-validator";
 import { WorkspaceContextProvider } from "./services/workspace-context-provider";
 
@@ -170,6 +175,29 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  /**
+   * Clears all workspace-scoped state that belongs to a user account.
+   * Called when a different user logs in on the same machine so they start
+   * with a completely clean slate rather than inheriting the previous
+   * user's env metadata, skipped-registration flags, and queued operations.
+   */
+  const clearUserScopedWorkspaceState = async (): Promise<void> => {
+    logger.info("User account changed — clearing user-scoped workspace state");
+    await Promise.all([
+      // workspaceState: sync metadata, skip flags, prompt ignores, queued ops
+      metadataStore.clearMetadata(),
+      promptIgnoreStore.clearAll(),
+      operationQueue.clear(),
+      context.workspaceState.update(REPO_REGISTRATION_SKIPPED_KEY, {}),
+      // globalState: repo identity cache holds lastActiveRepoId computed under
+      // the previous user's scope — must be cleared so the incoming user's first
+      // getCurrentWorkspaceId call doesn't see a stale ID and trigger a
+      // cross-user migration. clearAll() also resets the singleton's in-memory cache.
+      RepoIdentityStore.getInstance(context).clearAll(),
+    ]);
+    logger.info("Workspace state cleared for incoming user session");
+  };
+
   const startServices = async () => {
     logger.info("Starting Envval services...");
     envFileWatcher.start();
@@ -219,6 +247,21 @@ export async function activate(context: vscode.ExtensionContext) {
     if (authenticated) {
       loginWindow.dispose();
       statusBar.setAuthenticationState(true);
+
+      // Detect account switch: if a different userId logs in on this machine,
+      // clear all user-scoped workspace state so they start clean.
+      const newUserId = await secrets.getUserId();
+      const lastUserId = context.globalState.get<string>(LAST_AUTHENTICATED_USER_KEY);
+      if (newUserId && lastUserId && lastUserId !== newUserId) {
+        logger.info(
+          `Account switch detected (${lastUserId.slice(0, 8)}… → ${newUserId.slice(0, 8)}…) — resetting workspace state`,
+        );
+        await clearUserScopedWorkspaceState();
+      }
+      if (newUserId) {
+        await context.globalState.update(LAST_AUTHENTICATED_USER_KEY, newUserId);
+      }
+
       await startServices();
     } else {
       stopServices();
@@ -234,6 +277,12 @@ export async function activate(context: vscode.ExtensionContext) {
     await loginWindow.show();
   } else {
     statusBar.setAuthenticationState(true);
+    // Seed lastUserId on boot so future account-switch detection has a baseline.
+    // This is a no-op once the key is already stored.
+    const currentUserId = await secrets.getUserId();
+    if (currentUserId && !context.globalState.get<string>(LAST_AUTHENTICATED_USER_KEY)) {
+      await context.globalState.update(LAST_AUTHENTICATED_USER_KEY, currentUserId);
+    }
     await startServices();
   }
 

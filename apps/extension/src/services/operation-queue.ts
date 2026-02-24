@@ -82,32 +82,14 @@ export class OperationQueueService implements Disposable {
       (op) => !(op.envId === envId && op.type === type),
     );
 
-    // Evict oldest item with the lowest priority (highest priority number) if full
+    // Evict the last item (lowest priority) if full.
+    // The queue is always sorted ascending by priority, so the lowest-priority
+    // item is always at the end — no scan needed.
     if (this.queue.length >= OPERATION_QUEUE_MAX_SIZE) {
-      let evictIndex = -1;
-      let highestPriority = -1;
-      let oldestTimestamp = "";
-
-      for (let i = 0; i < this.queue.length; i++) {
-        const op = this.queue[i];
-        if (
-          op.priority > highestPriority ||
-          (op.priority === highestPriority &&
-            (oldestTimestamp === "" || op.queuedAt < oldestTimestamp))
-        ) {
-          highestPriority = op.priority;
-          oldestTimestamp = op.queuedAt;
-          evictIndex = i;
-        }
-      }
-
-      if (evictIndex !== -1) {
-        const evicted = this.queue[evictIndex];
-        this.queue.splice(evictIndex, 1);
-        this.logger.debug(
-          `OperationQueueService: Evicted ${evicted.id} to make room`,
-        );
-      }
+      const evicted = this.queue.pop()!;
+      this.logger.debug(
+        `OperationQueueService: Evicted ${evicted.id} to make room`,
+      );
     }
 
     const operation: QueuedOperation = {
@@ -146,11 +128,12 @@ export class OperationQueueService implements Disposable {
     );
 
     try {
+      const succeededIds = new Set<string>();
       for (const op of snapshot) {
         try {
           const success = await processor(op);
           if (success) {
-            this.queue = this.queue.filter((q) => q.id !== op.id);
+            succeededIds.add(op.id);
             succeeded++;
           } else {
             failed++;
@@ -161,6 +144,10 @@ export class OperationQueueService implements Disposable {
           );
           failed++;
         }
+      }
+
+      if (succeededIds.size > 0) {
+        this.queue = this.queue.filter((q) => !succeededIds.has(q.id));
       }
 
       await this.persist();

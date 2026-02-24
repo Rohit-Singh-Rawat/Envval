@@ -105,6 +105,7 @@ export class RepoMigrationService {
 
       // Update identity store with migration record
       await this.identityStore.migrateRepoId(
+        workspacePath,
         oldRepoId,
         newRepoId,
         "user-initiated",

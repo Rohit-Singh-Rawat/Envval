@@ -185,6 +185,12 @@ export class SyncManager implements Disposable {
       return;
     }
 
+    // Fetch once before the loop — same key for every file, no point awaiting per-iteration.
+    const key = await this.getEncryptionKey();
+    if (!key) {
+      return;
+    }
+
     let syncedAny = false;
     try {
       for (const localMeta of trackedEnvs) {
@@ -214,11 +220,6 @@ export class SyncManager implements Disposable {
           }
 
           if (!remoteEnv?.content) {
-            continue;
-          }
-
-          const key = await this.getEncryptionKey();
-          if (!key) {
             continue;
           }
 
@@ -425,8 +426,7 @@ export class SyncManager implements Disposable {
     let statusBarActive = false;
 
     try {
-      const metadata =
-        existingMetadata ?? (await this.metadataStore.loadEnvMetadata(envId));
+      const metadata = existingMetadata;
 
       if (!metadata) {
         await this.envInitService.maybeInitializeOrRestore(uri);
