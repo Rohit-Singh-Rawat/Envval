@@ -22,20 +22,20 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 
 function loadEnv(filePath) {
-  if (!fs.existsSync(filePath)) return;
+  if (!fs.existsSync(filePath)) {return;}
 
   for (const line of fs.readFileSync(filePath, "utf-8").split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (!trimmed || trimmed.startsWith("#")) {continue;}
 
     const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
+    if (eqIdx === -1) {continue;}
 
     const key = trimmed.slice(0, eqIdx).trim();
     const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
 
     // Existing env vars take precedence over the .env file
-    if (key && !(key in process.env)) process.env[key] = val;
+    if (key && !(key in process.env)) {process.env[key] = val;}
   }
 }
 

@@ -128,10 +128,10 @@ export class EnvCacheService implements Disposable {
 
   private removeFileFromIndex(fileName: string): void {
     const fileVars = this.fileCache.get(fileName);
-    if (!fileVars) return;
+    if (!fileVars) {return;}
     for (const variable of fileVars.values()) {
       const entries = this.keyIndex.get(variable.key);
-      if (!entries) continue;
+      if (!entries) {continue;}
       const updated = entries.filter((v) => v.fileName !== fileName);
       if (updated.length === 0) {
         this.keyIndex.delete(variable.key);

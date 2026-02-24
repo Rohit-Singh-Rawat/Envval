@@ -118,7 +118,7 @@ export class EnvInitService {
     StatusBar.getInstance().setLoading(true, "Validating workspace...");
     try {
       const ctx = await this.resolveWorkspaceContext();
-      if (!ctx) return;
+      if (!ctx) {return;}
 
       const { workspacePath, workspace, identityStore, migrationService } = ctx;
 
@@ -145,7 +145,7 @@ export class EnvInitService {
         workspacePath,
         force,
       );
-      if (!registered) return;
+      if (!registered) {return;}
 
       await this.syncRepoEnvs(workspace.repoId, workspacePath);
 

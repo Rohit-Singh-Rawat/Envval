@@ -68,7 +68,7 @@ export class EnvvalMetadataStore {
     fileName: string,
   ): Promise<EnvMetadata | undefined> {
     const envId = this.getOrBuildIndex().get(fileName);
-    if (!envId) return undefined;
+    if (!envId) {return undefined;}
     const stored =
       this.ctx.workspaceState.get<EnvvalMetadataStorage>(
         METADATA_STORAGE_KEY,
