@@ -2,9 +2,10 @@
 
 **Stop committing secrets to Git. Start syncing them securely.**
 
-<p align="center">
-  <img src="./assets/envval.gif" alt="Envval Demo" width="100%" />
+<p align="center"> 
+<img src='https://github.com/user-attachments/assets/5b7292f8-eb15-4374-bf73-da5c6a734be5' />
 </p>
+
 
 Envval is a production-grade VS Code extension that automatically synchronizes your `.env` files across devices with military-grade encryption. Your secrets stay encrypted — we can't read them, and neither can anyone else.
 
