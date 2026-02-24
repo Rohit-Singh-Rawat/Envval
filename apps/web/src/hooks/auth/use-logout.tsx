@@ -14,6 +14,7 @@ export function useLogout() {
       // Best-effort: clear local keys first. On failure we still sign out
       // so the user is never left in a half-authenticated state.
       await clearDeviceKeys().catch(() => undefined);
+      localStorage.removeItem("envval_onboarding_completed");
       await authClient.signOut();
       await navigate({ to: "/" });
     } catch {

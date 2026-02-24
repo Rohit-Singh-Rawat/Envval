@@ -190,7 +190,12 @@ function Authenticate({ mode = "login" }: AuthenticateProps) {
       if (error) throw error;
     },
     onSuccess: async () => {
-      toastKeyMaterialSync(registerDeviceAndFetchKeyMaterial()).catch(() => {});
+      try {
+        await toastKeyMaterialSync(registerDeviceAndFetchKeyMaterial());
+      } catch (e) {
+        // Proceed to sign-in regardless if key sync fails here. 
+        // The UI will show the failure toast naturally via toastKeyMaterialSync.
+      }
 
       if (mode === "signup") {
         navigate({

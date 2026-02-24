@@ -15,6 +15,7 @@ import {
 } from "hugeicons-react";
 import { useState } from "react";
 import { useDeleteAccount, useDeleteAllRepos } from "@/hooks/user/use-user";
+import { useLogout } from "@/hooks/auth/use-logout";
 import { normalizeClientError } from "@/lib/error";
 import { toast } from "@/lib/toast";
 import { InlineCopyButton } from "../repos/delete-repo-dialog";
@@ -38,6 +39,7 @@ export function DangerZoneSection() {
   const deleteAllRepos = useDeleteAllRepos();
   const deleteAccount = useDeleteAccount();
   const navigate = useNavigate();
+  const { logout } = useLogout();
 
   const handleDeleteRepos = async () => {
     try {
@@ -65,8 +67,8 @@ export function DangerZoneSection() {
       await deleteAccount.mutateAsync(confirmText);
       toast.success("Account deleted");
       setShowDeleteAccount(false);
-      // Redirect to home/login after account deletion
-      window.location.href = "/";
+      // Clear local auth state and device keys, then redirect
+      await logout();
     } catch (error) {
       const { message, kind } = normalizeClientError(
         error,
